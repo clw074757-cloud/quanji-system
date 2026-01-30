@@ -223,7 +223,7 @@
 
             <div class="card">
                 <div class="flex justify-between border-b border-[#7f1d1d] pb-3 mb-3">
-                    <span class="font-bold text-[#fca5a5] text-lg">本月總薪資預估</span>
+                    <span class="font-bold text-[#fca5a5] text-lg">本週應付薪資 (週領)</span>
                     <span id="total-wage" class="font-black text-[#dc2626] text-3xl font-mono">$0</span>
                 </div>
                 <div id="employee-list" class="space-y-3"></div>
@@ -385,7 +385,7 @@
                 const myRecs = allData.filter(r => r.type === 'clock' && r.employee_name === currentUser.employee_name).slice(0, 20);
                 document.getElementById('my-records-list').innerHTML = myRecs.map(r => {
                     const otDisplay = getOvertimeDisplay(r);
-                    const locDisplay = r.location ? `<a href="https://www.google.com/maps?q=${r.location}" target="_blank" class="map-link">📍 查看地圖 (${r.location})</a>` : '';
+                    const locDisplay = r.location ? `<a href="https://www.google.com/maps/search/?api=1&query=${r.location}" target="_blank" class="map-link">📍 查看地圖 (${r.location})</a>` : '';
                     return `
                     <div class="flex justify-between items-center p-4 bg-[#171717] rounded-xl border-l-8 ${r.check_type==='上班'?'border-l-green-600':'border-l-orange-600'} border-2 border-[#262626] shadow-sm mb-2">
                         <div class="flex flex-col">
@@ -406,10 +406,28 @@
             if (isAdmin) {
                 let totalSalary = 0;
                 const empDays = {};
+                
+                // 修正：將「本月」改為「本週 (週一至週日)」
+                const now = new Date();
+                const dayOfWeek = now.getDay(); // 0(週日) - 6(週六)
+                // 計算本週一的日期 (如果今天是週日，週一就是6天前；如果今天是週一，週一就是今天)
+                // 這裡的邏輯：JS的週日是0，我們要把週一當作每週第一天
+                const distanceToMonday = (dayOfWeek + 6) % 7;
+                const monday = new Date(now);
+                monday.setDate(now.getDate() - distanceToMonday);
+                monday.setHours(0,0,0,0);
+
+                const nextMonday = new Date(monday);
+                nextMonday.setDate(monday.getDate() + 7);
+
                 allData.filter(r => r.type === 'clock').forEach(r => {
-                   const day = new Date(r.timestamp).toDateString();
-                   if(!empDays[r.employee_name]) empDays[r.employee_name] = new Set();
-                   empDays[r.employee_name].add(day);
+                   const t = new Date(r.timestamp);
+                   // 只計算本週 (大於等於本週一，小於下週一)
+                   if(t >= monday && t < nextMonday) {
+                       const day = t.toDateString();
+                       if(!empDays[r.employee_name]) empDays[r.employee_name] = new Set();
+                       empDays[r.employee_name].add(day);
+                   }
                 });
 
                 document.getElementById('employee-list').innerHTML = emps.map(e => {
@@ -421,7 +439,7 @@
                     <div class="flex justify-between items-center p-4 bg-[#171717] rounded-xl border-2 border-[#262626]">
                         <div>
                             <div class="font-black text-lg text-[#fca5a5]">${e.employee_name} <span class="text-sm text-[#7f1d1d]">(${e.employee_id})</span></div>
-                            <div class="text-sm font-bold text-[#7f1d1d]">$${wage}/日 (工${days}天)</div>
+                            <div class="text-sm font-bold text-[#7f1d1d]">$${wage}/日 (本週工${days}天)</div>
                         </div>
                         <div class="flex flex-col items-end gap-1">
                             <div class="font-black text-[#dc2626] text-xl">$${pay.toLocaleString()}</div>
@@ -438,7 +456,7 @@
                 document.getElementById('admin-clock-list').innerHTML = clocks.map(r => {
                     const time = new Date(r.timestamp).toLocaleString('zh-TW', {month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit'});
                     const otDisplay = getOvertimeDisplay(r);
-                    const locDisplay = r.location ? `<a href="https://www.google.com/maps?q=${r.location}" target="_blank" class="map-link">📍 查看地圖</a>` : '';
+                    const locDisplay = r.location ? `<a href="https://www.google.com/maps/search/?api=1&query=${r.location}" target="_blank" class="map-link">📍 查看地圖</a>` : '';
                     return `
                     <div class="flex justify-between items-center p-3 bg-[#171717] rounded-lg border border-[#262626] shadow-sm relative group">
                         <div class="flex flex-col">
