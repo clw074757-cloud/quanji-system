@@ -59,7 +59,6 @@
         .btn:active { transform: translateY(4px); box-shadow: none; }
         .btn-primary { background-color: #dc2626; } 
         .btn-secondary { background-color: #404040; color: #fca5a5; } 
-        .btn-small { padding: 8px 16px; font-size: 16px; border-radius: 8px; }
         
         /* 底部導航 */
         .nav-bar { background-color: #0f0f0f; border-top: 2px solid #7f1d1d; }
@@ -117,11 +116,6 @@
             
             <div id="edit-time-group">
                 <label class="text-label">時間</label>
-                <div class="flex gap-2 mb-2">
-                    <button onclick="setEditTime('now')" class="flex-1 bg-[#262626] text-[#dc2626] border border-[#7f1d1d] rounded py-1 font-bold text-sm">現在</button>
-                    <button onclick="adjustEditTime(-10)" class="flex-1 bg-[#262626] text-[#fca5a5] border border-[#7f1d1d] rounded py-1 font-bold text-sm">-10分</button>
-                    <button onclick="adjustEditTime(10)" class="flex-1 bg-[#262626] text-[#fca5a5] border border-[#7f1d1d] rounded py-1 font-bold text-sm">+10分</button>
-                </div>
                 <input id="edit-time" type="datetime-local" class="input-box" style="color-scheme: dark;">
             </div>
 
@@ -282,7 +276,6 @@
             }
             await loadData();
             
-            // 修正：檢查自動登入
             const savedId = localStorage.getItem('last_user_id');
             if (savedId) {
                 const user = allData.find(r => r.type === 'employee' && r.employee_id === savedId);
@@ -323,7 +316,6 @@
             const user = allData.find(r => r.type === 'employee' && r.employee_id === id);
 
             if(user && user.password === pwd) {
-                // 修正：儲存登入狀態
                 localStorage.setItem('last_user_id', user.employee_id);
                 currentUser = user;
                 performLogin(user);
@@ -372,8 +364,10 @@
             const firstClockInTime = Math.min(...timestamps);
             const durationMs = currentObj.getTime() - firstClockInTime;
             const durationHrs = durationMs / (1000 * 60 * 60);
-            if (durationHrs > 8) {
-                const ot = durationHrs - 8;
+            
+            // 修正：超過9小時 (8小時工時 + 1小時午休) 才算加班
+            if (durationHrs > 9) {
+                const ot = durationHrs - 9;
                 return `<span class="text-[#dc2626] font-black text-sm ml-2 bg-[#262626] px-2 py-1 rounded-full border border-[#7f1d1d]">加班 ${ot.toFixed(1)}h</span>`;
             }
             return '';
@@ -605,23 +599,6 @@
                 }
             }
             document.getElementById('edit-modal').classList.remove('hidden');
-        }
-
-        // 修正：時間調整按鈕功能
-        function adjustEditTime(minutes) {
-            const input = document.getElementById('edit-time');
-            if(!input.value) { setEditTime('now'); return; }
-            const date = new Date(input.value);
-            date.setMinutes(date.getMinutes() + minutes);
-            date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
-            input.value = date.toISOString().slice(0,16);
-        }
-
-        function setEditTime(mode) {
-            const input = document.getElementById('edit-time');
-            const now = new Date();
-            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-            input.value = now.toISOString().slice(0,16);
         }
 
         function closeEdit() { document.getElementById('edit-modal').classList.add('hidden'); }
