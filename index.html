@@ -10,8 +10,8 @@
         /* --- 極致紅黑主題 --- */
         body { 
             font-family: 'Noto Sans TC', sans-serif; 
-            background-color: #000000; /* 純黑背景 */
-            color: #fca5a5; /* 淺紅色文字 */
+            background-color: #000000; 
+            color: #fca5a5; 
             font-size: 18px; 
             -webkit-tap-highlight-color: transparent; 
         }
@@ -19,12 +19,12 @@
         
         /* 卡片設計 */
         .card { 
-            background: #171717; /* 極深灰 */
+            background: #171717; 
             padding: 24px; 
             border-radius: 16px; 
             box-shadow: 0 4px 15px rgba(220, 38, 38, 0.1); 
             margin-bottom: 20px; 
-            border: 2px solid #7f1d1d; /* 深紅邊框 */
+            border: 2px solid #7f1d1d; 
         }
         
         /* 輸入框 */
@@ -59,6 +59,7 @@
         .btn:active { transform: translateY(4px); box-shadow: none; }
         .btn-primary { background-color: #dc2626; } 
         .btn-secondary { background-color: #404040; color: #fca5a5; } 
+        .btn-small { padding: 8px 16px; font-size: 16px; border-radius: 8px; }
         
         /* 底部導航 */
         .nav-bar { background-color: #0f0f0f; border-top: 2px solid #7f1d1d; }
@@ -116,6 +117,11 @@
             
             <div id="edit-time-group">
                 <label class="text-label">時間</label>
+                <div class="flex gap-2 mb-2">
+                    <button onclick="setEditTime('now')" class="flex-1 bg-[#262626] text-[#dc2626] border border-[#7f1d1d] rounded py-1 font-bold text-sm">現在</button>
+                    <button onclick="adjustEditTime(-10)" class="flex-1 bg-[#262626] text-[#fca5a5] border border-[#7f1d1d] rounded py-1 font-bold text-sm">-10分</button>
+                    <button onclick="adjustEditTime(10)" class="flex-1 bg-[#262626] text-[#fca5a5] border border-[#7f1d1d] rounded py-1 font-bold text-sm">+10分</button>
+                </div>
                 <input id="edit-time" type="datetime-local" class="input-box" style="color-scheme: dark;">
             </div>
 
@@ -210,6 +216,8 @@
         </div>
 
         <div id="page-admin" class="hidden">
+            <button onclick="manualRefresh()" class="btn btn-secondary mb-4 border border-[#dc2626] shadow-lg">🔄 更新數據</button>
+
             <div class="card">
                 <h2 class="font-black text-[#dc2626] text-xl mb-4">👤 員工管理</h2>
                 <div class="grid grid-cols-2 gap-3 mb-3">
@@ -273,6 +281,16 @@
                 document.getElementById('gps-status').innerText = "⚠️ 裝置不支援定位";
             }
             await loadData();
+            
+            // 修正：檢查自動登入
+            const savedId = localStorage.getItem('last_user_id');
+            if (savedId) {
+                const user = allData.find(r => r.type === 'employee' && r.employee_id === savedId);
+                if (user) {
+                    currentUser = user;
+                    performLogin(user);
+                }
+            }
         };
 
         async function loadData() {
@@ -287,6 +305,15 @@
             }
         }
 
+        async function manualRefresh() {
+            const btn = document.querySelector('button[onclick="manualRefresh()"]');
+            const originalText = btn.innerText;
+            btn.innerText = "更新中...";
+            await loadData();
+            btn.innerText = "✅ 已更新";
+            setTimeout(() => btn.innerText = originalText, 1000);
+        }
+
         function doLogin() {
             const id = document.getElementById('login-id').value.trim();
             const pwd = document.getElementById('login-pwd').value.trim();
@@ -296,17 +323,23 @@
             const user = allData.find(r => r.type === 'employee' && r.employee_id === id);
 
             if(user && user.password === pwd) {
+                // 修正：儲存登入狀態
+                localStorage.setItem('last_user_id', user.employee_id);
                 currentUser = user;
-                document.getElementById('login-screen').classList.add('hidden');
-                document.getElementById('welcome-name').innerText = user.employee_name;
-                document.getElementById('user-role-display').innerText = user.is_admin ? '管理員 (老闆)' : '員工';
-                msg.innerText = "";
-                setupNav();
-                render();
-                if(user.is_admin) nav('admin'); else nav('clock');
+                performLogin(user);
             } else {
                 msg.innerText = "帳號或密碼錯誤";
             }
+        }
+
+        function performLogin(user) {
+            document.getElementById('login-screen').classList.add('hidden');
+            document.getElementById('welcome-name').innerText = user.employee_name;
+            document.getElementById('user-role-display').innerText = user.is_admin ? '管理員 (老闆)' : '員工';
+            document.getElementById('login-msg').innerText = "";
+            setupNav();
+            render();
+            if(user.is_admin) nav('admin'); else nav('clock');
         }
 
         function setupNav() {
@@ -407,11 +440,8 @@
                 let totalSalary = 0;
                 const empDays = {};
                 
-                // 修正：將「本月」改為「本週 (週一至週日)」
                 const now = new Date();
-                const dayOfWeek = now.getDay(); // 0(週日) - 6(週六)
-                // 計算本週一的日期 (如果今天是週日，週一就是6天前；如果今天是週一，週一就是今天)
-                // 這裡的邏輯：JS的週日是0，我們要把週一當作每週第一天
+                const dayOfWeek = now.getDay(); 
                 const distanceToMonday = (dayOfWeek + 6) % 7;
                 const monday = new Date(now);
                 monday.setDate(now.getDate() - distanceToMonday);
@@ -422,7 +452,6 @@
 
                 allData.filter(r => r.type === 'clock').forEach(r => {
                    const t = new Date(r.timestamp);
-                   // 只計算本週 (大於等於本週一，小於下週一)
                    if(t >= monday && t < nextMonday) {
                        const day = t.toDateString();
                        if(!empDays[r.employee_name]) empDays[r.employee_name] = new Set();
@@ -578,6 +607,23 @@
             document.getElementById('edit-modal').classList.remove('hidden');
         }
 
+        // 修正：時間調整按鈕功能
+        function adjustEditTime(minutes) {
+            const input = document.getElementById('edit-time');
+            if(!input.value) { setEditTime('now'); return; }
+            const date = new Date(input.value);
+            date.setMinutes(date.getMinutes() + minutes);
+            date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
+            input.value = date.toISOString().slice(0,16);
+        }
+
+        function setEditTime(mode) {
+            const input = document.getElementById('edit-time');
+            const now = new Date();
+            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+            input.value = now.toISOString().slice(0,16);
+        }
+
         function closeEdit() { document.getElementById('edit-modal').classList.add('hidden'); }
         
         async function saveEdit() {
@@ -612,7 +658,11 @@
             }
         }
 
-        function logout() { location.reload(); }
+        function logout() { 
+            // 修正：登出時清除儲存
+            localStorage.removeItem('last_user_id');
+            location.reload(); 
+        }
         function nav(p) { 
             ['clock', 'bulletin', 'admin'].forEach(v => {
                 const el = document.getElementById('page-'+v);
