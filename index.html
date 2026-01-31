@@ -31,15 +31,15 @@
         .input-box { 
             width: 100%; 
             padding: 16px; 
-            background-color: #262626 !important; /* 強制深色背景 */
+            background-color: #262626 !important; 
             border: 2px solid #7f1d1d; 
             border-radius: 12px; 
             font-size: 18px; 
             font-weight: bold;
             outline: none; 
             margin-bottom: 12px; 
-            color: #fca5a5 !important; /* 強制淺紅文字 */
-            display: block; /* 確保佔滿一行 */
+            color: #fca5a5 !important; 
+            display: block; 
             box-sizing: border-box;
         }
         .input-box::placeholder { color: #7f1d1d; opacity: 1; }
@@ -92,10 +92,22 @@
             color: #b91c1c; 
             font-weight: bold; 
             margin-bottom: 6px; 
-            display: block; /* 確保標籤換行 */
+            display: block; 
             font-size: 16px;
         }
         .map-link { color: #ef4444; text-decoration: underline; font-size: 0.9rem; font-weight: bold; }
+
+        /* 讀取中動畫 (Spinner) */
+        .loader {
+            border: 8px solid #262626;
+            border-top: 8px solid #dc2626;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body class="flex flex-col h-full">
@@ -125,13 +137,18 @@
         </div>
     </div>
 
+    <div id="loading-overlay" class="fixed inset-0 bg-black/95 z-[200] hidden flex flex-col items-center justify-center">
+        <div class="loader"></div>
+        <div id="loading-text" class="text-[#fca5a5] font-black text-xl animate-pulse">處理中...</div>
+    </div>
+
     <div id="edit-modal" class="fixed inset-0 bg-black/90 z-[80] hidden flex items-center justify-center p-4">
         <div class="bg-[#171717] w-full max-w-md p-6 rounded-2xl border-2 border-[#dc2626]">
             <h3 class="text-2xl font-black mb-4 text-[#dc2626]">✏️ 修改資料</h3>
             <input type="hidden" id="edit-id"><input type="hidden" id="edit-type">
             
             <label class="text-label">名稱</label>
-            <input id="edit-name" class="input-box" readonly style="opacity: 0.5;">
+            <input id="edit-name" class="input-box">
             
             <div id="edit-time-group">
                 <label class="text-label">時間</label>
@@ -362,7 +379,12 @@
         function performLogin(user) {
             document.getElementById('login-screen').classList.add('hidden');
             document.getElementById('welcome-name').innerText = user.employee_name;
-            document.getElementById('user-role-display').innerText = user.is_admin ? '管理員 (老闆)' : '員工';
+            
+            // 【修正】這裡改成顯示「姓名 (管理員)」而不是寫死「老闆」
+            // 這樣如果有多個管理員，或者名稱變更，都能正確顯示
+            const roleText = user.is_admin ? ' (管理員)' : ' (員工)';
+            document.getElementById('user-role-display').innerText = user.employee_name + roleText;
+            
             document.getElementById('login-msg').innerText = "";
             setupNav();
             render();
@@ -549,19 +571,34 @@
             const note = document.getElementById('prog-note').value;
             const fileInput = document.getElementById('file-upload');
             if(!proj) return alert("請輸入工程名稱");
+            
+            // 【修正】顯示讀取動畫
+            const loadingOverlay = document.getElementById('loading-overlay');
+            const loadingText = document.getElementById('loading-text');
+            loadingOverlay.classList.remove('hidden');
+            
             let imgUrls = [];
             if(fileInput.files.length > 0) {
-                document.querySelector('.btn-primary').innerText = "照片上傳中...";
+                loadingText.innerText = `正在上傳照片 (0/${fileInput.files.length})...`;
                 for(let i=0; i<fileInput.files.length; i++) {
+                    // 更新進度文字
+                    loadingText.innerText = `正在上傳照片 (${i+1}/${fileInput.files.length})...`;
                     const url = await uploadFileAPI(fileInput.files[i]);
                     if(url) imgUrls.push(url);
                 }
             }
+            
+            loadingText.innerText = "正在儲存回報...";
+            
             if(await insertData('progress', { employee_name: name, project_name: proj, progress: val, notes: note, image_url: imgUrls, timestamp: new Date().toISOString(), location: currentLocation })) {
                 alert("發佈成功"); 
                 document.getElementById('prog-project').value = ''; document.getElementById('prog-note').value = ''; 
-                clearImages(); document.querySelector('.btn-primary').innerText = "發佈回報"; await loadData();
-            } else { document.querySelector('.btn-primary').innerText = "發佈回報"; alert("發佈失敗"); }
+                clearImages(); await loadData();
+            } else { 
+                alert("發佈失敗"); 
+            }
+            // 隱藏讀取動畫
+            loadingOverlay.classList.add('hidden');
         }
 
         function previewImages(input) {
@@ -638,6 +675,8 @@
             delete payload.id; delete payload.type; delete payload.created_at;
             
             if(type === 'employee') {
+                // 如果在編輯員工模式，更新名字、日薪、密碼
+                payload.employee_name = document.getElementById('edit-name').value;
                 payload.wage = document.getElementById('edit-wage').value;
                 payload.password = document.getElementById('edit-pwd').value;
             } else {
