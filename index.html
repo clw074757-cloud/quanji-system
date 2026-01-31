@@ -229,14 +229,6 @@
                     </div>
                     
                     <div>
-                        <label class="text-label">目前進度</label>
-                        <div class="flex items-center gap-3">
-                            <input id="prog-val" type="range" min="0" max="100" value="50" class="flex-1 accent-[#dc2626] h-4 bg-[#404040] rounded-lg appearance-none cursor-pointer" oninput="this.nextElementSibling.innerText=this.value+'%'">
-                            <div class="font-black text-[#dc2626] w-16 text-right text-2xl">50%</div>
-                        </div>
-                    </div>
-
-                    <div>
                         <label class="text-label">備註說明</label>
                         <textarea id="prog-note" rows="2" placeholder="施工內容備註..." class="input-box"></textarea>
                     </div>
@@ -380,8 +372,6 @@
             document.getElementById('login-screen').classList.add('hidden');
             document.getElementById('welcome-name').innerText = user.employee_name;
             
-            // 【修正】這裡改成顯示「姓名 (管理員)」而不是寫死「老闆」
-            // 這樣如果有多個管理員，或者名稱變更，都能正確顯示
             const roleText = user.is_admin ? ' (管理員)' : ' (員工)';
             document.getElementById('user-role-display').innerText = user.employee_name + roleText;
             
@@ -567,12 +557,13 @@
         async function submitProgress() {
             const name = currentUser.employee_name;
             const proj = document.getElementById('prog-project').value;
-            const val = document.getElementById('prog-val').value + '%';
+            // 【修正】這裡的進度值改成空字串，因為拉條已經被移除了
+            const val = ""; 
             const note = document.getElementById('prog-note').value;
             const fileInput = document.getElementById('file-upload');
             if(!proj) return alert("請輸入工程名稱");
             
-            // 【修正】顯示讀取動畫
+            // 顯示讀取動畫
             const loadingOverlay = document.getElementById('loading-overlay');
             const loadingText = document.getElementById('loading-text');
             loadingOverlay.classList.remove('hidden');
@@ -581,7 +572,6 @@
             if(fileInput.files.length > 0) {
                 loadingText.innerText = `正在上傳照片 (0/${fileInput.files.length})...`;
                 for(let i=0; i<fileInput.files.length; i++) {
-                    // 更新進度文字
                     loadingText.innerText = `正在上傳照片 (${i+1}/${fileInput.files.length})...`;
                     const url = await uploadFileAPI(fileInput.files[i]);
                     if(url) imgUrls.push(url);
@@ -597,7 +587,6 @@
             } else { 
                 alert("發佈失敗"); 
             }
-            // 隱藏讀取動畫
             loadingOverlay.classList.add('hidden');
         }
 
@@ -675,7 +664,6 @@
             delete payload.id; delete payload.type; delete payload.created_at;
             
             if(type === 'employee') {
-                // 如果在編輯員工模式，更新名字、日薪、密碼
                 payload.employee_name = document.getElementById('edit-name').value;
                 payload.wage = document.getElementById('edit-wage').value;
                 payload.password = document.getElementById('edit-pwd').value;
