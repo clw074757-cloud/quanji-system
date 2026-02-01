@@ -352,7 +352,8 @@
         // 設定 Supabase 與基本參數
         const PROJECT_URL = 'https://vegqsdqxnvqupmzsgbpt.supabase.co';
         const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZlZ3FzZHF4bnZxdXBtenNnYnB0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk3OTI0MDAsImV4cCI6MjA4NTM2ODQwMH0.ZHluSDbAD_ih4GH25ZBXZGogorfNUfBOcICb5pvhIq0';
-        const supabase = supabase.createClient(PROJECT_URL, ANON_KEY);
+        // 【修正變數名稱】避免衝突，改用 supabaseClient
+        const supabaseClient = window.supabase.createClient(PROJECT_URL, ANON_KEY);
         const DB_URL = `${PROJECT_URL}/rest/v1/construction_records`;
         const STORAGE_URL = `${PROJECT_URL}/storage/v1/object/site_photos`;
         const HEADERS = { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=representation' };
@@ -918,7 +919,7 @@
         }
 
         function setupRealtimeListener() {
-            const channel = supabase.channel('room1')
+            const channel = supabaseClient.channel('room1')
                 .on(
                     'postgres_changes',
                     { event: 'INSERT', schema: 'public', table: 'construction_records' },
