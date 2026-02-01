@@ -61,6 +61,23 @@
             background-size: 1.5em;
         }
 
+        /* Checkbox 樣式 */
+        .custom-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px;
+            background: #262626;
+            border: 1px solid #7f1d1d;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        .custom-checkbox input {
+            width: 20px;
+            height: 20px;
+            accent-color: #dc2626;
+        }
+
         /* 按鈕樣式 */
         .btn { 
             width: 100%; 
@@ -79,7 +96,7 @@
         .btn:active { transform: translateY(4px); box-shadow: none; }
         .btn-primary { background-color: #dc2626; } 
         .btn-secondary { background-color: #404040; color: #fca5a5; } 
-        .btn-warning { background-color: #f59e0b; color: #000000; } /* 黃色按鈕 */
+        .btn-warning { background-color: #f59e0b; color: #000000; } 
         
         /* 底部導航 */
         .nav-bar { background-color: #0f0f0f; border-top: 2px solid #7f1d1d; }
@@ -160,7 +177,7 @@
     </div>
 
     <div id="edit-modal" class="fixed inset-0 bg-black/90 z-[80] hidden flex items-center justify-center p-4">
-        <div class="bg-[#171717] w-full max-w-md p-6 rounded-2xl border-2 border-[#dc2626]">
+        <div class="bg-[#171717] w-full max-w-md p-6 rounded-2xl border-2 border-[#dc2626] max-h-[90vh] overflow-y-auto">
             <h3 class="text-2xl font-black mb-4 text-[#dc2626]">✏️ 修改資料</h3>
             <input type="hidden" id="edit-id"><input type="hidden" id="edit-type">
             
@@ -184,7 +201,10 @@
             </div>
             
             <div id="edit-dispatch-area" class="hidden">
-                <label class="text-label">指派員工</label><input id="edit-dispatch-emp" class="input-box" readonly>
+                <label class="text-label">指派負責人</label><input id="edit-dispatch-emp" class="input-box" readonly>
+                <label class="text-label">陪同人員</label>
+                <div id="edit-dispatch-partners-list" class="grid grid-cols-2 gap-2 mb-3"></div>
+                
                 <label class="text-label">施工地點</label><input id="edit-dispatch-loc" class="input-box">
                 <label class="text-label">任務內容</label><textarea id="edit-dispatch-note" class="input-box" rows="3"></textarea>
             </div>
@@ -297,7 +317,7 @@
                 <div class="space-y-3">
                     <div class="grid grid-cols-2 gap-3">
                         <div>
-                            <label class="text-label">指派員工</label>
+                            <label class="text-label">指派負責人</label>
                             <select id="dispatch-emp-select" class="input-box"></select>
                         </div>
                         <div>
@@ -305,6 +325,13 @@
                             <input type="date" id="dispatch-date" class="input-box" style="color-scheme: dark;">
                         </div>
                     </div>
+                    
+                    <div>
+                        <label class="text-label">陪同人員 (勾選)</label>
+                        <div id="dispatch-partners-list" class="grid grid-cols-2 gap-2 bg-[#262626] p-3 rounded border border-[#7f1d1d]">
+                            </div>
+                    </div>
+
                     <div>
                         <label class="text-label">施工地點 / 案場</label>
                         <input id="dispatch-loc" placeholder="輸入地點" class="input-box">
@@ -352,7 +379,6 @@
         // 設定 Supabase 與基本參數
         const PROJECT_URL = 'https://vegqsdqxnvqupmzsgbpt.supabase.co';
         const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZlZ3FzZHF4bnZxdXBtenNnYnB0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk3OTI0MDAsImV4cCI6MjA4NTM2ODQwMH0.ZHluSDbAD_ih4GH25ZBXZGogorfNUfBOcICb5pvhIq0';
-        // 【修正變數名稱】避免衝突，改用 supabaseClient
         const supabaseClient = window.supabase.createClient(PROJECT_URL, ANON_KEY);
         const DB_URL = `${PROJECT_URL}/rest/v1/construction_records`;
         const STORAGE_URL = `${PROJECT_URL}/storage/v1/object/site_photos`;
@@ -462,18 +488,23 @@
                 const todayStr = new Date().toISOString().split('T')[0];
                 const myMissions = allData.filter(r => 
                     r.type === 'dispatch' && 
-                    r.employee_name === currentUser.employee_name && 
+                    (r.employee_name === currentUser.employee_name || (r.partners && r.partners.includes(currentUser.employee_name))) && 
                     r.timestamp.startsWith(todayStr)
                 );
                 
                 const missionContainer = document.getElementById('today-mission-container');
                 if(myMissions.length > 0) {
                     const m = myMissions[0]; 
+                    // 顯示陪同人員
+                    const partnerText = m.partners ? `<div class="mt-1 text-sm text-[#fca5a5]">👥 陪同：<span class="font-bold">${m.partners}</span></div>` : '';
+                    
                     missionContainer.innerHTML = `
                         <div class="card card-highlight border-l-8 border-l-yellow-500 mb-6 relative">
                             <div class="absolute -top-3 -right-2 bg-yellow-500 text-black font-black px-3 py-1 rounded-full shadow-lg transform rotate-3">今日任務</div>
                             <h3 class="text-xl font-black text-yellow-500 mb-2">🚀 任務指派</h3>
+                            <div class="mb-1"><span class="text-[#7f1d1d] font-bold">負責：</span><span class="text-[#fca5a5] font-bold text-lg">${m.employee_name}</span></div>
                             <div class="mb-1"><span class="text-[#7f1d1d] font-bold">地點：</span><span class="text-[#fca5a5] font-bold text-lg">${m.project_name}</span></div>
+                            ${partnerText}
                             <div class="bg-[#262626] p-3 rounded border border-yellow-900/30 text-[#fca5a5] font-bold mt-2">${m.notes}</div>
                         </div>
                     `;
@@ -482,16 +513,16 @@
                 }
             }
 
-            // 2. 渲染「全體任務總覽」列表 (新頁面)
-            // 篩選所有派工單，不分人，依照時間排序
+            // 2. 渲染「全體任務總覽」列表
             const allTasks = allData.filter(r => r.type === 'dispatch').sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
             document.getElementById('public-task-list').innerHTML = allTasks.map(t => {
                 const dateStr = t.timestamp.split('T')[0];
-                // 檢查是否是今天，給予不同標示
                 const isToday = dateStr === new Date().toISOString().split('T')[0];
                 const dateBadge = isToday 
                     ? `<span class="bg-yellow-500 text-black px-2 py-0.5 rounded text-xs font-black">今天</span>`
                     : `<span class="bg-[#262626] text-[#7f1d1d] px-2 py-0.5 rounded text-xs font-bold border border-[#7f1d1d]">${dateStr}</span>`;
+                
+                const partnerBadge = t.partners ? `<div class="text-sm text-yellow-700 mt-1 font-bold">👥 陪同：${t.partners}</div>` : '';
 
                 return `
                     <div class="bg-[#171717] border border-yellow-900/50 rounded-xl p-4 shadow-sm">
@@ -505,7 +536,8 @@
                             <span class="text-[#7f1d1d] font-bold text-sm">地點：</span>
                             <span class="text-[#fca5a5] font-bold">${t.project_name}</span>
                         </div>
-                        <div class="text-[#fca5a5] text-sm bg-[#262626] p-2 rounded border border-[#7f1d1d]/30">
+                        ${partnerBadge}
+                        <div class="text-[#fca5a5] text-sm bg-[#262626] p-2 rounded border border-[#7f1d1d]/30 mt-2">
                             ${t.notes}
                         </div>
                     </div>
@@ -571,18 +603,25 @@
                 const dispatchSelect = document.getElementById('dispatch-emp-select');
                 dispatchSelect.innerHTML = emps.map(e => `<option value="${e.employee_name}">${e.employee_name}</option>`).join('');
                 
-                // (B) 渲染派工列表 (後台簡易版)
-                const today = new Date();
-                today.setHours(0,0,0,0);
-                const dispatches = allData.filter(r => r.type === 'dispatch'); // 顯示所有歷史，或可自行過濾
-                
+                // (B) 填入陪同人員 Checkbox (新增功能)
+                const partnerContainer = document.getElementById('dispatch-partners-list');
+                partnerContainer.innerHTML = emps.map(e => `
+                    <label class="custom-checkbox">
+                        <input type="checkbox" value="${e.employee_name}">
+                        <span class="text-[#fca5a5] font-bold">${e.employee_name}</span>
+                    </label>
+                `).join('');
+
+                // (C) 渲染派工列表
+                const dispatches = allData.filter(r => r.type === 'dispatch'); 
                 document.getElementById('dispatch-list').innerHTML = dispatches.map(d => {
                     const dateStr = d.timestamp.split('T')[0];
+                    const partnerText = d.partners ? `<br><span class="text-xs text-yellow-700">與 ${d.partners}</span>` : '';
                     return `
                         <div class="bg-[#262626] p-3 rounded border border-yellow-900 flex justify-between items-start">
                             <div>
                                 <div class="font-bold text-yellow-500">${dateStr} ➤ ${d.employee_name}</div>
-                                <div class="text-[#fca5a5] font-bold">${d.project_name}</div>
+                                <div class="text-[#fca5a5] font-bold">${d.project_name} ${partnerText}</div>
                                 <div class="text-sm text-[#7f1d1d]">${d.notes}</div>
                             </div>
                             <div class="flex gap-2">
@@ -594,7 +633,7 @@
                 }).join('') || '<div class="text-center text-[#7f1d1d] text-sm">無派工記錄</div>';
 
 
-                // (C) 薪資與員工列表
+                // (D) 薪資與員工列表
                 let totalSalary = 0;
                 const empDays = {};
                 const now = new Date();
@@ -637,7 +676,7 @@
                 }).join('');
                 document.getElementById('total-wage').innerText = '$' + totalSalary.toLocaleString();
 
-                // (D) 出勤列表
+                // (E) 出勤列表
                 const clocks = allData.filter(r => r.type === 'clock');
                 document.getElementById('admin-clock-list').innerHTML = clocks.map(r => {
                     const time = new Date(r.timestamp).toLocaleString('zh-TW', {month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit'});
@@ -670,20 +709,26 @@
             const loc = document.getElementById('dispatch-loc').value;
             const note = document.getElementById('dispatch-note').value;
             
+            // 取得陪同人員
+            const checkboxes = document.querySelectorAll('#dispatch-partners-list input[type="checkbox"]:checked');
+            const partners = Array.from(checkboxes).map(cb => cb.value).join(', ');
+
             if(!emp || !dateVal || !loc) return alert("請填寫完整派工資訊");
             
-            // 將日期轉為 ISO 格式 (加上時間 00:00:00)
             const timestamp = new Date(dateVal).toISOString();
 
             if(await insertData('dispatch', { 
                 employee_name: emp, 
-                project_name: loc, // 借用 project_name 存地點
+                project_name: loc, 
                 notes: note, 
-                timestamp: timestamp 
+                timestamp: timestamp,
+                partners: partners // 新增欄位
             })) {
                 alert("派工成功！");
                 document.getElementById('dispatch-loc').value = '';
                 document.getElementById('dispatch-note').value = '';
+                // 清空 checkbox
+                document.querySelectorAll('#dispatch-partners-list input').forEach(cb => cb.checked = false);
                 await loadData();
             } else {
                 alert("派工失敗");
@@ -816,7 +861,7 @@
             document.getElementById('edit-type').value = r.type;
             document.getElementById('edit-name').value = r.employee_name;
             
-            // 隱藏所有編輯區塊，稍後依類型打開
+            // 隱藏所有編輯區塊
             const areas = ['edit-time-group', 'edit-clock-area', 'edit-prog-area', 'edit-emp-area', 'edit-dispatch-area'];
             areas.forEach(a => document.getElementById(a).classList.add('hidden'));
 
@@ -836,6 +881,17 @@
                 document.getElementById('edit-dispatch-emp').value = r.employee_name;
                 document.getElementById('edit-dispatch-loc').value = r.project_name || '';
                 document.getElementById('edit-dispatch-note').value = r.notes || '';
+                
+                // 填入編輯用的陪同 Checkbox
+                const emps = allData.filter(x => x.type === 'employee');
+                const currentPartners = (r.partners || '').split(', ').filter(x=>x);
+                document.getElementById('edit-dispatch-partners-list').innerHTML = emps.map(e => `
+                    <label class="custom-checkbox">
+                        <input type="checkbox" value="${e.employee_name}" ${currentPartners.includes(e.employee_name) ? 'checked' : ''}>
+                        <span class="text-[#fca5a5] font-bold">${e.employee_name}</span>
+                    </label>
+                `).join('');
+
             } else {
                 // 打卡或回報
                 const dt = new Date(r.timestamp || r.created_at);
@@ -872,6 +928,9 @@
                 payload.timestamp = newTime;
                 payload.project_name = document.getElementById('edit-dispatch-loc').value;
                 payload.notes = document.getElementById('edit-dispatch-note').value;
+                // 讀取編輯後的 Checkbox
+                const checkboxes = document.querySelectorAll('#edit-dispatch-partners-list input[type="checkbox"]:checked');
+                payload.partners = Array.from(checkboxes).map(cb => cb.value).join(', ');
             } else {
                 const newTime = new Date(document.getElementById('edit-time').value).toISOString();
                 payload.timestamp = newTime;
