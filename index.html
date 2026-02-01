@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>全技工程行 - 管理系統 v3.1</title>
+    <title>全技工程行 - 管理系統 v3.2</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@500;700;900&display=swap" rel="stylesheet">
@@ -25,13 +25,10 @@
         .btn:active { transform: translateY(4px); box-shadow: none; }
         .btn-primary { background-color: #dc2626; } .btn-secondary { background-color: #404040; color: #fca5a5; } .btn-warning { background-color: #f59e0b; color: #000000; } .btn-success { background-color: #10b981; color: #000000; }
         .btn-disabled { background-color: #262626; color: #555; cursor: not-allowed; box-shadow: none; border: 1px solid #444; }
-        
-        /* 統一的操作按鈕樣式 (正方形) */
         .action-btn { width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: bold; cursor: pointer; transition: 0.2s; background-color: #262626; }
         .action-btn:active { transform: scale(0.95); }
         .btn-edit { border: 1px solid #fca5a5; color: #fca5a5; }
         .btn-del { border: 1px solid #ef4444; color: #ef4444; }
-
         .nav-bar { background-color: #0f0f0f; border-top: 2px solid #7f1d1d; }
         .nav-btn { flex: 1; text-align: center; padding: 12px; color: #7f1d1d; font-size: 14px; font-weight: 900; background: #0f0f0f; border: none; min-width: 0; }
         .nav-btn.active { color: #ef4444; background: #1a0505; border-top: 4px solid #dc2626; }
@@ -278,14 +275,20 @@
             const emps = allData.filter(r => r.type === 'employee');
             const today = new Date(); today.setHours(0,0,0,0);
 
+            // 員工端：任務
             const myMissions = allData.filter(r => r.type==='dispatch' && new Date(r.timestamp)>=today && (r.employee_name===currentUser.employee_name || (r.partners||'').includes(currentUser.employee_name))).sort((a,b)=>new Date(a.timestamp)-new Date(b.timestamp));
             document.getElementById('upcoming-missions-container').innerHTML = myMissions.map(m => {
                 const isToday = new Date(m.timestamp).toDateString() === today.toDateString();
-                return `<div class="card ${isToday?'card-today border-l-yellow-500':'card-future border-l-gray-500'} border-l-8 mb-4 relative"><div class="absolute -top-3 -right-2 ${isToday?'bg-yellow-500 text-black':'bg-gray-600 text-white'} font-black px-3 py-1 rounded-full text-sm">${isToday?'今日任務':new Date(m.timestamp).toLocaleDateString('zh-TW')}</div><h3 class="text-xl font-black mb-2">🚀 任務</h3><div class="mb-1">負責：${m.employee_name}</div><div class="mb-1">地點：${m.project_name}</div><div class="bg-[#262626] p-3 rounded mt-2">${m.notes}</div></div>`;
+                const partnerText = m.partners ? `<div class="text-sm text-[#fca5a5] mt-1">👥 陪同：${m.partners}</div>` : '';
+                return `<div class="card ${isToday?'card-today border-l-yellow-500':'card-future border-l-gray-500'} border-l-8 mb-4 relative"><div class="absolute -top-3 -right-2 ${isToday?'bg-yellow-500 text-black':'bg-gray-600 text-white'} font-black px-3 py-1 rounded-full text-sm">${isToday?'今日任務':new Date(m.timestamp).toLocaleDateString('zh-TW')}</div><h3 class="text-xl font-black mb-2">🚀 任務</h3><div class="mb-1">負責：${m.employee_name}</div><div class="mb-1">地點：${m.project_name}</div>${partnerText}<div class="bg-[#262626] p-3 rounded mt-2">${m.notes}</div></div>`;
             }).join('');
 
+            // 公共區
             const allTasks = allData.filter(r => r.type==='dispatch').sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp));
-            document.getElementById('public-task-list').innerHTML = allTasks.map(t => `<div class="bg-[#171717] border border-yellow-900/50 rounded-xl p-4 shadow-sm mb-2"><div class="flex justify-between mb-1"><span class="text-lg font-black text-yellow-500">${t.employee_name}</span><span class="text-xs text-[#7f1d1d] border border-[#7f1d1d] px-2 rounded">${new Date(t.timestamp).toLocaleDateString('zh-TW')}</span></div><div class="text-[#fca5a5]">${t.project_name}</div><div class="text-sm bg-[#262626] p-2 rounded mt-2 text-[#fca5a5]">${t.notes}</div></div>`).join('');
+            document.getElementById('public-task-list').innerHTML = allTasks.map(t => {
+                const partnerBadge = t.partners ? `<div class="text-sm text-yellow-600 mt-1">👥 陪同：${t.partners}</div>` : '';
+                return `<div class="bg-[#171717] border border-yellow-900/50 rounded-xl p-4 shadow-sm mb-2"><div class="flex justify-between mb-1"><span class="text-lg font-black text-yellow-500">${t.employee_name}</span><span class="text-xs text-[#7f1d1d] border border-[#7f1d1d] px-2 rounded">${new Date(t.timestamp).toLocaleDateString('zh-TW')}</span></div><div class="text-[#fca5a5]">${t.project_name}</div>${partnerBadge}<div class="text-sm bg-[#262626] p-2 rounded mt-2 text-[#fca5a5]">${t.notes}</div></div>`
+            }).join('');
             
             const bulletins = allData.filter(r => r.type==='progress');
             document.getElementById('bulletin-list').innerHTML = bulletins.map(r => {
@@ -299,7 +302,7 @@
             if(isAdmin) {
                 document.getElementById('dispatch-emp-select').innerHTML = emps.map(e => `<option value="${e.employee_name}">${e.employee_name}</option>`).join('');
                 document.getElementById('dispatch-partners-list').innerHTML = emps.map(e => `<label class="custom-checkbox"><input type="checkbox" value="${e.employee_name}"><span class="text-[#fca5a5] font-bold">${e.employee_name}</span></label>`).join('');
-                document.getElementById('dispatch-list').innerHTML = allData.filter(r=>r.type==='dispatch').map(d=>`<div class="bg-[#262626] p-3 rounded border border-yellow-900 flex justify-between"><div><div class="font-bold text-yellow-500">${new Date(d.timestamp).toLocaleDateString('zh-TW')} ➤ ${d.employee_name}</div><div class="text-[#fca5a5]">${d.project_name}</div></div><div class="flex gap-2"><button onclick="openEdit(${d.id})" class="action-btn btn-edit">✏️</button><button onclick="del(this,${d.id})" class="action-btn btn-del">✕</button></div></div>`).join('');
+                document.getElementById('dispatch-list').innerHTML = allData.filter(r=>r.type==='dispatch').map(d=>`<div class="bg-[#262626] p-3 rounded border border-yellow-900 flex justify-between"><div><div class="font-bold text-yellow-500">${new Date(d.timestamp).toLocaleDateString('zh-TW')} ➤ ${d.employee_name}</div><div class="text-[#fca5a5]">${d.project_name}</div>${d.partners?`<div class="text-xs text-gray-400">👥 ${d.partners}</div>`:''}<div class="text-sm text-[#7f1d1d] mt-1">${d.notes}</div></div><div class="flex gap-2"><button onclick="openEdit(${d.id})" class="action-btn btn-edit">✏️</button><button onclick="del(this,${d.id})" class="action-btn btn-del">✕</button></div></div>`).join('');
 
                 const empMap={}; emps.forEach(e => empMap[e.employee_name]=parseInt(e.wage)||0);
                 const weekRange = getWeekRange(currentViewDate);
@@ -398,6 +401,11 @@
             return dur > 9 ? `<span class="text-[#dc2626] font-black text-sm ml-2 bg-[#262626] px-2 py-1 rounded-full border border-[#7f1d1d]">加班 ${(dur-9).toFixed(1)}h</span>` : '';
         }
 
+        async function insertData(t, d) { try{const r=await fetch(DB_URL,{method:'POST',headers:HEADERS,body:JSON.stringify({type:t,data:d})});return r.ok;}catch(e){return false;} }
+        async function updateDataAPI(i, d) { try{const r=await fetch(`${DB_URL}?id=eq.${i}`,{method:'PATCH',headers:HEADERS,body:JSON.stringify({data:d})});return r.ok;}catch(e){return false;} }
+        async function deleteDataAPI(i) { await fetch(`${DB_URL}?id=eq.${i}`,{method:'DELETE',headers:HEADERS}); return true; }
+        async function del(b,i) { if(confirm("確定刪除？")) if(await deleteDataAPI(i)) await loadData(); }
+        async function uploadFileAPI(f) { const n=`img_${Date.now()}_${Math.random().toString(36).substr(2, 5)}.jpg`; try{const r=await fetch(`${STORAGE_URL}/${n}`,{method:'POST',headers:{'apikey':ANON_KEY,'Authorization':`Bearer ${ANON_KEY}`,'Content-Type':f.type,'x-upsert':'true'},body:f}); if(!r.ok)return null; return `${PROJECT_URL}/storage/v1/object/public/site_photos/${n}`; }catch(e){return null;} }
         function setupNav() {
             const nav = document.getElementById('bottom-nav');
             const btns = currentUser.is_admin ? [
