@@ -3,10 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>全技工程行 - 管理系統 v2.9</title>
+    <title>全技工程行 - 管理系統 v3.0</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@500;700;900&display=swap" rel="stylesheet">
     <style>
         /* --- 樣式設定 --- */
@@ -202,24 +201,6 @@
 
     <nav id="bottom-nav" class="nav-bar fixed bottom-0 w-full flex pb-safe z-50 shadow-2xl"></nav>
     
-    <div id="pdf-template" class="fixed top-0 left-0 bg-white text-black p-8 w-[210mm] hidden z-[9999]">
-        <div class="border-b-2 border-black pb-4 mb-4 flex justify-between items-end">
-            <div><h1 class="text-3xl font-bold tracking-widest">全技工程行</h1><p class="text-sm font-bold mt-1">統一編號：00304372</p><p class="text-sm">屏東縣鹽埔鄉新圍村自治街3-1號</p></div>
-            <div class="text-right"><div class="text-2xl font-black border border-black px-4 py-1 rounded">薪資發放明細表</div><div id="pdf-date" class="mt-2 text-sm font-bold"></div></div>
-        </div>
-        <div class="mb-6">
-            <div class="flex gap-4 mb-2"><span class="font-bold w-24">計薪週期：</span><span id="pdf-period" class="border-b border-black flex-1"></span></div>
-            <div class="flex gap-4"><span class="font-bold w-24">經辦人員：</span><span id="pdf-handler" class="border-b border-black flex-1"></span></div>
-        </div>
-        <table class="w-full border-collapse border border-black mb-8">
-            <thead class="bg-gray-200"><tr><th class="border border-black p-2 text-center w-20">編號</th><th class="border border-black p-2 text-left">姓名</th><th class="border border-black p-2 text-center">出勤天數</th><th class="border border-black p-2 text-right">實發金額</th><th class="border border-black p-2 text-center w-32">簽收</th></tr></thead>
-            <tbody id="pdf-table-body"></tbody>
-            <tfoot><tr class="font-bold bg-gray-100"><td colspan="3" class="border border-black p-2 text-center">總計</td><td id="pdf-total" class="border border-black p-2 text-right text-lg"></td><td class="border border-black p-2"></td></tr></tfoot>
-        </table>
-        <div class="flex justify-between mt-12 pt-8"><div class="text-center w-1/3"><p class="mb-12">會計 / 出納</p><div class="border-t border-black w-2/3 mx-auto"></div></div><div class="text-center w-1/3"><p class="mb-12">負責人</p><div class="border-t border-black w-2/3 mx-auto"></div></div></div>
-        <div class="text-center text-xs mt-8 text-gray-500">此表單由全技工程行管理系統自動生成</div>
-    </div>
-
     <script>
         const PROJECT_URL = 'https://vegqsdqxnvqupmzsgbpt.supabase.co';
         const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZlZ3FzZHF4bnZxdXBtenNnYnB0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk3OTI0MDAsImV4cCI6MjA4NTM2ODQwMH0.ZHluSDbAD_ih4GH25ZBXZGogorfNUfBOcICb5pvhIq0';
@@ -229,7 +210,6 @@
         const HEADERS = { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=representation' };
 
         let allData = [], currentUser = null, currentLocation = null, currentWeeklyData = {};
-        // 記錄當前查看的基準時間
         let currentViewDate = new Date();
 
         window.onload = async function() {
@@ -250,7 +230,6 @@
             document.getElementById('dispatch-date').valueAsDate = new Date();
         };
 
-        // --- 週次切換與日期計算 ---
         function changeWeek(offset) {
             currentViewDate.setDate(currentViewDate.getDate() + (offset * 7));
             render();
@@ -260,21 +239,13 @@
             const d = new Date(baseDate);
             d.setHours(0,0,0,0);
             const day = d.getDay();
-            const diff = d.getDate() - day + (day == 0 ? -6 : 1); // 調整為週一
+            const diff = d.getDate() - day + (day == 0 ? -6 : 1); 
             const monday = new Date(d.setDate(diff));
             const nextMonday = new Date(monday);
             nextMonday.setDate(monday.getDate() + 7);
-            
-            // 修正：顯示結束日改為週日 (週一 + 6天)
             const sunday = new Date(monday);
             sunday.setDate(monday.getDate() + 6);
-
-            return {
-                monday: monday, // 比較用 (含)
-                nextMonday: nextMonday, // 比較用 (不含)
-                startStr: monday.toLocaleDateString('zh-TW'),
-                endStr: sunday.toLocaleDateString('zh-TW') // 顯示用週日
-            };
+            return { monday: monday, nextMonday: nextMonday, startStr: monday.toLocaleDateString('zh-TW'), endStr: sunday.toLocaleDateString('zh-TW') };
         }
 
         async function loadData() {
@@ -300,14 +271,12 @@
             const emps = allData.filter(r => r.type === 'employee');
             const today = new Date(); today.setHours(0,0,0,0);
 
-            // 員工端
             const myMissions = allData.filter(r => r.type==='dispatch' && new Date(r.timestamp)>=today && (r.employee_name===currentUser.employee_name || (r.partners||'').includes(currentUser.employee_name))).sort((a,b)=>new Date(a.timestamp)-new Date(b.timestamp));
             document.getElementById('upcoming-missions-container').innerHTML = myMissions.map(m => {
                 const isToday = new Date(m.timestamp).toDateString() === today.toDateString();
                 return `<div class="card ${isToday?'card-today border-l-yellow-500':'card-future border-l-gray-500'} border-l-8 mb-4 relative"><div class="absolute -top-3 -right-2 ${isToday?'bg-yellow-500 text-black':'bg-gray-600 text-white'} font-black px-3 py-1 rounded-full text-sm">${isToday?'今日任務':new Date(m.timestamp).toLocaleDateString('zh-TW')}</div><h3 class="text-xl font-black mb-2">🚀 任務</h3><div class="mb-1">負責：${m.employee_name}</div><div class="mb-1">地點：${m.project_name}</div><div class="bg-[#262626] p-3 rounded mt-2">${m.notes}</div></div>`;
             }).join('');
 
-            // 公共區
             const allTasks = allData.filter(r => r.type==='dispatch').sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp));
             document.getElementById('public-task-list').innerHTML = allTasks.map(t => `<div class="bg-[#171717] border border-yellow-900/50 rounded-xl p-4 shadow-sm mb-2"><div class="flex justify-between mb-1"><span class="text-lg font-black text-yellow-500">${t.employee_name}</span><span class="text-xs text-[#7f1d1d] border border-[#7f1d1d] px-2 rounded">${new Date(t.timestamp).toLocaleDateString('zh-TW')}</span></div><div class="text-[#fca5a5]">${t.project_name}</div><div class="text-sm bg-[#262626] p-2 rounded mt-2 text-[#fca5a5]">${t.notes}</div></div>`).join('');
             
@@ -326,18 +295,12 @@
                 document.getElementById('dispatch-list').innerHTML = allData.filter(r=>r.type==='dispatch').map(d=>`<div class="bg-[#262626] p-3 rounded border border-yellow-900 flex justify-between"><div><div class="font-bold text-yellow-500">${new Date(d.timestamp).toLocaleDateString('zh-TW')} ➤ ${d.employee_name}</div><div class="text-[#fca5a5]">${d.project_name}</div></div><div class="flex gap-2"><button onclick="openEdit(${d.id})" class="text-sm border border-[#fca5a5] px-2 text-[#fca5a5]">✏️</button><button onclick="del(this,${d.id})" class="text-sm border border-[#ef4444] text-[#ef4444]">✕</button></div></div>`).join('');
 
                 const empMap={}; emps.forEach(e => empMap[e.employee_name]=parseInt(e.wage)||0);
-                
-                // 取得週次範圍
                 const weekRange = getWeekRange(currentViewDate);
                 document.getElementById('current-week-display').innerText = `週期：${weekRange.startStr} ~ ${weekRange.endStr}`;
-
-                // 判斷是否結算
                 const hasSettledThisWeek = allData.some(r => r.type === 'payout_history' && r.start_date === weekRange.startStr);
 
                 currentWeeklyData = { startDate: weekRange.startStr, endDate: weekRange.endStr, details: [] };
-                
-                const weeklyCalc={}; const workDaysCount={};
-                const dailyGroups={};
+                const weeklyCalc={}; const workDaysCount={}; const dailyGroups={};
 
                 allData.filter(r => r.type==='clock').forEach(r => {
                     const t = new Date(r.timestamp);
@@ -369,21 +332,17 @@
                     const days = workDaysCount[e.employee_name] || 0;
                     if(pay > 0) currentWeeklyData.details.push({name:e.employee_name, code:e.employee_code, pay:pay, days:days});
                     totalSalary += pay;
-
-                    // 修正：不歸零個別金額，改為顯示已結算標記
+                    // 保留顯示金額，但標記已結算
                     let settledText = hasSettledThisWeek ? '<span class="text-xs text-green-500 font-bold ml-2">(已結算)</span>' : '';
-
                     return `<div class="flex justify-between items-center p-4 bg-[#262626] rounded-xl border border-[#404040]"><div class="font-bold text-[#fca5a5]">${e.employee_name}</div><div class="text-right"><div class="text-xs text-[#7f1d1d]">本週出勤 ${days} 天</div><div class="font-black text-[#dc2626] text-xl">$${pay.toLocaleString()}${settledText}</div></div></div>`;
                 }).join('');
 
                 const btnSettle = document.getElementById('btn-settle');
                 const statusDiv = document.getElementById('settled-status');
-                
-                // 只有總金額顯示 0 (避免重複發放)
                 currentWeeklyData.total = totalSalary;
                 
                 if(hasSettledThisWeek) {
-                    document.getElementById('total-wage').innerText = "$0"; // 總表歸零，因為不能再發了
+                    document.getElementById('total-wage').innerText = "$0"; // 總表歸零防誤按
                     btnSettle.innerText = "已完成結算";
                     btnSettle.classList.add('btn-disabled');
                     btnSettle.onclick = null;
@@ -396,35 +355,34 @@
                     statusDiv.classList.add('hidden');
                 }
 
-                // 歷史記錄
                 const historyList = allData.filter(r=>r.type==='payout_history');
-                document.getElementById('payout-history-list').innerHTML = historyList.length ? historyList.map(h => `<div class="bg-[#262626] border border-green-900 rounded-lg p-3 relative group"><div class="flex justify-between items-start"><div><div class="text-green-500 font-bold text-lg">💰 已發放: $${parseInt(h.total_amount).toLocaleString()}</div><div class="text-[#7f1d1d] text-xs font-bold">結算日: ${new Date(h.timestamp).toLocaleDateString()}</div><div class="text-xs text-yellow-500">週期: ${h.start_date}~${h.end_date}</div></div><div class="flex flex-col items-end gap-2"><button onclick="printSalarySlip('${h.id}')" class="bg-white text-black text-xs font-bold px-3 py-1 rounded">📄 PDF</button><div class="flex gap-2"><button onclick="openEdit(${h.id})" class="text-sm border border-[#fca5a5] px-2 text-[#fca5a5]">✏️</button><button onclick="del(this,${h.id})" class="text-sm border border-[#ef4444] text-[#ef4444]">✕</button></div></div></div></div>`).join('') : '<div class="text-center text-[#7f1d1d]">無記錄</div>';
-                
+                document.getElementById('payout-history-list').innerHTML = historyList.length ? historyList.map(h => `<div class="bg-[#262626] border border-green-900 rounded-lg p-3 relative group"><div class="flex justify-between items-start"><div><div class="text-green-500 font-bold text-lg">💰 已發放: $${parseInt(h.total_amount).toLocaleString()}</div><div class="text-[#7f1d1d] text-xs font-bold">結算日: ${new Date(h.timestamp).toLocaleDateString()}</div><div class="text-xs text-yellow-500">週期: ${h.start_date}~${h.end_date}</div></div><div class="flex flex-col items-end gap-2"><button onclick="exportToCSV('${h.id}')" class="bg-white text-black text-xs font-bold px-3 py-1 rounded">📊 CSV</button><div class="flex gap-2"><button onclick="openEdit(${h.id})" class="text-sm border border-[#fca5a5] px-2 text-[#fca5a5]">✏️</button><button onclick="del(this,${h.id})" class="text-sm border border-[#ef4444] text-[#ef4444]">✕</button></div></div></div></div>`).join('') : '<div class="text-center text-[#7f1d1d]">無記錄</div>';
                 document.getElementById('admin-clock-list').innerHTML = allData.filter(r=>r.type==='clock').map(r => `<div class="flex justify-between items-center p-3 bg-[#171717] rounded-lg border border-[#262626] mb-2"><div><span class="font-black text-[#fca5a5] mr-2">${r.employee_name}</span><span class="text-[#7f1d1d] text-sm">${new Date(r.timestamp).toLocaleString('zh-TW',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}</span></div><div class="flex items-center gap-2"><span class="${r.check_type==='上班'?'text-green-600':'text-orange-600'} font-bold">${r.check_type}</span><button onclick="openEdit(${r.id})" class="text-sm px-2 text-[#fca5a5] border border-[#fca5a5]">✏️</button><button onclick="del(this,${r.id})" class="text-sm px-2 text-[#ef4444] border border-[#ef4444]">✕</button></div></div>`).join('');
             }
         }
 
-        // --- 修正 PDF 生成：加長緩衝時間與確保可見性 ---
-        function printSalarySlip(id) {
+        // --- CSV 匯出功能 ---
+        function exportToCSV(id) {
             const record = allData.find(r => r.id == id);
-            if (!record) return alert("錯誤：找不到該筆結算記錄");
-
-            document.getElementById('pdf-date').innerText = `發放日期：${new Date(record.timestamp).toLocaleDateString('zh-TW')}`;
-            document.getElementById('pdf-period').innerText = `${record.start_date || ''} ~ ${record.end_date || ''}`;
-            document.getElementById('pdf-handler').innerText = record.settled_by || '管理員';
-            document.getElementById('pdf-total').innerText = `$${parseInt(record.total_amount).toLocaleString()}`;
-            
-            const details = record.details || [];
-            document.getElementById('pdf-table-body').innerHTML = details.map(d => `<tr><td class="border border-black p-2 text-center text-sm">${d.code || '-'}</td><td class="border border-black p-2 font-bold">${d.name}</td><td class="border border-black p-2 text-center">${d.days} 天</td><td class="border border-black p-2 text-right font-mono">$${parseInt(d.pay).toLocaleString()}</td><td class="border border-black p-2"></td></tr>`).join('');
-            
-            const element = document.getElementById('pdf-template');
-            element.classList.remove('hidden');
-            
-            // 延遲 500ms 確保 DOM 渲染完畢
-            setTimeout(() => {
-                html2pdf().set({ margin: 5, filename: `薪資明細_${record.start_date}.pdf`, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } }).from(element).save().then(() => element.classList.add('hidden'));
-            }, 500);
+            if (!record) return alert("找不到記錄");
+            let csvContent = "\uFEFF"; // BOM
+            csvContent += "編號,姓名,出勤天數,實發金額,備註\n";
+            record.details.forEach(d => { csvContent += `${d.code || '-'},${d.name},${d.days},${d.pay}\n`; });
+            csvContent += `,,總計,${record.total_amount},\n`;
+            csvContent += `週期,${record.start_date} ~ ${record.end_date},,,\n`;
+            csvContent += `經辦人,${record.settled_by || '系統'},,,\n`;
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            link.setAttribute("download", `薪資明細_${record.start_date}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         }
+
+        // --- Logout ---
+        function logout() { localStorage.removeItem('last_user_id'); currentUser = null; location.reload(); }
 
         function getOvertimeDisplay(r) {
             if (r.check_type !== '下班') return '';
@@ -435,11 +393,6 @@
             return dur > 9 ? `<span class="text-[#dc2626] font-black text-sm ml-2 bg-[#262626] px-2 py-1 rounded-full border border-[#7f1d1d]">加班 ${(dur-9).toFixed(1)}h</span>` : '';
         }
 
-        async function insertData(t, d) { try{const r=await fetch(DB_URL,{method:'POST',headers:HEADERS,body:JSON.stringify({type:t,data:d})});return r.ok;}catch(e){return false;} }
-        async function updateDataAPI(i, d) { try{const r=await fetch(`${DB_URL}?id=eq.${i}`,{method:'PATCH',headers:HEADERS,body:JSON.stringify({data:d})});return r.ok;}catch(e){return false;} }
-        async function deleteDataAPI(i) { await fetch(`${DB_URL}?id=eq.${i}`,{method:'DELETE',headers:HEADERS}); return true; }
-        async function del(b,i) { if(confirm("確定刪除？")) if(await deleteDataAPI(i)) await loadData(); }
-        async function uploadFileAPI(f) { const n=`img_${Date.now()}_${Math.random().toString(36).substr(2, 5)}.jpg`; try{const r=await fetch(`${STORAGE_URL}/${n}`,{method:'POST',headers:{'apikey':ANON_KEY,'Authorization':`Bearer ${ANON_KEY}`,'Content-Type':f.type,'x-upsert':'true'},body:f}); if(!r.ok)return null; return `${PROJECT_URL}/storage/v1/object/public/site_photos/${n}`; }catch(e){return null;} }
         function setupNav() {
             const nav = document.getElementById('bottom-nav');
             const btns = currentUser.is_admin ? [
@@ -469,6 +422,12 @@
         function requestNotificationPermission() { if ("Notification" in window) Notification.requestPermission(); }
         function setupRealtimeListener() { supabaseClient.channel('room1').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'construction_records' }, p => { const n=p.new; if(n.type!=='employee' && n.type!=='dispatch') { showBrowserNotification(`${n.employee_name} 已提交：${n.type==='clock'?n.check_type:'回報'}`); setTimeout(()=>loadData(),1000); } }).subscribe(); }
         function showBrowserNotification(m) { if ("Notification" in window && Notification.permission === "granted") new Notification("全技工程行", { body: m, icon: 'https://vegqsdqxnvqupmzsgbpt.supabase.co/storage/v1/object/public/site_photos/F21060CB-BAB1-4E07-91AC-1E3F35796914.png' }); }
+        
+        async function insertData(t, d) { try{const r=await fetch(DB_URL,{method:'POST',headers:HEADERS,body:JSON.stringify({type:t,data:d})});return r.ok;}catch(e){return false;} }
+        async function updateDataAPI(i, d) { try{const r=await fetch(`${DB_URL}?id=eq.${i}`,{method:'PATCH',headers:HEADERS,body:JSON.stringify({data:d})});return r.ok;}catch(e){return false;} }
+        async function deleteDataAPI(i) { await fetch(`${DB_URL}?id=eq.${i}`,{method:'DELETE',headers:HEADERS}); return true; }
+        async function del(b,i) { if(confirm("確定刪除？")) if(await deleteDataAPI(i)) await loadData(); }
+        async function uploadFileAPI(f) { const n=`img_${Date.now()}_${Math.random().toString(36).substr(2, 5)}.jpg`; try{const r=await fetch(`${STORAGE_URL}/${n}`,{method:'POST',headers:{'apikey':ANON_KEY,'Authorization':`Bearer ${ANON_KEY}`,'Content-Type':f.type,'x-upsert':'true'},body:f}); if(!r.ok)return null; return `${PROJECT_URL}/storage/v1/object/public/site_photos/${n}`; }catch(e){return null;} }
     </script>
 </body>
 </html>
