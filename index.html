@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>全技工程行 - 管理系統 v2.4</title>
+    <title>全技工程行 - 管理系統 v2.5</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
@@ -782,6 +782,36 @@
                     </div>`;
                 }).join('');
             }
+        }
+
+        // --- 補回：指派任務功能 ---
+        async function submitDispatch() {
+            const emp = document.getElementById('dispatch-emp-select').value;
+            const date = document.getElementById('dispatch-date').value;
+            const loc = document.getElementById('dispatch-loc').value;
+            const note = document.getElementById('dispatch-note').value;
+            const partners = Array.from(document.querySelectorAll('#dispatch-partners-list input[type="checkbox"]:checked')).map(cb => cb.value).join(', ');
+
+            if (!emp || !date) return alert("請選擇負責人與日期");
+
+            const fullDate = new Date(date).toISOString(); 
+            const payload = { employee_name: emp, project_name: loc, notes: note, partners: partners, timestamp: fullDate };
+
+            if (await insertData('dispatch', payload)) {
+                alert("指派成功");
+                document.getElementById('dispatch-loc').value = '';
+                document.getElementById('dispatch-note').value = '';
+                document.querySelectorAll('#dispatch-partners-list input').forEach(cb => cb.checked = false);
+                await loadData();
+            } else {
+                alert("指派失敗");
+            }
+        }
+
+        // --- 補回：手動更新功能 ---
+        async function manualRefresh() {
+            await loadData();
+            alert("數據已更新");
         }
 
         function printSalarySlip(record) {
