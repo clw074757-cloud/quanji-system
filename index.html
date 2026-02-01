@@ -28,10 +28,17 @@
             border: 2px solid #7f1d1d; 
         }
         
-        /* 特別強調卡片 (任務卡) */
-        .card-highlight {
+        /* 今日任務卡片 (黃色高亮) */
+        .card-today {
             border-color: #f59e0b; /* 琥珀黃 */
             box-shadow: 0 4px 15px rgba(245, 158, 11, 0.2);
+        }
+
+        /* 未來任務卡片 (灰色/藍色高亮) */
+        .card-future {
+            border-color: #4b5563; /* 灰色 */
+            box-shadow: 0 4px 15px rgba(75, 85, 99, 0.2);
+            opacity: 0.9;
         }
         
         /* 輸入框強制樣式 */
@@ -246,7 +253,7 @@
                 <h2 class="text-center font-black text-[#fca5a5] text-2xl mb-1">👋 早安，<span id="welcome-name" class="text-[#dc2626]">員工</span></h2>
                 <p class="text-center text-[#7f1d1d] font-bold mb-6" id="current-time-display">--:--</p>
                 
-                <div id="today-mission-container"></div>
+                <div id="upcoming-missions-container"></div>
 
                 <div class="grid grid-cols-2 gap-4 mt-4">
                     <button onclick="clockIn('上班')" class="btn btn-primary text-2xl py-8 shadow-xl hover:bg-red-500">上班</button>
@@ -483,31 +490,54 @@
             const isAdmin = currentUser.is_admin;
             const emps = allData.filter(r => r.type === 'employee');
 
-            // 1. 渲染「今日任務」卡片 (員工視角 - 打卡頁)
+            // 1. 渲染「即將到來的任務」 (員工視角 - 打卡頁)
             if(!isAdmin) {
-                const todayStr = new Date().toISOString().split('T')[0];
-                const myMissions = allData.filter(r => 
-                    r.type === 'dispatch' && 
-                    (r.employee_name === currentUser.employee_name || (r.partners && r.partners.includes(currentUser.employee_name))) && 
-                    r.timestamp.startsWith(todayStr)
-                );
+                const today = new Date();
+                today.setHours(0,0,0,0); // 設定為今天凌晨 00:00:00 用於比對
                 
-                const missionContainer = document.getElementById('today-mission-container');
-                if(myMissions.length > 0) {
-                    const m = myMissions[0]; 
-                    // 顯示陪同人員
-                    const partnerText = m.partners ? `<div class="mt-1 text-sm text-[#fca5a5]">👥 陪同：<span class="font-bold">${m.partners}</span></div>` : '';
+                const myMissions = allData.filter(r => {
+                    if (r.type !== 'dispatch') return false;
                     
-                    missionContainer.innerHTML = `
-                        <div class="card card-highlight border-l-8 border-l-yellow-500 mb-6 relative">
-                            <div class="absolute -top-3 -right-2 bg-yellow-500 text-black font-black px-3 py-1 rounded-full shadow-lg transform rotate-3">今日任務</div>
-                            <h3 class="text-xl font-black text-yellow-500 mb-2">🚀 任務指派</h3>
+                    // 解析任務日期
+                    const taskDate = new Date(r.timestamp);
+                    taskDate.setHours(0,0,0,0); // 只比對日期部分
+
+                    // 邏輯：任務日期 >= 今天 (未來與今天的任務都顯示)
+                    if (taskDate < today) return false;
+
+                    // 比對人員 (負責人 或 陪同人員)
+                    const isLeader = r.employee_name === currentUser.employee_name;
+                    const isPartner = (r.partners || '').includes(currentUser.employee_name);
+                    
+                    return isLeader || isPartner;
+                }).sort((a,b) => new Date(a.timestamp) - new Date(b.timestamp)); // 依日期由近到遠排序
+                
+                const missionContainer = document.getElementById('upcoming-missions-container');
+                
+                if(myMissions.length > 0) {
+                    // 產生所有符合條件的任務卡片
+                    missionContainer.innerHTML = myMissions.map(m => {
+                        const mDate = new Date(m.timestamp);
+                        mDate.setHours(0,0,0,0);
+                        const isToday = mDate.getTime() === today.getTime();
+                        
+                        const dateDisplay = mDate.toLocaleDateString('zh-TW');
+                        const cardClass = isToday ? 'card-today border-l-yellow-500' : 'card-future border-l-gray-500';
+                        const badgeColor = isToday ? 'bg-yellow-500 text-black' : 'bg-gray-600 text-white';
+                        const badgeText = isToday ? '今日任務' : `預約派工 (${dateDisplay})`;
+                        
+                        const partnerText = m.partners ? `<div class="mt-1 text-sm text-[#fca5a5]">👥 陪同：<span class="font-bold">${m.partners}</span></div>` : '';
+
+                        return `
+                        <div class="card ${cardClass} border-l-8 mb-4 relative">
+                            <div class="absolute -top-3 -right-2 ${badgeColor} font-black px-3 py-1 rounded-full shadow-lg transform rotate-3 text-sm">${badgeText}</div>
+                            <h3 class="text-xl font-black ${isToday ? 'text-yellow-500' : 'text-gray-400'} mb-2">🚀 任務指派</h3>
                             <div class="mb-1"><span class="text-[#7f1d1d] font-bold">負責：</span><span class="text-[#fca5a5] font-bold text-lg">${m.employee_name}</span></div>
                             <div class="mb-1"><span class="text-[#7f1d1d] font-bold">地點：</span><span class="text-[#fca5a5] font-bold text-lg">${m.project_name}</span></div>
                             ${partnerText}
                             <div class="bg-[#262626] p-3 rounded border border-yellow-900/30 text-[#fca5a5] font-bold mt-2">${m.notes}</div>
-                        </div>
-                    `;
+                        </div>`;
+                    }).join('');
                 } else {
                     missionContainer.innerHTML = '';
                 }
@@ -516,8 +546,9 @@
             // 2. 渲染「全體任務總覽」列表
             const allTasks = allData.filter(r => r.type === 'dispatch').sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
             document.getElementById('public-task-list').innerHTML = allTasks.map(t => {
-                const dateStr = t.timestamp.split('T')[0];
-                const isToday = dateStr === new Date().toISOString().split('T')[0];
+                const dateStr = new Date(t.timestamp).toLocaleDateString('zh-TW'); // 顯示日期
+                const isToday = dateStr === new Date().toLocaleDateString('zh-TW');
+                
                 const dateBadge = isToday 
                     ? `<span class="bg-yellow-500 text-black px-2 py-0.5 rounded text-xs font-black">今天</span>`
                     : `<span class="bg-[#262626] text-[#7f1d1d] px-2 py-0.5 rounded text-xs font-bold border border-[#7f1d1d]">${dateStr}</span>`;
@@ -615,7 +646,7 @@
                 // (C) 渲染派工列表
                 const dispatches = allData.filter(r => r.type === 'dispatch'); 
                 document.getElementById('dispatch-list').innerHTML = dispatches.map(d => {
-                    const dateStr = d.timestamp.split('T')[0];
+                    const dateStr = new Date(d.timestamp).toLocaleDateString('zh-TW');
                     const partnerText = d.partners ? `<br><span class="text-xs text-yellow-700">與 ${d.partners}</span>` : '';
                     return `
                         <div class="bg-[#262626] p-3 rounded border border-yellow-900 flex justify-between items-start">
