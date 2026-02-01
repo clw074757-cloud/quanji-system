@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>全技工程行 - 管理系統</title>
+    <title>全技工程行 - 管理系統 v2.0</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@500;700;900&display=swap" rel="stylesheet">
@@ -114,6 +114,7 @@
         .btn-primary { background-color: #dc2626; } 
         .btn-secondary { background-color: #404040; color: #fca5a5; } 
         .btn-warning { background-color: #f59e0b; color: #000000; } 
+        .btn-success { background-color: #10b981; color: #000000; }
         
         /* 底部導航 */
         .nav-bar { background-color: #0f0f0f; border-top: 2px solid #7f1d1d; }
@@ -227,6 +228,8 @@
             </div>
 
             <div id="edit-emp-area" class="hidden">
+                <label class="text-label">員工編號</label>
+                <input id="edit-code" class="input-box" placeholder="例如：A01">
                 <label class="text-label">日薪 (元)</label>
                 <input id="edit-wage" type="number" class="input-box">
                 <label class="text-label">登入密碼</label>
@@ -376,16 +379,25 @@
                 <h2 class="font-black text-[#dc2626] text-xl mb-4">👤 員工管理</h2>
                 <div class="grid grid-cols-2 gap-3 mb-3">
                     <div>
-                        <label class="text-label">登入帳號 (自訂)</label>
-                        <input id="new-id" placeholder="例如: E01 或 boss" class="input-box">
+                        <label class="text-label">登入帳號</label>
+                        <input id="new-id" placeholder="自訂 (例如: boss)" class="input-box">
+                    </div>
+                    <div>
+                        <label class="text-label">員工編號</label>
+                        <input id="new-code" placeholder="例如: A01" class="input-box">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3 mb-3">
+                    <div>
+                        <label class="text-label">姓名</label>
+                        <input id="new-name" placeholder="姓名" class="input-box">
                     </div>
                     <div>
                         <label class="text-label">日薪</label>
-                        <input id="new-wage" placeholder="日薪" type="number" class="input-box">
+                        <input id="new-wage" placeholder="金額" type="number" class="input-box">
                     </div>
                 </div>
-                <label class="text-label">姓名</label>
-                <input id="new-name" placeholder="姓名 (可作為登入帳號)" class="input-box mb-2">
+                
                 <label class="text-label">密碼</label>
                 <input id="new-pwd" placeholder="密碼 (預設1234)" class="input-box mb-3">
                 
@@ -400,14 +412,25 @@
             </div>
 
             <div class="card">
-                <div class="flex justify-between border-b border-[#7f1d1d] pb-3 mb-3">
-                    <span class="font-bold text-[#fca5a5] text-lg">本週應付薪資 (週領)</span>
+                <div class="flex justify-between items-end border-b border-[#7f1d1d] pb-3 mb-3">
+                    <div>
+                        <span class="font-bold text-[#fca5a5] text-lg block">本週應付薪資</span>
+                        <span class="text-xs text-[#7f1d1d]">(根據本週打卡記錄)</span>
+                    </div>
                     <span id="total-wage" class="font-black text-[#dc2626] text-3xl font-mono">$0</span>
                 </div>
-                <div id="employee-list" class="space-y-3"></div>
+                
+                <div id="employee-list" class="space-y-3 mb-6"></div>
+                
+                <button onclick="settleSalary()" class="btn btn-success text-xl shadow-lg border-2 border-green-800">💰 結算本週薪資 (歸檔)</button>
             </div>
 
-            <h3 class="text-xl font-black text-[#fca5a5] mt-8 mb-4 px-2">📋 員工出勤記錄</h3>
+            <h3 class="text-xl font-black text-[#fca5a5] mt-8 mb-4 px-2">📜 歷史薪資發放記錄</h3>
+            <div id="payout-history-list" class="space-y-3 mb-8">
+                <div class="text-center text-[#7f1d1d]">無歷史記錄</div>
+            </div>
+
+            <h3 class="text-xl font-black text-[#fca5a5] mt-4 mb-4 px-2">📋 員工出勤記錄</h3>
             <div id="admin-clock-list" class="space-y-3"></div>
         </div>
 
@@ -421,7 +444,6 @@
         const PROJECT_URL = 'https://vegqsdqxnvqupmzsgbpt.supabase.co';
         const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZlZ3FzZHF4bnZxdXBtenNnYnB0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk3OTI0MDAsImV4cCI6MjA4NTM2ODQwMH0.ZHluSDbAD_ih4GH25ZBXZGogorfNUfBOcICb5pvhIq0';
         
-        // 【修正】防止因為 supabase 未載入而報錯
         let supabaseClient = null;
         if(window.supabase) {
             supabaseClient = window.supabase.createClient(PROJECT_URL, ANON_KEY);
@@ -434,9 +456,9 @@
         let allData = [];
         let currentUser = null;
         let currentLocation = null;
+        let currentWeeklyData = {}; // 暫存本週計算結果，供結算使用
 
         window.onload = async function() {
-            // 重新檢查 Supabase 是否載入
             if(window.supabase && !supabaseClient) {
                 supabaseClient = window.supabase.createClient(PROJECT_URL, ANON_KEY);
             }
@@ -499,7 +521,6 @@
                 if(currentUser) render(); 
             } catch (e) {
                 console.error("Data load error:", e);
-                // 顯示錯誤但不卡死
                 const loginMsg = document.getElementById('login-msg');
                 if(loginMsg) loginMsg.innerText = "連線失敗，請檢查網路";
                 if(currentUser) render();
@@ -511,7 +532,6 @@
             const pwd = document.getElementById('login-pwd').value.trim();
             const msg = document.getElementById('login-msg');
 
-            // 防呆：如果資料還沒載入
             if(allData.length === 0 && inputVal !== 'admin') {
                 msg.innerText = "資料載入中，請稍後再試...";
                 loadData(); 
@@ -530,7 +550,7 @@
 
             const user = allData.find(r => 
                 r.type === 'employee' && 
-                (r.employee_name === inputVal || r.employee_id === inputVal)
+                (r.employee_name === inputVal || r.employee_id === inputVal || r.employee_code === inputVal)
             );
 
             if(user && user.password === pwd) {
@@ -551,12 +571,10 @@
             
             document.getElementById('login-msg').innerText = "";
             
-            // 【關鍵修正】先切換畫面，再處理通知，避免因為通知報錯而卡住
             setupNav();
             nav('clock'); // 預設進入打卡頁
             render();
 
-            // 請求通知權限並啟動監聽 (放在後面，錯了也不影響登入)
             try {
                 requestNotificationPermission();
                 if(supabaseClient) setupRealtimeListener();
@@ -729,10 +747,12 @@
                     `;
                 }).join('') || '<div class="text-center text-[#7f1d1d] text-sm">無派工記錄</div>';
 
-                // --- 薪資計算邏輯 ---
+                // --- 薪資計算邏輯 (自動計算本週) ---
                 const empMap = {};
-                allData.filter(r => r.type === 'employee').forEach(e => {
+                const empCodeMap = {}; // 存員工編號
+                emps.forEach(e => {
                     empMap[e.employee_name] = parseInt(e.wage) || 0;
+                    empCodeMap[e.employee_name] = e.employee_code || '';
                 });
 
                 const now = new Date();
@@ -743,6 +763,13 @@
                 monday.setHours(0,0,0,0);
                 const nextMonday = new Date(monday);
                 nextMonday.setDate(monday.getDate() + 7);
+
+                // 保存計算結果的物件，供結算使用
+                currentWeeklyData = {
+                    startDate: monday.toLocaleDateString('zh-TW'),
+                    endDate: nextMonday.toLocaleDateString('zh-TW'),
+                    details: []
+                };
 
                 const dailyGroups = {};
                 allData.filter(r => r.type === 'clock').forEach(r => {
@@ -794,12 +821,23 @@
                     const days = workDaysCount[e.employee_name] || 0;
                     totalSalary += pay;
                     
+                    // 將每個人的數據存入 currentWeeklyData，只有當金額大於0時才存，或全部存
+                    if (pay > 0) {
+                        currentWeeklyData.details.push({
+                            name: e.employee_name,
+                            code: e.employee_code,
+                            pay: pay,
+                            days: days
+                        });
+                    }
+
                     const adminBadge = e.is_admin ? '<span class="bg-[#dc2626] text-black text-xs px-1 rounded ml-2 font-black">ADMIN</span>' : '';
+                    const codeDisplay = e.employee_code ? `<span class="text-yellow-500 font-mono text-sm mr-1">[${e.employee_code}]</span>` : '';
 
                     return `
                     <div class="flex justify-between items-center p-4 bg-[#171717] rounded-xl border-2 border-[#262626]">
                         <div>
-                            <div class="font-black text-lg text-[#fca5a5]">${e.employee_name} ${adminBadge}</div>
+                            <div class="font-black text-lg text-[#fca5a5]">${codeDisplay}${e.employee_name} ${adminBadge}</div>
                             <div class="text-sm font-bold text-[#7f1d1d]">$${e.wage}/日 (本週${days}天)</div>
                         </div>
                         <div class="flex flex-col items-end gap-1">
@@ -812,6 +850,27 @@
                     </div>`;
                 }).join('');
                 document.getElementById('total-wage').innerText = '$' + totalSalary.toLocaleString();
+                currentWeeklyData.total = totalSalary;
+
+                // --- 渲染歷史薪資記錄 ---
+                const historyRecs = allData.filter(r => r.type === 'payout_history');
+                if (historyRecs.length > 0) {
+                    document.getElementById('payout-history-list').innerHTML = historyRecs.map(h => {
+                        const date = new Date(h.timestamp).toLocaleString('zh-TW', {month:'numeric', day:'numeric', hour:'2-digit'});
+                        return `
+                        <div class="bg-[#262626] border border-green-900 rounded-lg p-3 cursor-pointer" onclick="alert('發放詳情:\\n${h.details.map(d=>d.name + ': $' + d.pay).join('\\n')}')">
+                            <div class="flex justify-between items-center">
+                                <div>
+                                    <div class="text-green-500 font-bold">💰 已發放: $${h.total_amount.toLocaleString()}</div>
+                                    <div class="text-[#7f1d1d] text-xs font-bold">結算日: ${date}</div>
+                                </div>
+                                <div class="text-xs text-[#fca5a5] bg-black px-2 py-1 rounded border border-[#7f1d1d]">查看詳情</div>
+                            </div>
+                        </div>`;
+                    }).join('');
+                } else {
+                    document.getElementById('payout-history-list').innerHTML = '<div class="text-center text-[#7f1d1d]">無歷史記錄</div>';
+                }
 
                 const clocks = allData.filter(r => r.type === 'clock');
                 document.getElementById('admin-clock-list').innerHTML = clocks.map(r => {
@@ -835,6 +894,33 @@
                         </div>
                     </div>`;
                 }).join('');
+            }
+        }
+
+        // --- 新增：結算薪資功能 ---
+        async function settleSalary() {
+            if (!currentWeeklyData || currentWeeklyData.total === 0) {
+                alert("目前沒有可結算的金額");
+                return;
+            }
+            if (!confirm(`確定要結算本週薪資嗎？\n總金額: $${currentWeeklyData.total}\n這將會儲存一份歷史記錄。`)) {
+                return;
+            }
+
+            const payload = {
+                timestamp: new Date().toISOString(),
+                start_date: currentWeeklyData.startDate,
+                end_date: currentWeeklyData.endDate,
+                total_amount: currentWeeklyData.total,
+                details: currentWeeklyData.details,
+                settled_by: currentUser.employee_name
+            };
+
+            if (await insertData('payout_history', payload)) {
+                alert("薪資已結算並歸檔！");
+                await loadData();
+            } else {
+                alert("結算失敗，請重試");
             }
         }
 
@@ -970,6 +1056,7 @@
                 document.getElementById('edit-emp-area').classList.remove('hidden');
                 document.getElementById('edit-wage').value = r.wage || '';
                 document.getElementById('edit-pwd').value = r.password || '';
+                document.getElementById('edit-code').value = r.employee_code || ''; // 員工編號
                 document.getElementById('edit-is-admin').checked = !!r.is_admin; 
             } else if (r.type === 'dispatch') {
                 document.getElementById('edit-dispatch-area').classList.remove('hidden');
@@ -1022,6 +1109,7 @@
                 payload.employee_name = document.getElementById('edit-name').value;
                 payload.wage = document.getElementById('edit-wage').value;
                 payload.password = document.getElementById('edit-pwd').value;
+                payload.employee_code = document.getElementById('edit-code').value; // 存入員工編號
                 payload.is_admin = document.getElementById('edit-is-admin').checked; 
             } else if (type === 'dispatch') {
                 const newTime = new Date(document.getElementById('edit-time').value).toISOString();
@@ -1046,6 +1134,7 @@
         async function addEmployee() {
             const name = document.getElementById('new-name').value;
             const id = document.getElementById('new-id').value;
+            const code = document.getElementById('new-code').value; // 讀取員工編號
             const wage = document.getElementById('new-wage').value;
             const pwd = document.getElementById('new-pwd').value || "1234";
             const isAdmin = document.getElementById('new-is-admin').checked; 
@@ -1055,7 +1144,8 @@
 
             if(await insertData('employee', { 
                 employee_name: name, 
-                employee_id: finalId, 
+                employee_id: finalId,
+                employee_code: code, // 存入
                 wage: wage, 
                 password: pwd,
                 is_admin: isAdmin 
@@ -1063,6 +1153,8 @@
                 alert("新增成功"); 
                 document.getElementById('new-name').value=''; 
                 document.getElementById('new-id').value=''; 
+                document.getElementById('new-code').value='';
+                document.getElementById('new-wage').value='';
                 await loadData();
             }
         }
