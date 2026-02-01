@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>全技工程行 - 管理系統 v2.1</title>
+    <title>全技工程行 - 管理系統 v2.2</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
@@ -14,7 +14,7 @@
             font-family: 'Noto Sans TC', sans-serif; 
             background-color: #000000; 
             color: #fca5a5; 
-            font-size: 18px; 
+            font-size: 16px; /* 手機版字體微調 */
             -webkit-tap-highlight-color: transparent; 
         }
         .hidden { display: none !important; }
@@ -22,7 +22,7 @@
         /* 卡片設計 */
         .card { 
             background: #171717; 
-            padding: 24px; 
+            padding: 20px; 
             border-radius: 16px; 
             box-shadow: 0 4px 15px rgba(220, 38, 38, 0.1); 
             margin-bottom: 20px; 
@@ -31,35 +31,49 @@
         
         /* 今日任務卡片 (黃色高亮) */
         .card-today {
-            border-color: #f59e0b; /* 琥珀黃 */
+            border-color: #f59e0b;
             box-shadow: 0 4px 15px rgba(245, 158, 11, 0.2);
         }
 
-        /* 未來任務卡片 (灰色/藍色高亮) */
+        /* 未來任務卡片 */
         .card-future {
-            border-color: #4b5563; /* 灰色 */
+            border-color: #4b5563;
             box-shadow: 0 4px 15px rgba(75, 85, 99, 0.2);
             opacity: 0.9;
         }
         
-        /* 輸入框強制樣式 */
+        /* --- 輸入框樣式修復 (針對手機版跑版) --- */
         .input-box { 
             width: 100%; 
-            padding: 16px; 
+            height: 50px; /* 強制高度，解決 iOS 塌陷 */
+            padding: 0 12px; /* 左右留白 */
             background-color: #262626 !important; 
             border: 2px solid #7f1d1d; 
             border-radius: 12px; 
-            font-size: 18px; 
+            font-size: 16px; 
             font-weight: bold;
             outline: none; 
             margin-bottom: 12px; 
             color: #fca5a5 !important; 
-            display: block; 
+            display: flex; /* 使用 flex 確保垂直置中 */
+            align-items: center;
             box-sizing: border-box;
+            -webkit-appearance: none; /* 移除 iOS 預設圓角與樣式 */
+            appearance: none;
+            line-height: normal;
         }
+        
+        /* 特殊處理 textarea */
+        textarea.input-box {
+            height: auto;
+            padding: 12px;
+            display: block;
+        }
+
         .input-box::placeholder { color: #7f1d1d; opacity: 1; }
         .input-box:focus { border-color: #ef4444; background-color: #000000 !important; }
         
+        /* Chrome 自動填入修復 */
         input:-webkit-autofill,
         input:-webkit-autofill:hover, 
         input:-webkit-autofill:focus, 
@@ -69,36 +83,40 @@
             transition: background-color 5000s ease-in-out 0s;
         }
 
+        /* 下拉選單樣式 */
         select.input-box {
-            appearance: none; 
             background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23dc2626' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
             background-repeat: no-repeat;
             background-position: right 1rem center;
             background-size: 1.5em;
+            padding-right: 2.5rem; /* 避開箭頭 */
         }
 
+        /* Checkbox 樣式 */
         .custom-checkbox {
             display: flex;
             align-items: center;
             gap: 8px;
-            padding: 8px;
+            padding: 10px;
             background: #262626;
             border: 1px solid #7f1d1d;
             border-radius: 8px;
             cursor: pointer;
+            margin-bottom: 4px;
         }
         .custom-checkbox input {
-            width: 20px;
-            height: 20px;
+            width: 24px;
+            height: 24px;
             accent-color: #dc2626;
         }
 
+        /* 按鈕樣式 */
         .btn { 
             width: 100%; 
-            padding: 18px; 
-            border-radius: 14px; 
+            padding: 16px; 
+            border-radius: 12px; 
             font-weight: 900; 
-            font-size: 20px; 
+            font-size: 18px; 
             color: #000000; 
             transition: 0.2s; 
             text-align: center; 
@@ -112,6 +130,7 @@
         .btn-secondary { background-color: #404040; color: #fca5a5; } 
         .btn-warning { background-color: #f59e0b; color: #000000; } 
         .btn-success { background-color: #10b981; color: #000000; }
+        .btn-disabled { background-color: #262626; color: #555; cursor: not-allowed; box-shadow: none; border: 1px solid #444; }
         
         .nav-bar { background-color: #0f0f0f; border-top: 2px solid #7f1d1d; }
         .nav-btn { flex: 1; text-align: center; padding: 12px; color: #7f1d1d; font-size: 14px; font-weight: 900; background: #0f0f0f; border: none; min-width: 0; }
@@ -126,20 +145,19 @@
         }
         .img-grid img {
             width: 100%;
-            height: 120px; 
-            object-fit: contain; 
+            height: 100px; 
+            object-fit: cover; 
             background-color: #262626; 
             border-radius: 8px;
             border: 1px solid #7f1d1d;
-            cursor: pointer;
         }
 
         .text-label { 
             color: #b91c1c; 
             font-weight: bold; 
-            margin-bottom: 6px; 
+            margin-bottom: 4px; 
             display: block; 
-            font-size: 16px;
+            font-size: 14px;
         }
         .map-link { color: #ef4444; text-decoration: underline; font-size: 0.9rem; font-weight: bold; }
 
@@ -169,7 +187,7 @@
             
             <div class="w-full">
                 <label class="text-label">姓名 (或帳號)</label>
-                <input id="login-id" class="input-box" placeholder="例如：吳志璘">
+                <input id="login-id" class="input-box" placeholder="例如：XXX">
             </div>
             
             <div class="w-full">
@@ -259,16 +277,16 @@
         <div class="flex items-center gap-3">
             <img src="https://vegqsdqxnvqupmzsgbpt.supabase.co/storage/v1/object/public/site_photos/F21060CB-BAB1-4E07-91AC-1E3F35796914.png" 
                  alt="Logo" 
-                 class="w-12 h-12 object-contain">
+                 class="w-10 h-10 object-contain">
             <div>
-                <h1 class="text-2xl font-black tracking-widest text-[#dc2626]">全技工程行</h1>
+                <h1 class="text-xl font-black tracking-widest text-[#dc2626]">全技工程行</h1>
                 <div class="flex items-center gap-2 mt-1">
-                    <span class="w-3 h-3 rounded-full bg-[#ef4444] border border-black animate-pulse"></span>
-                    <span id="user-role-display" class="text-sm font-bold text-[#fca5a5]">未登入</span>
+                    <span class="w-2 h-2 rounded-full bg-[#ef4444] border border-black animate-pulse"></span>
+                    <span id="user-role-display" class="text-xs font-bold text-[#fca5a5]">未登入</span>
                 </div>
             </div>
         </div>
-        <button onclick="logout()" class="text-sm font-bold bg-[#262626] text-[#ef4444] px-4 py-2 rounded-lg border border-[#7f1d1d]">登出</button>
+        <button onclick="logout()" class="text-xs font-bold bg-[#262626] text-[#ef4444] px-3 py-2 rounded-lg border border-[#7f1d1d]">登出</button>
     </header>
 
     <main class="flex-1 overflow-y-auto p-4 pb-32 bg-black">
@@ -421,13 +439,14 @@
                     <div>
                         <span class="font-bold text-[#fca5a5] text-lg block">本週應付薪資</span>
                         <span class="text-xs text-[#7f1d1d]">(根據本週打卡記錄)</span>
+                        <div id="settled-status" class="hidden text-xs text-green-500 font-bold mt-1">✓ 本週已結算歸檔</div>
                     </div>
                     <span id="total-wage" class="font-black text-[#dc2626] text-3xl font-mono">$0</span>
                 </div>
                 
                 <div id="employee-list" class="space-y-3 mb-6"></div>
                 
-                <button onclick="settleSalary()" class="btn btn-success text-xl shadow-lg border-2 border-green-800">💰 結算本週薪資 (歸檔)</button>
+                <button id="btn-settle" onclick="settleSalary()" class="btn btn-success text-xl shadow-lg border-2 border-green-800">💰 結算本週薪資 (歸檔)</button>
             </div>
 
             <h3 class="text-xl font-black text-[#fca5a5] mt-8 mb-4 px-2">📜 歷史薪資發放記錄</h3>
@@ -479,7 +498,7 @@
                 </tr>
             </thead>
             <tbody id="pdf-table-body">
-                </tbody>
+            </tbody>
             <tfoot>
                 <tr class="font-bold bg-gray-100">
                     <td colspan="3" class="border border-black p-2 text-center">總計</td>
@@ -826,8 +845,15 @@
                 const nextMonday = new Date(monday);
                 nextMonday.setDate(monday.getDate() + 7);
 
+                // ** 新增：檢查本週是否已結算 **
+                const currentStartDateStr = monday.toLocaleDateString('zh-TW');
+                const hasSettledThisWeek = allData.some(r => 
+                    r.type === 'payout_history' && 
+                    r.start_date === currentStartDateStr
+                );
+
                 currentWeeklyData = {
-                    startDate: monday.toLocaleDateString('zh-TW'),
+                    startDate: currentStartDateStr,
                     endDate: nextMonday.toLocaleDateString('zh-TW'),
                     details: []
                 };
@@ -909,8 +935,26 @@
                         </div>
                     </div>`;
                 }).join('');
-                document.getElementById('total-wage').innerText = '$' + totalSalary.toLocaleString();
-                currentWeeklyData.total = totalSalary;
+                
+                // ** 新增：如果已結算，強制顯示 0 並禁用按鈕 **
+                const settleBtn = document.getElementById('btn-settle');
+                const settleStatus = document.getElementById('settled-status');
+                
+                if (hasSettledThisWeek) {
+                    document.getElementById('total-wage').innerText = '$0';
+                    currentWeeklyData.total = 0; // 避免誤按
+                    settleBtn.innerText = "已完成結算";
+                    settleBtn.classList.add('btn-disabled');
+                    settleBtn.onclick = null;
+                    settleStatus.classList.remove('hidden');
+                } else {
+                    document.getElementById('total-wage').innerText = '$' + totalSalary.toLocaleString();
+                    currentWeeklyData.total = totalSalary;
+                    settleBtn.innerText = "💰 結算本週薪資 (歸檔)";
+                    settleBtn.classList.remove('btn-disabled');
+                    settleBtn.onclick = settleSalary;
+                    settleStatus.classList.add('hidden');
+                }
 
                 // --- 渲染歷史薪資記錄 (新增 PDF 與 修改刪除) ---
                 const historyRecs = allData.filter(r => r.type === 'payout_history');
@@ -919,8 +963,7 @@
                         const date = new Date(h.timestamp).toLocaleString('zh-TW', {month:'numeric', day:'numeric', hour:'2-digit'});
                         const period = (h.start_date && h.end_date) ? `<div class="text-xs text-yellow-500 mt-1">📅 計薪週期：${h.start_date} ~ ${h.end_date}</div>` : '';
                         
-                        // 需要將 record 字串化傳遞給 PDF 函數 (需注意跳脫字元)
-                        const recordJson = JSON.stringify(h).replace(/"/g, '&quot;');
+                        const recordJson = JSON.stringify(h).replace(/"/g, '"');
 
                         return `
                         <div class="bg-[#262626] border border-green-900 rounded-lg p-3 relative group">
