@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>全技工程行 - 管理系統 v2.2</title>
+    <title>全技工程行 - 管理系統 v2.3</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
@@ -14,7 +14,7 @@
             font-family: 'Noto Sans TC', sans-serif; 
             background-color: #000000; 
             color: #fca5a5; 
-            font-size: 16px; /* 手機版字體微調 */
+            font-size: 16px; 
             -webkit-tap-highlight-color: transparent; 
         }
         .hidden { display: none !important; }
@@ -29,24 +29,22 @@
             border: 2px solid #7f1d1d; 
         }
         
-        /* 今日任務卡片 (黃色高亮) */
         .card-today {
             border-color: #f59e0b;
             box-shadow: 0 4px 15px rgba(245, 158, 11, 0.2);
         }
 
-        /* 未來任務卡片 */
         .card-future {
             border-color: #4b5563;
             box-shadow: 0 4px 15px rgba(75, 85, 99, 0.2);
             opacity: 0.9;
         }
         
-        /* --- 輸入框樣式修復 (針對手機版跑版) --- */
+        /* --- 輸入框樣式 --- */
         .input-box { 
             width: 100%; 
-            height: 50px; /* 強制高度，解決 iOS 塌陷 */
-            padding: 0 12px; /* 左右留白 */
+            height: 50px; 
+            padding: 0 12px; 
             background-color: #262626 !important; 
             border: 2px solid #7f1d1d; 
             border-radius: 12px; 
@@ -55,15 +53,14 @@
             outline: none; 
             margin-bottom: 12px; 
             color: #fca5a5 !important; 
-            display: flex; /* 使用 flex 確保垂直置中 */
+            display: flex; 
             align-items: center;
             box-sizing: border-box;
-            -webkit-appearance: none; /* 移除 iOS 預設圓角與樣式 */
+            -webkit-appearance: none; 
             appearance: none;
             line-height: normal;
         }
         
-        /* 特殊處理 textarea */
         textarea.input-box {
             height: auto;
             padding: 12px;
@@ -73,7 +70,6 @@
         .input-box::placeholder { color: #7f1d1d; opacity: 1; }
         .input-box:focus { border-color: #ef4444; background-color: #000000 !important; }
         
-        /* Chrome 自動填入修復 */
         input:-webkit-autofill,
         input:-webkit-autofill:hover, 
         input:-webkit-autofill:focus, 
@@ -83,16 +79,14 @@
             transition: background-color 5000s ease-in-out 0s;
         }
 
-        /* 下拉選單樣式 */
         select.input-box {
             background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23dc2626' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
             background-repeat: no-repeat;
             background-position: right 1rem center;
             background-size: 1.5em;
-            padding-right: 2.5rem; /* 避開箭頭 */
+            padding-right: 2.5rem; 
         }
 
-        /* Checkbox 樣式 */
         .custom-checkbox {
             display: flex;
             align-items: center;
@@ -110,7 +104,6 @@
             accent-color: #dc2626;
         }
 
-        /* 按鈕樣式 */
         .btn { 
             width: 100%; 
             padding: 16px; 
@@ -177,24 +170,18 @@
 
     <div id="login-screen" class="fixed inset-0 bg-[#000000] z-[100] flex flex-col items-center justify-center p-6">
         <div class="bg-[#171717] w-full max-w-sm p-8 rounded-3xl shadow-2xl border-4 border-[#7f1d1d]">
-            
             <img src="https://vegqsdqxnvqupmzsgbpt.supabase.co/storage/v1/object/public/site_photos/F21060CB-BAB1-4E07-91AC-1E3F35796914.png" 
-                 alt="全技工程行 Logo" 
-                 class="w-32 h-32 mx-auto mb-4 object-contain drop-shadow-[0_0_10px_rgba(220,38,38,0.3)]">
-
+                 alt="Logo" class="w-32 h-32 mx-auto mb-4 object-contain drop-shadow-[0_0_10px_rgba(220,38,38,0.3)]">
             <h1 class="text-4xl font-black text-center text-[#dc2626] mb-2">全技工程行</h1>
             <p class="text-center text-[#fca5a5] font-bold text-lg mb-8">管理系統</p>
-            
             <div class="w-full">
                 <label class="text-label">姓名 (或帳號)</label>
-                <input id="login-id" class="input-box" placeholder="例如：XXX">
+                <input id="login-id" class="input-box" placeholder="例如：吳志璘">
             </div>
-            
             <div class="w-full">
                 <label class="text-label">密碼</label>
                 <input id="login-pwd" type="password" class="input-box" placeholder="輸入密碼">
             </div>
-            
             <button onclick="doLogin()" class="btn btn-primary mt-6 text-2xl">登入</button>
             <p id="login-msg" class="text-center text-[#ef4444] font-bold text-base mt-4 min-h-[24px]"></p>
         </div>
@@ -235,7 +222,6 @@
                 <label class="text-label">指派負責人</label><input id="edit-dispatch-emp" class="input-box" readonly>
                 <label class="text-label">陪同人員</label>
                 <div id="edit-dispatch-partners-list" class="grid grid-cols-2 gap-2 mb-3"></div>
-                
                 <label class="text-label">施工地點</label><input id="edit-dispatch-loc" class="input-box">
                 <label class="text-label">任務內容</label><textarea id="edit-dispatch-note" class="input-box" rows="3"></textarea>
             </div>
@@ -247,7 +233,6 @@
                 <input id="edit-wage" type="number" class="input-box">
                 <label class="text-label">登入密碼</label>
                 <input id="edit-pwd" type="text" class="input-box">
-                
                 <div class="mt-4 p-3 bg-[#262626] rounded border border-[#7f1d1d]">
                     <label class="custom-checkbox">
                         <input type="checkbox" id="edit-is-admin">
@@ -276,8 +261,7 @@
     <header class="bg-[#0f0f0f] border-b-2 border-[#7f1d1d] sticky top-0 z-40 px-4 py-4 flex justify-between items-center shadow-md">
         <div class="flex items-center gap-3">
             <img src="https://vegqsdqxnvqupmzsgbpt.supabase.co/storage/v1/object/public/site_photos/F21060CB-BAB1-4E07-91AC-1E3F35796914.png" 
-                 alt="Logo" 
-                 class="w-10 h-10 object-contain">
+                 alt="Logo" class="w-10 h-10 object-contain">
             <div>
                 <h1 class="text-xl font-black tracking-widest text-[#dc2626]">全技工程行</h1>
                 <div class="flex items-center gap-2 mt-1">
@@ -295,21 +279,15 @@
             <div class="card">
                 <h2 class="text-center font-black text-[#fca5a5] text-2xl mb-1">👋 早安，<span id="welcome-name" class="text-[#dc2626]">員工</span></h2>
                 <p class="text-center text-[#7f1d1d] font-bold mb-6" id="current-time-display">--:--</p>
-                
                 <div class="grid grid-cols-2 gap-4 mb-6">
                     <button onclick="clockIn('上班')" class="btn btn-primary text-2xl py-8 shadow-xl hover:bg-red-500">上班</button>
                     <button onclick="clockIn('下班')" class="btn btn-secondary text-2xl py-8 shadow-xl border border-[#7f1d1d]">下班</button>
                 </div>
-
                 <div id="upcoming-missions-container"></div>
-
                 <div class="mt-4 text-center">
-                    <span id="gps-status" class="text-sm font-bold text-[#ef4444] bg-[#262626] px-3 py-1 rounded-full border border-[#7f1d1d]">
-                        📍 定位搜尋中...
-                    </span>
+                    <span id="gps-status" class="text-sm font-bold text-[#ef4444] bg-[#262626] px-3 py-1 rounded-full border border-[#7f1d1d]">📍 定位搜尋中...</span>
                 </div>
             </div>
-            
             <div class="card">
                 <h3 class="text-xl font-black text-[#ef4444] mb-4 border-b border-[#7f1d1d] pb-2">📅 我的記錄</h3>
                 <div id="my-records-list" class="space-y-3 font-bold py-2">無記錄</div>
@@ -319,7 +297,6 @@
         <div id="page-task" class="hidden">
             <div class="card card-highlight mb-4">
                 <h2 class="font-black text-yellow-500 text-xl mb-4">📋 團隊派工總覽</h2>
-                <p class="text-sm text-[#7f1d1d] mb-4 font-bold">此處顯示所有人的未來任務與今日工作。</p>
                 <div id="public-task-list" class="space-y-3">
                     <div class="text-center text-[#7f1d1d] font-bold py-10">載入中...</div>
                 </div>
@@ -330,16 +307,8 @@
             <div class="card">
                 <h2 class="font-black text-[#dc2626] text-xl mb-4">📢 施工進度回報</h2>
                 <div class="space-y-4">
-                    <div>
-                        <label class="text-label">工程名稱</label>
-                        <input id="prog-project" placeholder="工程名稱 / 案場" class="input-box">
-                    </div>
-
-                    <div>
-                        <label class="text-label">備註說明</label>
-                        <textarea id="prog-note" rows="2" placeholder="施工內容備註..." class="input-box"></textarea>
-                    </div>
-                    
+                    <div><label class="text-label">工程名稱</label><input id="prog-project" placeholder="工程名稱 / 案場" class="input-box"></div>
+                    <div><label class="text-label">備註說明</label><textarea id="prog-note" rows="2" placeholder="施工內容備註..." class="input-box"></textarea></div>
                     <div onclick="document.getElementById('file-upload').click()" class="border-4 border-dashed border-[#404040] bg-[#171717] hover:border-[#dc2626] rounded-2xl p-6 text-center cursor-pointer relative group">
                         <input type="file" id="file-upload" accept="image/*" multiple class="hidden" onchange="previewImages(this)">
                         <div id="upload-placeholder">
@@ -349,11 +318,9 @@
                         <div id="preview-container" class="hidden grid grid-cols-3 gap-2 mt-2"></div>
                         <div id="clear-btn" class="hidden absolute -top-2 -right-2 bg-[#dc2626] text-black w-8 h-8 rounded-full flex items-center justify-center font-bold text-xl shadow-md border border-black z-10" onclick="event.stopPropagation(); clearImages()">✕</div>
                     </div>
-                    
                     <button onclick="submitProgress()" class="btn btn-primary text-xl">發佈回報</button>
                 </div>
             </div>
-
             <h3 class="text-xl font-black text-[#fca5a5] mb-4 px-2">📋 最新現場動態</h3>
             <div id="bulletin-list" class="space-y-4">
                 <div class="text-center text-[#7f1d1d] font-bold py-10">載入中...</div>
@@ -367,101 +334,60 @@
                 <h2 class="font-black text-yellow-500 text-xl mb-4">👷 派工任務指派</h2>
                 <div class="space-y-3">
                     <div class="grid grid-cols-2 gap-3">
-                        <div>
-                            <label class="text-label">指派負責人</label>
-                            <select id="dispatch-emp-select" class="input-box"></select>
-                        </div>
-                        <div>
-                            <label class="text-label">日期</label>
-                            <input type="date" id="dispatch-date" class="input-box" style="color-scheme: dark;">
-                        </div>
+                        <div><label class="text-label">指派負責人</label><select id="dispatch-emp-select" class="input-box"></select></div>
+                        <div><label class="text-label">日期</label><input type="date" id="dispatch-date" class="input-box" style="color-scheme: dark;"></div>
                     </div>
-                    
-                    <div>
-                        <label class="text-label">陪同人員 (勾選)</label>
-                        <div id="dispatch-partners-list" class="grid grid-cols-2 gap-2 bg-[#262626] p-3 rounded border border-[#7f1d1d]">
-                            </div>
-                    </div>
-
-                    <div>
-                        <label class="text-label">施工地點 / 案場</label>
-                        <input id="dispatch-loc" placeholder="輸入地點" class="input-box">
-                    </div>
-                    <div>
-                        <label class="text-label">任務內容</label>
-                        <textarea id="dispatch-note" placeholder="輸入詳細工作內容..." rows="2" class="input-box"></textarea>
-                    </div>
+                    <div><label class="text-label">陪同人員 (勾選)</label><div id="dispatch-partners-list" class="grid grid-cols-2 gap-2 bg-[#262626] p-3 rounded border border-[#7f1d1d]"></div></div>
+                    <div><label class="text-label">施工地點</label><input id="dispatch-loc" placeholder="輸入地點" class="input-box"></div>
+                    <div><label class="text-label">任務內容</label><textarea id="dispatch-note" placeholder="輸入詳細工作內容..." rows="2" class="input-box"></textarea></div>
                     <button onclick="submitDispatch()" class="btn btn-warning text-lg">指派任務</button>
                 </div>
-                
                 <h3 class="font-bold text-[#fca5a5] mt-6 mb-2">📅 派工歷史記錄</h3>
                 <div id="dispatch-list" class="space-y-2"></div>
             </div>
 
             <div class="card">
-                <h2 class="font-black text-[#dc2626] text-xl mb-4">👤 員工管理</h2>
+                <h2 class="font-black text-[#dc2626] text-xl mb-4">👤 員工資料管理 (增刪改)</h2>
                 <div class="grid grid-cols-2 gap-3 mb-3">
-                    <div>
-                        <label class="text-label">登入帳號</label>
-                        <input id="new-id" placeholder="自訂 (例如: boss)" class="input-box">
-                    </div>
-                    <div>
-                        <label class="text-label">員工編號</label>
-                        <input id="new-code" placeholder="例如: A01" class="input-box">
-                    </div>
+                    <div><label class="text-label">帳號</label><input id="new-id" placeholder="自訂 (如: boss)" class="input-box"></div>
+                    <div><label class="text-label">編號</label><input id="new-code" placeholder="如: A01" class="input-box"></div>
                 </div>
                 <div class="grid grid-cols-2 gap-3 mb-3">
-                    <div>
-                        <label class="text-label">姓名</label>
-                        <input id="new-name" placeholder="姓名" class="input-box">
-                    </div>
-                    <div>
-                        <label class="text-label">日薪</label>
-                        <input id="new-wage" placeholder="金額" type="number" class="input-box">
-                    </div>
+                    <div><label class="text-label">姓名</label><input id="new-name" placeholder="姓名" class="input-box"></div>
+                    <div><label class="text-label">日薪</label><input id="new-wage" placeholder="金額" type="number" class="input-box"></div>
                 </div>
-                
-                <label class="text-label">密碼</label>
-                <input id="new-pwd" placeholder="密碼 (預設1234)" class="input-box mb-3">
-                
+                <label class="text-label">密碼</label><input id="new-pwd" placeholder="密碼 (預設1234)" class="input-box mb-3">
                 <div class="mb-4 p-3 bg-[#262626] rounded border border-[#7f1d1d]">
-                    <label class="custom-checkbox">
-                        <input type="checkbox" id="new-is-admin">
-                        <span class="text-[#ef4444] font-bold text-lg">⚠️ 設為管理員</span>
-                    </label>
+                    <label class="custom-checkbox"><input type="checkbox" id="new-is-admin"><span class="text-[#ef4444] font-bold text-lg">⚠️ 設為管理員</span></label>
                 </div>
-
-                <button onclick="addEmployee()" class="btn btn-secondary border border-[#dc2626]">＋ 新增員工</button>
+                <button onclick="addEmployee()" class="btn btn-secondary border border-[#dc2626] mb-6">＋ 新增員工</button>
+                
+                <h3 class="font-bold text-[#fca5a5] border-b border-[#7f1d1d] pb-2 mb-2">現有員工列表 (可刪除)</h3>
+                <div id="emp-directory-list" class="space-y-3"></div>
             </div>
 
             <div class="card">
                 <div class="flex justify-between items-end border-b border-[#7f1d1d] pb-3 mb-3">
                     <div>
-                        <span class="font-bold text-[#fca5a5] text-lg block">本週應付薪資</span>
-                        <span class="text-xs text-[#7f1d1d]">(根據本週打卡記錄)</span>
+                        <span class="font-bold text-[#fca5a5] text-lg block">💰 本週應付薪資</span>
+                        <span class="text-xs text-[#7f1d1d]">(僅供計算查看，不可刪除員工)</span>
                         <div id="settled-status" class="hidden text-xs text-green-500 font-bold mt-1">✓ 本週已結算歸檔</div>
                     </div>
                     <span id="total-wage" class="font-black text-[#dc2626] text-3xl font-mono">$0</span>
                 </div>
-                
-                <div id="employee-list" class="space-y-3 mb-6"></div>
-                
+                <div id="salary-calc-list" class="space-y-3 mb-6"></div>
                 <button id="btn-settle" onclick="settleSalary()" class="btn btn-success text-xl shadow-lg border-2 border-green-800">💰 結算本週薪資 (歸檔)</button>
             </div>
 
             <h3 class="text-xl font-black text-[#fca5a5] mt-8 mb-4 px-2">📜 歷史薪資發放記錄</h3>
-            <div id="payout-history-list" class="space-y-3 mb-8">
-                <div class="text-center text-[#7f1d1d]">無歷史記錄</div>
-            </div>
+            <div id="payout-history-list" class="space-y-3 mb-8"><div class="text-center text-[#7f1d1d]">無歷史記錄</div></div>
 
             <h3 class="text-xl font-black text-[#fca5a5] mt-4 mb-4 px-2">📋 員工出勤記錄</h3>
             <div id="admin-clock-list" class="space-y-3"></div>
         </div>
-
     </main>
 
-    <nav id="bottom-nav" class="nav-bar fixed bottom-0 w-full flex pb-safe z-50 shadow-2xl">
-    </nav>
+    <nav id="bottom-nav" class="nav-bar fixed bottom-0 w-full flex pb-safe z-50 shadow-2xl"></nav>
     
     <div id="pdf-template" class="fixed top-0 left-0 bg-white text-black p-8 w-[210mm] hidden z-[9999]">
         <div class="border-b-2 border-black pb-4 mb-4 flex justify-between items-end">
@@ -475,18 +401,10 @@
                 <div id="pdf-date" class="mt-2 text-sm font-bold"></div>
             </div>
         </div>
-
         <div class="mb-6">
-            <div class="flex gap-4 mb-2">
-                <span class="font-bold w-24">計薪週期：</span>
-                <span id="pdf-period" class="border-b border-black flex-1"></span>
-            </div>
-            <div class="flex gap-4">
-                <span class="font-bold w-24">經辦人員：</span>
-                <span id="pdf-handler" class="border-b border-black flex-1"></span>
-            </div>
+            <div class="flex gap-4 mb-2"><span class="font-bold w-24">計薪週期：</span><span id="pdf-period" class="border-b border-black flex-1"></span></div>
+            <div class="flex gap-4"><span class="font-bold w-24">經辦人員：</span><span id="pdf-handler" class="border-b border-black flex-1"></span></div>
         </div>
-
         <table class="w-full border-collapse border border-black mb-8">
             <thead class="bg-gray-200">
                 <tr>
@@ -497,39 +415,24 @@
                     <th class="border border-black p-2 text-center w-32">簽收</th>
                 </tr>
             </thead>
-            <tbody id="pdf-table-body">
-            </tbody>
+            <tbody id="pdf-table-body"></tbody>
             <tfoot>
-                <tr class="font-bold bg-gray-100">
-                    <td colspan="3" class="border border-black p-2 text-center">總計</td>
-                    <td id="pdf-total" class="border border-black p-2 text-right text-lg"></td>
-                    <td class="border border-black p-2"></td>
-                </tr>
+                <tr class="font-bold bg-gray-100"><td colspan="3" class="border border-black p-2 text-center">總計</td><td id="pdf-total" class="border border-black p-2 text-right text-lg"></td><td class="border border-black p-2"></td></tr>
             </tfoot>
         </table>
-
         <div class="flex justify-between mt-12 pt-8">
-            <div class="text-center w-1/3">
-                <p class="mb-12">會計 / 出納</p>
-                <div class="border-t border-black w-2/3 mx-auto"></div>
-            </div>
-            <div class="text-center w-1/3">
-                <p class="mb-12">負責人</p>
-                <div class="border-t border-black w-2/3 mx-auto"></div>
-            </div>
+            <div class="text-center w-1/3"><p class="mb-12">會計 / 出納</p><div class="border-t border-black w-2/3 mx-auto"></div></div>
+            <div class="text-center w-1/3"><p class="mb-12">負責人</p><div class="border-t border-black w-2/3 mx-auto"></div></div>
         </div>
         <div class="text-center text-xs mt-8 text-gray-500">此表單由全技工程行管理系統自動生成</div>
     </div>
 
     <script>
-        // 設定 Supabase 與基本參數
         const PROJECT_URL = 'https://vegqsdqxnvqupmzsgbpt.supabase.co';
         const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZlZ3FzZHF4bnZxdXBtenNnYnB0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk3OTI0MDAsImV4cCI6MjA4NTM2ODQwMH0.ZHluSDbAD_ih4GH25ZBXZGogorfNUfBOcICb5pvhIq0';
         
         let supabaseClient = null;
-        if(window.supabase) {
-            supabaseClient = window.supabase.createClient(PROJECT_URL, ANON_KEY);
-        }
+        if(window.supabase) supabaseClient = window.supabase.createClient(PROJECT_URL, ANON_KEY);
 
         const DB_URL = `${PROJECT_URL}/rest/v1/construction_records`;
         const STORAGE_URL = `${PROJECT_URL}/storage/v1/object/site_photos`;
@@ -541,11 +444,8 @@
         let currentWeeklyData = {}; 
 
         window.onload = async function() {
-            if(window.supabase && !supabaseClient) {
-                supabaseClient = window.supabase.createClient(PROJECT_URL, ANON_KEY);
-            }
-
-            // 1. 啟動時鐘
+            if(window.supabase && !supabaseClient) supabaseClient = window.supabase.createClient(PROJECT_URL, ANON_KEY);
+            
             setInterval(() => {
                 const n = new Date();
                 const timeStr = n.toLocaleTimeString('zh-TW', {hour:'2-digit', minute:'2-digit'});
@@ -553,7 +453,6 @@
                 if(document.getElementById('current-time-display')) document.getElementById('current-time-display').innerText = `${dateStr} ${timeStr}`;
             }, 1000);
 
-            // 2. 啟動定位
             if(navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(
                     p => {
@@ -570,10 +469,8 @@
                 document.getElementById('gps-status').innerText = "⚠️ 裝置不支援定位";
             }
             
-            // 3. 載入資料
             await loadData();
             
-            // 4. 自動登入
             const savedId = localStorage.getItem('last_user_id');
             if (savedId) {
                 if(savedId === 'admin') {
@@ -587,12 +484,8 @@
                     }
                 }
             }
-            
-            // 5. 設定預設日期 (派工用)
             document.getElementById('dispatch-date').valueAsDate = new Date();
         };
-
-        // --- 功能函式區 ---
 
         async function loadData() {
             try {
@@ -616,8 +509,7 @@
 
             if(allData.length === 0 && inputVal !== 'admin') {
                 msg.innerText = "資料載入中，請稍後再試...";
-                loadData(); 
-                return;
+                loadData(); return;
             }
 
             if(!inputVal || !pwd) { msg.innerText = "請輸入姓名或帳號"; return; }
@@ -629,10 +521,7 @@
                 return;
             }
 
-            const user = allData.find(r => 
-                r.type === 'employee' && 
-                (r.employee_name === inputVal || r.employee_id === inputVal || r.employee_code === inputVal)
-            );
+            const user = allData.find(r => r.type === 'employee' && (r.employee_name === inputVal || r.employee_id === inputVal || r.employee_code === inputVal));
 
             if(user && user.password === pwd) {
                 localStorage.setItem('last_user_id', user.employee_id);
@@ -646,63 +535,45 @@
         function performLogin(user) {
             document.getElementById('login-screen').classList.add('hidden');
             document.getElementById('welcome-name').innerText = user.employee_name;
-            
             const roleText = user.is_admin ? ' (管理員)' : ' (員工)';
             document.getElementById('user-role-display').innerText = user.employee_name + roleText;
-            
             document.getElementById('login-msg').innerText = "";
-            
             setupNav();
             nav('clock'); 
             render();
-
-            try {
-                requestNotificationPermission();
-                if(supabaseClient) setupRealtimeListener();
-            } catch(e) {
-                console.log("Realtime setup failed:", e);
-            }
+            try { requestNotificationPermission(); if(supabaseClient) setupRealtimeListener(); } catch(e) {}
         }
 
         function render() {
             const isAdmin = currentUser.is_admin;
             const emps = allData.filter(r => r.type === 'employee');
-
-            // 1. 渲染「即將到來的任務」 (打卡頁)
             const today = new Date();
             today.setHours(0,0,0,0); 
             
+            // 員工端：任務
             const myMissions = allData.filter(r => {
                 if (r.type !== 'dispatch') return false;
                 const taskDate = new Date(r.timestamp);
                 taskDate.setHours(0,0,0,0);
                 if (taskDate < today) return false;
-
                 if (currentUser.employee_id === 'admin') return false;
-
                 const isLeader = r.employee_name === currentUser.employee_name;
                 const isPartner = (r.partners || '').includes(currentUser.employee_name);
-                
                 return isLeader || isPartner;
             }).sort((a,b) => new Date(a.timestamp) - new Date(b.timestamp));
             
             const missionContainer = document.getElementById('upcoming-missions-container');
-            
             if(myMissions.length > 0) {
                 missionContainer.innerHTML = myMissions.map(m => {
                     const mDate = new Date(m.timestamp);
                     mDate.setHours(0,0,0,0);
                     const isToday = mDate.getTime() === today.getTime();
-                    
                     const dateDisplay = mDate.toLocaleDateString('zh-TW');
                     const cardClass = isToday ? 'card-today border-l-yellow-500' : 'card-future border-l-gray-500';
                     const badgeColor = isToday ? 'bg-yellow-500 text-black' : 'bg-gray-600 text-white';
                     const badgeText = isToday ? '今日任務' : `預約派工 (${dateDisplay})`;
-                    
                     const partnerText = m.partners ? `<div class="mt-1 text-sm text-[#fca5a5]">👥 陪同：<span class="font-bold">${m.partners}</span></div>` : '';
-
-                    return `
-                    <div class="card ${cardClass} border-l-8 mb-4 relative">
+                    return `<div class="card ${cardClass} border-l-8 mb-4 relative">
                         <div class="absolute -top-3 -right-2 ${badgeColor} font-black px-3 py-1 rounded-full shadow-lg transform rotate-3 text-sm">${badgeText}</div>
                         <h3 class="text-xl font-black ${isToday ? 'text-yellow-500' : 'text-gray-400'} mb-2">🚀 任務指派</h3>
                         <div class="mb-1"><span class="text-[#7f1d1d] font-bold">負責：</span><span class="text-[#fca5a5] font-bold text-lg">${m.employee_name}</span></div>
@@ -711,64 +582,37 @@
                         <div class="bg-[#262626] p-3 rounded border border-yellow-900/30 text-[#fca5a5] font-bold mt-2">${m.notes}</div>
                     </div>`;
                 }).join('');
-            } else {
-                missionContainer.innerHTML = '';
-            }
+            } else { missionContainer.innerHTML = ''; }
 
-            // 2. 渲染「全體任務總覽」列表
+            // 公共：任務
             const allTasks = allData.filter(r => r.type === 'dispatch').sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
             document.getElementById('public-task-list').innerHTML = allTasks.map(t => {
                 const dateStr = new Date(t.timestamp).toLocaleDateString('zh-TW');
                 const isToday = dateStr === new Date().toLocaleDateString('zh-TW');
-                const dateBadge = isToday 
-                    ? `<span class="bg-yellow-500 text-black px-2 py-0.5 rounded text-xs font-black">今天</span>`
-                    : `<span class="bg-[#262626] text-[#7f1d1d] px-2 py-0.5 rounded text-xs font-bold border border-[#7f1d1d]">${dateStr}</span>`;
+                const dateBadge = isToday ? `<span class="bg-yellow-500 text-black px-2 py-0.5 rounded text-xs font-black">今天</span>` : `<span class="bg-[#262626] text-[#7f1d1d] px-2 py-0.5 rounded text-xs font-bold border border-[#7f1d1d]">${dateStr}</span>`;
                 const partnerBadge = t.partners ? `<div class="text-sm text-yellow-700 mt-1 font-bold">👥 陪同：${t.partners}</div>` : '';
-
-                return `
-                    <div class="bg-[#171717] border border-yellow-900/50 rounded-xl p-4 shadow-sm">
-                        <div class="flex justify-between items-start mb-2">
-                            <div class="flex items-center gap-2">
-                                <span class="text-lg font-black text-yellow-500">${t.employee_name}</span>
-                                ${dateBadge}
-                            </div>
-                        </div>
-                        <div class="mb-1">
-                            <span class="text-[#7f1d1d] font-bold text-sm">地點：</span>
-                            <span class="text-[#fca5a5] font-bold">${t.project_name}</span>
-                        </div>
+                return `<div class="bg-[#171717] border border-yellow-900/50 rounded-xl p-4 shadow-sm">
+                        <div class="flex justify-between items-start mb-2"><div class="flex items-center gap-2"><span class="text-lg font-black text-yellow-500">${t.employee_name}</span>${dateBadge}</div></div>
+                        <div class="mb-1"><span class="text-[#7f1d1d] font-bold text-sm">地點：</span><span class="text-[#fca5a5] font-bold">${t.project_name}</span></div>
                         ${partnerBadge}
-                        <div class="text-[#fca5a5] text-sm bg-[#262626] p-2 rounded border border-[#7f1d1d]/30 mt-2">
-                            ${t.notes}
-                        </div>
-                    </div>
-                `;
+                        <div class="text-[#fca5a5] text-sm bg-[#262626] p-2 rounded border border-[#7f1d1d]/30 mt-2">${t.notes}</div>
+                    </div>`;
             }).join('') || '<div class="text-center text-[#7f1d1d] font-bold py-10">尚無派工記錄</div>';
 
-
-            // 3. 渲染回報列表
+            // 回報列表
             const bulletins = allData.filter(r => r.type === 'progress');
             document.getElementById('bulletin-list').innerHTML = bulletins.map(r => {
                 const time = new Date(r.timestamp).toLocaleString('zh-TW', {month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit'});
                 let imgsHtml = '';
                 if(r.image_url) {
                     const urls = Array.isArray(r.image_url) ? r.image_url : [r.image_url];
-                    if(urls.length > 0) {
-                        imgsHtml = `<div class="img-grid">` + 
-                            urls.map(url => `<img src="${url}" onclick="window.open('${url}', '_blank')">`).join('') + 
-                            `</div>`;
-                    }
+                    if(urls.length > 0) imgsHtml = `<div class="img-grid">` + urls.map(url => `<img src="${url}" onclick="window.open('${url}', '_blank')">`).join('') + `</div>`;
                 }
                 const btns = isAdmin ? `<div class="absolute top-4 right-4"><button onclick="del(this,${r.id})" class="text-[#ef4444] font-bold bg-black px-2 rounded border border-[#7f1d1d]">✕</button></div>` : '';
-                return `
-                <div class="card relative">
-                    ${btns}
+                return `<div class="card relative">${btns}
                     <div class="flex items-center gap-3 mb-2">
                         <div class="w-10 h-10 rounded-full bg-[#404040] flex items-center justify-center font-bold text-[#fca5a5] text-lg border border-[#7f1d1d]">${r.employee_name[0]}</div>
-                        <div>
-                            <div class="font-bold text-[#fca5a5] text-lg">${r.employee_name}</div>
-                            <div class="text-xs text-[#7f1d1d] font-bold">${time}</div>
-                        </div>
+                        <div><div class="font-bold text-[#fca5a5] text-lg">${r.employee_name}</div><div class="text-xs text-[#7f1d1d] font-bold">${time}</div></div>
                     </div>
                     <div class="font-bold text-xl text-[#ef4444] mb-1">${r.project_name}</div>
                     <div class="text-[#fca5a5] font-bold bg-[#262626] p-3 rounded-lg border border-[#7f1d1d]">${r.notes}</div>
@@ -776,56 +620,32 @@
                 </div>`;
             }).join('') || '<div class="text-center text-[#7f1d1d] font-bold py-10">尚無回報資料</div>';
 
-            // 4. 渲染個人打卡記錄
+            // 個人打卡
             const myRecs = allData.filter(r => r.type === 'clock' && r.employee_name === currentUser.employee_name).slice(0, 20);
             document.getElementById('my-records-list').innerHTML = myRecs.map(r => {
                 const otDisplay = getOvertimeDisplay(r);
                 const locDisplay = r.location ? `<a href="https://www.google.com/maps/search/?api=1&query=${r.location}" target="_blank" class="map-link">📍 查看地圖 (${r.location})</a>` : '';
-                return `
-                <div class="flex justify-between items-center p-4 bg-[#171717] rounded-xl border-l-8 ${r.check_type==='上班'?'border-l-green-600':'border-l-orange-600'} border-2 border-[#262626] shadow-sm mb-2">
-                    <div class="flex flex-col">
-                        <div class="flex items-center">
-                            <span class="font-black text-lg text-[#fca5a5] mr-2">${r.check_type}</span>
-                            ${otDisplay}
-                        </div>
-                        ${locDisplay}
-                    </div>
-                    <span class="font-bold text-lg text-[#7f1d1d] font-mono">
-                        ${new Date(r.timestamp).toLocaleString('zh-TW', {month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit'})}
-                    </span>
-                </div>
-            `}).join('') || '<div class="text-[#7f1d1d] font-bold text-center">無記錄</div>';
+                return `<div class="flex justify-between items-center p-4 bg-[#171717] rounded-xl border-l-8 ${r.check_type==='上班'?'border-l-green-600':'border-l-orange-600'} border-2 border-[#262626] shadow-sm mb-2">
+                    <div class="flex flex-col"><div class="flex items-center"><span class="font-black text-lg text-[#fca5a5] mr-2">${r.check_type}</span>${otDisplay}</div>${locDisplay}</div>
+                    <span class="font-bold text-lg text-[#7f1d1d] font-mono">${new Date(r.timestamp).toLocaleString('zh-TW', {month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit'})}</span>
+                </div>`;
+            }).join('') || '<div class="text-[#7f1d1d] font-bold text-center">無記錄</div>';
 
-            // 5. 管理員後台介面
+            // 管理員後台
             if (isAdmin) {
                 const dispatchSelect = document.getElementById('dispatch-emp-select');
                 dispatchSelect.innerHTML = emps.map(e => `<option value="${e.employee_name}">${e.employee_name}</option>`).join('');
-                
-                const partnerContainer = document.getElementById('dispatch-partners-list');
-                partnerContainer.innerHTML = emps.map(e => `
-                    <label class="custom-checkbox">
-                        <input type="checkbox" value="${e.employee_name}">
-                        <span class="text-[#fca5a5] font-bold">${e.employee_name}</span>
-                    </label>
-                `).join('');
+                document.getElementById('dispatch-partners-list').innerHTML = emps.map(e => `<label class="custom-checkbox"><input type="checkbox" value="${e.employee_name}"><span class="text-[#fca5a5] font-bold">${e.employee_name}</span></label>`).join('');
 
+                // 派工列表
                 const dispatches = allData.filter(r => r.type === 'dispatch'); 
                 document.getElementById('dispatch-list').innerHTML = dispatches.map(d => {
                     const dateStr = new Date(d.timestamp).toLocaleDateString('zh-TW');
                     const partnerText = d.partners ? `<br><span class="text-xs text-yellow-700">與 ${d.partners}</span>` : '';
-                    return `
-                        <div class="bg-[#262626] p-3 rounded border border-yellow-900 flex justify-between items-start">
-                            <div>
-                                <div class="font-bold text-yellow-500">${dateStr} ➤ ${d.employee_name}</div>
-                                <div class="text-[#fca5a5] font-bold">${d.project_name} ${partnerText}</div>
-                                <div class="text-sm text-[#7f1d1d]">${d.notes}</div>
-                            </div>
-                            <div class="flex gap-2">
-                                <button onclick="openEdit(${d.id})" class="text-sm text-[#fca5a5] border border-[#fca5a5] px-2 rounded">✏️</button>
-                                <button onclick="del(this, ${d.id})" class="text-sm text-[#ef4444] border border-[#ef4444] px-2 rounded">✕</button>
-                            </div>
-                        </div>
-                    `;
+                    return `<div class="bg-[#262626] p-3 rounded border border-yellow-900 flex justify-between items-start">
+                            <div><div class="font-bold text-yellow-500">${dateStr} ➤ ${d.employee_name}</div><div class="text-[#fca5a5] font-bold">${d.project_name} ${partnerText}</div><div class="text-sm text-[#7f1d1d]">${d.notes}</div></div>
+                            <div class="flex gap-2"><button onclick="openEdit(${d.id})" class="text-sm text-[#fca5a5] border border-[#fca5a5] px-2 rounded">✏️</button><button onclick="del(this, ${d.id})" class="text-sm text-[#ef4444] border border-[#ef4444] px-2 rounded">✕</button></div>
+                        </div>`;
                 }).join('') || '<div class="text-center text-[#7f1d1d] text-sm">無派工記錄</div>';
 
                 // --- 薪資計算邏輯 ---
@@ -835,7 +655,6 @@
                     empMap[e.employee_name] = parseInt(e.wage) || 0;
                     empCodeMap[e.employee_name] = e.employee_code || '';
                 });
-
                 const now = new Date();
                 const dayOfWeek = now.getDay(); 
                 const distanceToMonday = (dayOfWeek + 6) % 7;
@@ -845,19 +664,10 @@
                 const nextMonday = new Date(monday);
                 nextMonday.setDate(monday.getDate() + 7);
 
-                // ** 新增：檢查本週是否已結算 **
                 const currentStartDateStr = monday.toLocaleDateString('zh-TW');
-                const hasSettledThisWeek = allData.some(r => 
-                    r.type === 'payout_history' && 
-                    r.start_date === currentStartDateStr
-                );
+                const hasSettledThisWeek = allData.some(r => r.type === 'payout_history' && r.start_date === currentStartDateStr);
 
-                currentWeeklyData = {
-                    startDate: currentStartDateStr,
-                    endDate: nextMonday.toLocaleDateString('zh-TW'),
-                    details: []
-                };
-
+                currentWeeklyData = { startDate: currentStartDateStr, endDate: nextMonday.toLocaleDateString('zh-TW'), details: [] };
                 const dailyGroups = {};
                 allData.filter(r => r.type === 'clock').forEach(r => {
                     const t = new Date(r.timestamp);
@@ -873,76 +683,63 @@
                         }
                     }
                 });
-
                 const weeklyCalc = {};
                 const workDaysCount = {};
-
                 Object.entries(dailyGroups).forEach(([key, times]) => {
                     const [name, date] = key.split('|');
                     const wage = empMap[name] || 0;
-
                     if (times.start && times.end) {
                         const durationMs = times.end - times.start;
                         const durationHrs = durationMs / (1000 * 60 * 60);
                         const netHrs = Math.max(0, durationHrs - 1); 
-
                         let dayPay = 0;
-                        if (netHrs >= 8) {
-                            dayPay = wage;
-                        } else {
-                            const hourlyRate = wage / 8;
-                            dayPay = Math.floor(netHrs * hourlyRate);
-                        }
-
+                        if (netHrs >= 8) dayPay = wage;
+                        else dayPay = Math.floor(netHrs * (wage / 8));
                         if (!weeklyCalc[name]) weeklyCalc[name] = 0;
                         weeklyCalc[name] += dayPay;
-
                         if (!workDaysCount[name]) workDaysCount[name] = 0;
                         workDaysCount[name] += 1; 
                     }
                 });
 
-                let totalSalary = 0;
-                document.getElementById('employee-list').innerHTML = emps.map(e => {
-                    const pay = weeklyCalc[e.employee_name] || 0;
-                    const days = workDaysCount[e.employee_name] || 0;
-                    totalSalary += pay;
-                    
-                    if (pay > 0) {
-                        currentWeeklyData.details.push({
-                            name: e.employee_name,
-                            code: e.employee_code,
-                            pay: pay,
-                            days: days
-                        });
-                    }
-
+                // 1. 渲染「員工資料管理列表」 (區塊 A - 含刪除)
+                document.getElementById('emp-directory-list').innerHTML = emps.map(e => {
                     const adminBadge = e.is_admin ? '<span class="bg-[#dc2626] text-black text-xs px-1 rounded ml-2 font-black">ADMIN</span>' : '';
                     const codeDisplay = e.employee_code ? `<span class="text-yellow-500 font-mono text-sm mr-1">[${e.employee_code}]</span>` : '';
-
-                    return `
-                    <div class="flex justify-between items-center p-4 bg-[#171717] rounded-xl border-2 border-[#262626]">
+                    return `<div class="flex justify-between items-center p-3 bg-[#171717] rounded-xl border border-[#7f1d1d] shadow-sm">
                         <div>
-                            <div class="font-black text-lg text-[#fca5a5]">${codeDisplay}${e.employee_name} ${adminBadge}</div>
-                            <div class="text-sm font-bold text-[#7f1d1d]">$${e.wage}/日 (本週${days}天)</div>
+                            <div class="font-black text-[#fca5a5]">${codeDisplay}${e.employee_name} ${adminBadge}</div>
+                            <div class="text-xs text-[#7f1d1d]">日薪: $${e.wage}</div>
                         </div>
-                        <div class="flex flex-col items-end gap-1">
-                            <div class="font-black text-[#dc2626] text-xl">$${pay.toLocaleString()}</div>
-                            <div class="flex gap-2">
-                                <button onclick="openEdit(${e.id})" class="text-sm text-[#fca5a5] border border-[#fca5a5] px-2 rounded hover:bg-[#262626]">✏️ 修改</button>
-                                <button onclick="del(this, ${e.id})" class="text-sm text-[#ef4444] border border-[#ef4444] px-2 rounded hover:bg-[#262626]">刪除</button>
-                            </div>
+                        <div class="flex gap-2">
+                            <button onclick="openEdit(${e.id})" class="text-sm text-[#fca5a5] border border-[#fca5a5] px-2 rounded hover:bg-[#262626]">✏️</button>
+                            <button onclick="del(this, ${e.id})" class="text-sm text-[#ef4444] border border-[#ef4444] px-2 rounded hover:bg-[#262626]">✕</button>
                         </div>
                     </div>`;
                 }).join('');
+
+                // 2. 渲染「薪資計算列表」 (區塊 B - 不含刪除)
+                let totalSalary = 0;
+                const salaryListHtml = emps.map(e => {
+                    const pay = weeklyCalc[e.employee_name] || 0;
+                    const days = workDaysCount[e.employee_name] || 0;
+                    totalSalary += pay;
+                    if (pay > 0) currentWeeklyData.details.push({ name: e.employee_name, code: e.employee_code, pay: pay, days: days });
+                    return `<div class="flex justify-between items-center p-4 bg-[#262626] rounded-xl border border-[#404040]">
+                        <div class="font-bold text-[#fca5a5]">${e.employee_name}</div>
+                        <div class="text-right">
+                            <div class="text-xs text-[#7f1d1d]">本週出勤 ${days} 天</div>
+                            <div class="font-black text-[#dc2626] text-xl">$${pay.toLocaleString()}</div>
+                        </div>
+                    </div>`;
+                }).join('');
+                document.getElementById('salary-calc-list').innerHTML = salaryListHtml;
                 
-                // ** 新增：如果已結算，強制顯示 0 並禁用按鈕 **
                 const settleBtn = document.getElementById('btn-settle');
                 const settleStatus = document.getElementById('settled-status');
-                
                 if (hasSettledThisWeek) {
                     document.getElementById('total-wage').innerText = '$0';
-                    currentWeeklyData.total = 0; // 避免誤按
+                    currentWeeklyData.total = 0; 
                     settleBtn.innerText = "已完成結算";
                     settleBtn.classList.add('btn-disabled');
                     settleBtn.onclick = null;
@@ -956,448 +753,154 @@
                     settleStatus.classList.add('hidden');
                 }
 
-                // --- 渲染歷史薪資記錄 (新增 PDF 與 修改刪除) ---
+                // 歷史記錄
                 const historyRecs = allData.filter(r => r.type === 'payout_history');
                 if (historyRecs.length > 0) {
                     document.getElementById('payout-history-list').innerHTML = historyRecs.map(h => {
                         const date = new Date(h.timestamp).toLocaleString('zh-TW', {month:'numeric', day:'numeric', hour:'2-digit'});
                         const period = (h.start_date && h.end_date) ? `<div class="text-xs text-yellow-500 mt-1">📅 計薪週期：${h.start_date} ~ ${h.end_date}</div>` : '';
-                        
                         const recordJson = JSON.stringify(h).replace(/"/g, '"');
-
-                        return `
-                        <div class="bg-[#262626] border border-green-900 rounded-lg p-3 relative group">
+                        return `<div class="bg-[#262626] border border-green-900 rounded-lg p-3 relative group">
                             <div class="flex justify-between items-start">
-                                <div>
-                                    <div class="text-green-500 font-bold text-lg">💰 已發放: $${parseInt(h.total_amount).toLocaleString()}</div>
-                                    <div class="text-[#7f1d1d] text-xs font-bold">結算日: ${date}</div>
-                                    ${period}
-                                </div>
-                                <div class="flex flex-col items-end gap-2">
-                                     <button onclick="printSalarySlip(${recordJson})" class="bg-white text-black text-xs font-bold px-3 py-1 rounded shadow hover:bg-gray-200 flex items-center gap-1">
-                                        📄 PDF
-                                     </button>
-                                     <div class="flex gap-2">
-                                        <button onclick="openEdit(${h.id})" class="text-sm text-[#fca5a5] border border-[#fca5a5] px-2 rounded hover:bg-[#1a1a1a]">✏️</button>
-                                        <button onclick="del(this, ${h.id})" class="text-sm text-[#ef4444] border border-[#ef4444] px-2 rounded hover:bg-[#1a1a1a]">✕</button>
-                                     </div>
-                                </div>
+                                <div><div class="text-green-500 font-bold text-lg">💰 已發放: $${parseInt(h.total_amount).toLocaleString()}</div><div class="text-[#7f1d1d] text-xs font-bold">結算日: ${date}</div>${period}</div>
+                                <div class="flex flex-col items-end gap-2"><button onclick="printSalarySlip(${recordJson})" class="bg-white text-black text-xs font-bold px-3 py-1 rounded shadow hover:bg-gray-200 flex items-center gap-1">📄 PDF</button>
+                                     <div class="flex gap-2"><button onclick="openEdit(${h.id})" class="text-sm text-[#fca5a5] border border-[#fca5a5] px-2 rounded hover:bg-[#1a1a1a]">✏️</button><button onclick="del(this, ${h.id})" class="text-sm text-[#ef4444] border border-[#ef4444] px-2 rounded hover:bg-[#1a1a1a]">✕</button></div></div>
                             </div>
                         </div>`;
                     }).join('');
-                } else {
-                    document.getElementById('payout-history-list').innerHTML = '<div class="text-center text-[#7f1d1d]">無歷史記錄</div>';
-                }
+                } else { document.getElementById('payout-history-list').innerHTML = '<div class="text-center text-[#7f1d1d]">無歷史記錄</div>'; }
 
+                // 出勤記錄
                 const clocks = allData.filter(r => r.type === 'clock');
                 document.getElementById('admin-clock-list').innerHTML = clocks.map(r => {
                     const time = new Date(r.timestamp).toLocaleString('zh-TW', {month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit'});
                     const otDisplay = getOvertimeDisplay(r);
                     const locDisplay = r.location ? `<a href="https://www.google.com/maps/search/?api=1&query=${r.location}" target="_blank" class="map-link">📍 查看地圖</a>` : '';
-                    return `
-                    <div class="flex justify-between items-center p-3 bg-[#171717] rounded-lg border border-[#262626] shadow-sm relative group">
-                        <div class="flex flex-col">
-                            <div>
-                                <span class="font-black text-[#fca5a5] mr-2">${r.employee_name}</span>
-                                <span class="text-[#7f1d1d] font-bold text-sm">${time}</span>
-                            </div>
-                            <div class="mt-1">${otDisplay}</div>
-                            ${locDisplay}
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <span class="font-bold ${r.check_type==='上班'?'text-green-600':'text-orange-600'}">${r.check_type}</span>
-                            <button onclick="openEdit(${r.id})" class="bg-[#262626] text-[#fca5a5] px-2 rounded text-sm border border-[#7f1d1d]">✏️</button>
-                            <button onclick="del(this, ${r.id})" class="text-[#ef4444] font-bold px-2">✕</button>
-                        </div>
+                    return `<div class="flex justify-between items-center p-3 bg-[#171717] rounded-lg border border-[#262626] shadow-sm relative group">
+                        <div class="flex flex-col"><div><span class="font-black text-[#fca5a5] mr-2">${r.employee_name}</span><span class="text-[#7f1d1d] font-bold text-sm">${time}</span></div><div class="mt-1">${otDisplay}</div>${locDisplay}</div>
+                        <div class="flex items-center gap-2"><span class="font-bold ${r.check_type==='上班'?'text-green-600':'text-orange-600'}">${r.check_type}</span><button onclick="openEdit(${r.id})" class="bg-[#262626] text-[#fca5a5] px-2 rounded text-sm border border-[#7f1d1d]">✏️</button><button onclick="del(this, ${r.id})" class="text-[#ef4444] font-bold px-2">✕</button></div>
                     </div>`;
                 }).join('');
             }
         }
 
-        // --- 薪資 PDF 生成 ---
         function printSalarySlip(record) {
-            // 填充模板
             document.getElementById('pdf-date').innerText = `發放日期：${new Date(record.timestamp).toLocaleDateString()}`;
             document.getElementById('pdf-period').innerText = `${record.start_date || 'N/A'} ~ ${record.end_date || 'N/A'}`;
             document.getElementById('pdf-handler').innerText = record.settled_by || '管理員';
             document.getElementById('pdf-total').innerText = `$${parseInt(record.total_amount).toLocaleString()}`;
-
-            const tbody = document.getElementById('pdf-table-body');
-            tbody.innerHTML = record.details.map((d, index) => `
-                <tr>
-                    <td class="border border-black p-2 text-center text-sm">${d.code || '-'}</td>
-                    <td class="border border-black p-2 font-bold">${d.name}</td>
-                    <td class="border border-black p-2 text-center">${d.days} 天</td>
-                    <td class="border border-black p-2 text-right font-mono">$${d.pay.toLocaleString()}</td>
-                    <td class="border border-black p-2"></td>
-                </tr>
-            `).join('');
-
-            // 顯示模板並生成 PDF
+            document.getElementById('pdf-table-body').innerHTML = record.details.map(d => `<tr><td class="border border-black p-2 text-center text-sm">${d.code || '-'}</td><td class="border border-black p-2 font-bold">${d.name}</td><td class="border border-black p-2 text-center">${d.days} 天</td><td class="border border-black p-2 text-right font-mono">$${d.pay.toLocaleString()}</td><td class="border border-black p-2"></td></tr>`).join('');
             const element = document.getElementById('pdf-template');
             element.classList.remove('hidden');
-
-            const opt = {
-                margin:       5,
-                filename:     `薪資明細_${record.start_date}_${record.end_date}.pdf`,
-                image:        { type: 'jpeg', quality: 0.98 },
-                html2canvas:  { scale: 2 },
-                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
-            };
-
-            html2pdf().set(opt).from(element).save().then(() => {
-                element.classList.add('hidden'); // 生成後隱藏
-            });
+            html2pdf().set({ margin: 5, filename: `薪資明細_${record.start_date}.pdf`, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } }).from(element).save().then(() => element.classList.add('hidden'));
         }
 
         async function settleSalary() {
-            if (!currentWeeklyData || currentWeeklyData.total === 0) {
-                alert("目前沒有可結算的金額");
-                return;
-            }
-            if (!confirm(`確定要結算本週薪資嗎？\n總金額: $${currentWeeklyData.total}\n這將會儲存一份歷史記錄。`)) {
-                return;
-            }
+            if (!currentWeeklyData || currentWeeklyData.total === 0) return alert("目前沒有可結算的金額");
+            if (!confirm(`確定要結算本週薪資嗎？\n總金額: $${currentWeeklyData.total}\n這將會儲存一份歷史記錄。`)) return;
+            const payload = { timestamp: new Date().toISOString(), start_date: currentWeeklyData.startDate, end_date: currentWeeklyData.endDate, total_amount: currentWeeklyData.total, details: currentWeeklyData.details, settled_by: currentUser.employee_name };
+            if (await insertData('payout_history', payload)) { alert("薪資已結算並歸檔！"); await loadData(); } else { alert("結算失敗"); }
+        }
 
-            const payload = {
-                timestamp: new Date().toISOString(),
-                start_date: currentWeeklyData.startDate,
-                end_date: currentWeeklyData.endDate,
-                total_amount: currentWeeklyData.total,
-                details: currentWeeklyData.details,
-                settled_by: currentUser.employee_name
-            };
-
-            if (await insertData('payout_history', payload)) {
-                alert("薪資已結算並歸檔！");
-                await loadData();
-            } else {
-                alert("結算失敗，請重試");
-            }
+        function getOvertimeDisplay(r) {
+            if (r.check_type !== '下班') return '';
+            const cStr = new Date(r.timestamp).toDateString(); 
+            const sRecs = allData.filter(x => x.type === 'clock' && x.employee_name === r.employee_name && x.check_type === '上班' && new Date(x.timestamp).toDateString() === cStr);
+            if (sRecs.length === 0) return '';
+            const dur = (new Date(r.timestamp) - Math.min(...sRecs.map(x=>new Date(x.timestamp)))) / 36e5;
+            return dur > 9 ? `<span class="text-[#dc2626] font-black text-sm ml-2 bg-[#262626] px-2 py-1 rounded-full border border-[#7f1d1d]">加班 ${(dur-9).toFixed(1)}h</span>` : '';
         }
 
         function setupNav() {
             const nav = document.getElementById('bottom-nav');
-            if (currentUser.is_admin) {
-                // 管理員：4 個按鈕
-                nav.innerHTML = `
-                    <button onclick="nav('clock')" class="nav-btn active" id="btn-clock"><svg class="nav-icon" viewBox="0 0 24 24"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm0 18c-4.4 0-8-3.6-8-8s3.6-8 8-8 8 3.6 8 8-3.6 8-8 8zm.5-13H11v6l5.2 3.2.8-1.3-4.5-2.7V7z"/></svg>打卡</button>
-                    <button onclick="nav('task')" class="nav-btn" id="btn-task"><svg class="nav-icon" viewBox="0 0 24 24"><path d="M19 3h-4.18C14.4 1.84 13.3 1 12 1c-1.3 0-2.4.84-2.82 2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm2 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>任務</button>
-                    <button onclick="nav('bulletin')" class="nav-btn" id="btn-bulletin"><svg class="nav-icon" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14zm-5-7l-3 3.72L9 13l-3 4h12l-4-5z"/></svg>回報</button>
-                    <button onclick="nav('admin')" class="nav-btn active" id="btn-admin"><svg class="nav-icon" viewBox="0 0 24 24"><path d="M19.43 12.98c.04-.32.07-.64.07-.98s-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.46 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.07.65-.07.98s.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49 1c.23.09.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.65zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z"/></svg>後台</button>
-                `;
-            } else {
-                // 員工：3 個按鈕
-                nav.innerHTML = `
-                    <button onclick="nav('clock')" class="nav-btn active" id="btn-clock"><svg class="nav-icon" viewBox="0 0 24 24"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm0 18c-4.4 0-8-3.6-8-8s3.6-8 8-8 8 3.6 8 8-3.6 8-8 8zm.5-13H11v6l5.2 3.2.8-1.3-4.5-2.7V7z"/></svg>打卡</button>
-                    <button onclick="nav('task')" class="nav-btn" id="btn-task"><svg class="nav-icon" viewBox="0 0 24 24"><path d="M19 3h-4.18C14.4 1.84 13.3 1 12 1c-1.3 0-2.4.84-2.82 2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm2 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>任務</button>
-                    <button onclick="nav('bulletin')" class="nav-btn" id="btn-bulletin"><svg class="nav-icon" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14zm-5-7l-3 3.72L9 13l-3 4h12l-4-5z"/></svg>回報</button>
-                `;
-            }
-        }
-        
-        function getOvertimeDisplay(record) {
-            if (record.check_type !== '下班') return '';
-            const currentObj = new Date(record.timestamp);
-            const currentDateStr = currentObj.toDateString(); 
-            const startRecords = allData.filter(r => 
-                r.type === 'clock' &&
-                r.employee_name === record.employee_name &&
-                r.check_type === '上班' &&
-                new Date(r.timestamp).toDateString() === currentDateStr
-            );
-            if (startRecords.length === 0) return '';
-            const timestamps = startRecords.map(r => new Date(r.timestamp).getTime());
-            const firstClockInTime = Math.min(...timestamps);
-            const durationMs = currentObj.getTime() - firstClockInTime;
-            const durationHrs = durationMs / (1000 * 60 * 60);
-            
-            if (durationHrs > 9) {
-                const ot = durationHrs - 9;
-                return `<span class="text-[#dc2626] font-black text-sm ml-2 bg-[#262626] px-2 py-1 rounded-full border border-[#7f1d1d]">加班 ${ot.toFixed(1)}h</span>`;
-            }
-            return '';
+            const btns = currentUser.is_admin ? [
+                {id:'clock', icon:'M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm0 18c-4.4 0-8-3.6-8-8s3.6-8 8-8 8 3.6 8 8-3.6 8-8 8zm.5-13H11v6l5.2 3.2.8-1.3-4.5-2.7V7z', txt:'打卡'},
+                {id:'task', icon:'M19 3h-4.18C14.4 1.84 13.3 1 12 1c-1.3 0-2.4.84-2.82 2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm2 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z', txt:'任務'},
+                {id:'bulletin', icon:'M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14zm-5-7l-3 3.72L9 13l-3 4h12l-4-5z', txt:'回報'},
+                {id:'admin', icon:'M19.43 12.98c.04-.32.07-.64.07-.98s-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.46 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.07.65-.07.98s.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49 1c.23.09.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.65zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z', txt:'後台'}
+            ] : [
+                {id:'clock', icon:'M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm0 18c-4.4 0-8-3.6-8-8s3.6-8 8-8 8 3.6 8 8-3.6 8-8 8zm.5-13H11v6l5.2 3.2.8-1.3-4.5-2.7V7z', txt:'打卡'},
+                {id:'task', icon:'M19 3h-4.18C14.4 1.84 13.3 1 12 1c-1.3 0-2.4.84-2.82 2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm2 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z', txt:'任務'},
+                {id:'bulletin', icon:'M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14zm-5-7l-3 3.72L9 13l-3 4h12l-4-5z', txt:'回報'}
+            ];
+            nav.innerHTML = btns.map(b => `<button onclick="nav('${b.id}')" class="nav-btn ${b.id==='clock'?'active':''}" id="btn-${b.id}"><svg class="nav-icon" viewBox="0 0 24 24"><path d="${b.icon}"/></svg>${b.txt}</button>`).join('');
         }
 
         async function clockIn(type) {
-            const name = currentUser.employee_name;
-            const btn = event.currentTarget;
-            btn.innerText = "處理中...";
-            const locToSend = currentLocation || "未取得定位";
-            if(await insertData('clock', { employee_name: name, check_type: type, timestamp: new Date().toISOString(), location: locToSend })) {
-                alert("打卡成功"); await loadData();
-            } else { alert("失敗"); }
+            const btn = event.currentTarget; btn.innerText = "處理中...";
+            if(await insertData('clock', { employee_name: currentUser.employee_name, check_type: type, timestamp: new Date().toISOString(), location: currentLocation || "未定位" })) { alert("打卡成功"); await loadData(); } else { alert("失敗"); }
             btn.innerHTML = type;
         }
-
         async function submitProgress() {
-            const name = currentUser.employee_name;
-            const proj = document.getElementById('prog-project').value;
-            const val = ""; 
-            const note = document.getElementById('prog-note').value;
-            const fileInput = document.getElementById('file-upload');
+            const name = currentUser.employee_name, proj = document.getElementById('prog-project').value, note = document.getElementById('prog-note').value, fileInput = document.getElementById('file-upload');
             if(!proj) return alert("請輸入工程名稱");
-            
-            const loadingOverlay = document.getElementById('loading-overlay');
-            const loadingText = document.getElementById('loading-text');
-            loadingOverlay.classList.remove('hidden');
-            
+            document.getElementById('loading-overlay').classList.remove('hidden');
             let imgUrls = [];
-            if(fileInput.files.length > 0) {
-                loadingText.innerText = `正在上傳照片 (0/${fileInput.files.length})...`;
-                for(let i=0; i<fileInput.files.length; i++) {
-                    loadingText.innerText = `正在上傳照片 (${i+1}/${fileInput.files.length})...`;
-                    const url = await uploadFileAPI(fileInput.files[i]);
-                    if(url) imgUrls.push(url);
-                }
+            for(let i=0; i<fileInput.files.length; i++) {
+                const url = await uploadFileAPI(fileInput.files[i]);
+                if(url) imgUrls.push(url);
             }
-            
-            loadingText.innerText = "正在儲存回報...";
-            
-            if(await insertData('progress', { employee_name: name, project_name: proj, progress: val, notes: note, image_url: imgUrls, timestamp: new Date().toISOString(), location: currentLocation })) {
-                alert("發佈成功"); 
-                document.getElementById('prog-project').value = ''; document.getElementById('prog-note').value = ''; 
-                clearImages(); await loadData();
-            } else { 
-                alert("發佈失敗"); 
-            }
-            loadingOverlay.classList.add('hidden');
+            if(await insertData('progress', { employee_name: name, project_name: proj, progress: "", notes: note, image_url: imgUrls, timestamp: new Date().toISOString(), location: currentLocation })) { alert("發佈成功"); document.getElementById('prog-project').value=''; document.getElementById('prog-note').value=''; clearImages(); await loadData(); } else { alert("失敗"); }
+            document.getElementById('loading-overlay').classList.add('hidden');
         }
-
         function previewImages(input) {
-            const container = document.getElementById('preview-container');
-            const placeholder = document.getElementById('upload-placeholder');
-            const clearBtn = document.getElementById('clear-btn');
-            container.innerHTML = ''; 
-            if (input.files && input.files.length > 0) {
-                placeholder.classList.add('hidden');
-                container.classList.remove('hidden');
-                clearBtn.classList.remove('hidden');
-                Array.from(input.files).forEach(file => {
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                        const img = document.createElement('img'); img.src = e.target.result;
-                        img.className = 'w-full h-20 object-contain rounded-lg border border-[#7f1d1d] bg-[#262626]';
-                        container.appendChild(img);
-                    }
-                    reader.readAsDataURL(file);
-                });
-            }
+            const c = document.getElementById('preview-container'); c.innerHTML = '';
+            if(input.files.length) { document.getElementById('upload-placeholder').classList.add('hidden'); c.classList.remove('hidden'); document.getElementById('clear-btn').classList.remove('hidden'); Array.from(input.files).forEach(f => { const r = new FileReader(); r.onload = e => { const img = document.createElement('img'); img.src = e.target.result; img.className = 'w-full h-20 object-contain rounded-lg border border-[#7f1d1d] bg-[#262626]'; c.appendChild(img); }; r.readAsDataURL(f); }); }
         }
-
-        function clearImages() {
-            document.getElementById('file-upload').value = '';
-            document.getElementById('preview-container').innerHTML = '';
-            document.getElementById('preview-container').classList.add('hidden');
-            document.getElementById('upload-placeholder').classList.remove('hidden');
-            document.getElementById('clear-btn').classList.add('hidden');
-        }
-
-        let currentEditId, currentEditData;
+        function clearImages() { document.getElementById('file-upload').value = ''; document.getElementById('preview-container').innerHTML = ''; document.getElementById('preview-container').classList.add('hidden'); document.getElementById('upload-placeholder').classList.remove('hidden'); document.getElementById('clear-btn').classList.add('hidden'); }
+        
+        // --- 編輯功能 (精簡) ---
         function openEdit(id) {
             const r = allData.find(d => d.id === id); if(!r) return;
             currentEditId = id; currentEditData = r;
-            document.getElementById('edit-id').value = id;
-            document.getElementById('edit-type').value = r.type;
-            
-            // 隱藏所有區域
-            const areas = ['edit-time-group', 'edit-clock-area', 'edit-prog-area', 'edit-emp-area', 'edit-dispatch-area', 'edit-payout-area', 'edit-name-group'];
-            areas.forEach(a => document.getElementById(a).classList.add('hidden'));
-
-            // 預設填入名稱 (如果有的話)
-            if(r.employee_name) {
-                document.getElementById('edit-name-group').classList.remove('hidden');
-                document.getElementById('edit-name').value = r.employee_name;
-            }
-
+            document.getElementById('edit-id').value = id; document.getElementById('edit-type').value = r.type;
+            ['edit-time-group', 'edit-clock-area', 'edit-prog-area', 'edit-emp-area', 'edit-dispatch-area', 'edit-payout-area', 'edit-name-group'].forEach(a => document.getElementById(a).classList.add('hidden'));
+            if(r.employee_name) { document.getElementById('edit-name-group').classList.remove('hidden'); document.getElementById('edit-name').value = r.employee_name; }
             if(r.type === 'employee') {
-                document.getElementById('edit-emp-area').classList.remove('hidden');
-                document.getElementById('edit-wage').value = r.wage || '';
-                document.getElementById('edit-pwd').value = r.password || '';
-                document.getElementById('edit-code').value = r.employee_code || ''; 
-                document.getElementById('edit-is-admin').checked = !!r.is_admin; 
+                document.getElementById('edit-emp-area').classList.remove('hidden'); document.getElementById('edit-wage').value = r.wage || ''; document.getElementById('edit-pwd').value = r.password || ''; document.getElementById('edit-code').value = r.employee_code || ''; document.getElementById('edit-is-admin').checked = !!r.is_admin; 
             } else if (r.type === 'payout_history') {
-                // 薪資歷史修改模式
-                document.getElementById('edit-payout-area').classList.remove('hidden');
-                document.getElementById('edit-name-group').classList.add('hidden'); // 薪資歷史不改人名
-                
-                // 轉換日期格式給 input type="date"
-                const formatDate = (ds) => {
-                    if(!ds) return '';
-                    // 假設 ds 是 YYYY/MM/DD 格式
-                    return ds.replace(/\//g, '-'); 
-                };
-
-                document.getElementById('edit-pay-start').value = formatDate(r.start_date);
-                document.getElementById('edit-pay-end').value = formatDate(r.end_date);
-                document.getElementById('edit-pay-amount').value = r.total_amount;
-
+                document.getElementById('edit-payout-area').classList.remove('hidden'); document.getElementById('edit-name-group').classList.add('hidden');
+                document.getElementById('edit-pay-start').value = (r.start_date||'').replace(/\//g, '-'); document.getElementById('edit-pay-end').value = (r.end_date||'').replace(/\//g, '-'); document.getElementById('edit-pay-amount').value = r.total_amount;
             } else if (r.type === 'dispatch') {
-                document.getElementById('edit-dispatch-area').classList.remove('hidden');
-                document.getElementById('edit-time-group').classList.remove('hidden');
-                
-                const dt = new Date(r.timestamp);
-                dt.setMinutes(dt.getMinutes() - dt.getTimezoneOffset());
-                document.getElementById('edit-time').value = dt.toISOString().slice(0,16);
-
-                document.getElementById('edit-dispatch-emp').value = r.employee_name;
-                document.getElementById('edit-dispatch-loc').value = r.project_name || '';
-                document.getElementById('edit-dispatch-note').value = r.notes || '';
-                
-                const emps = allData.filter(x => x.type === 'employee');
-                const currentPartners = (r.partners || '').split(', ').filter(x=>x);
-                document.getElementById('edit-dispatch-partners-list').innerHTML = emps.map(e => `
-                    <label class="custom-checkbox">
-                        <input type="checkbox" value="${e.employee_name}" ${currentPartners.includes(e.employee_name) ? 'checked' : ''}>
-                        <span class="text-[#fca5a5] font-bold">${e.employee_name}</span>
-                    </label>
-                `).join('');
-
+                document.getElementById('edit-dispatch-area').classList.remove('hidden'); document.getElementById('edit-time-group').classList.remove('hidden');
+                const dt = new Date(r.timestamp); dt.setMinutes(dt.getMinutes() - dt.getTimezoneOffset()); document.getElementById('edit-time').value = dt.toISOString().slice(0,16);
+                document.getElementById('edit-dispatch-emp').value = r.employee_name; document.getElementById('edit-dispatch-loc').value = r.project_name || ''; document.getElementById('edit-dispatch-note').value = r.notes || '';
+                const emps = allData.filter(x => x.type === 'employee'); const ps = (r.partners || '').split(', ').filter(x=>x);
+                document.getElementById('edit-dispatch-partners-list').innerHTML = emps.map(e => `<label class="custom-checkbox"><input type="checkbox" value="${e.employee_name}" ${ps.includes(e.employee_name) ? 'checked' : ''}><span class="text-[#fca5a5] font-bold">${e.employee_name}</span></label>`).join('');
             } else {
-                const dt = new Date(r.timestamp || r.created_at);
-                dt.setMinutes(dt.getMinutes() - dt.getTimezoneOffset());
-                document.getElementById('edit-time').value = dt.toISOString().slice(0,16);
-                document.getElementById('edit-time-group').classList.remove('hidden');
-                
-                if(r.type === 'clock') {
-                    document.getElementById('edit-clock-area').classList.remove('hidden');
-                    document.getElementById('edit-check-type').value = r.check_type;
-                } else {
-                    document.getElementById('edit-prog-area').classList.remove('hidden');
-                    document.getElementById('edit-proj').value = r.project_name||'';
-                    document.getElementById('edit-prog').value = r.progress||'';
-                    document.getElementById('edit-note').value = r.notes||'';
-                }
+                const dt = new Date(r.timestamp || r.created_at); dt.setMinutes(dt.getMinutes() - dt.getTimezoneOffset()); document.getElementById('edit-time').value = dt.toISOString().slice(0,16); document.getElementById('edit-time-group').classList.remove('hidden');
+                if(r.type === 'clock') { document.getElementById('edit-clock-area').classList.remove('hidden'); document.getElementById('edit-check-type').value = r.check_type; }
+                else { document.getElementById('edit-prog-area').classList.remove('hidden'); document.getElementById('edit-proj').value = r.project_name||''; document.getElementById('edit-prog').value = r.progress||''; document.getElementById('edit-note').value = r.notes||''; }
             }
             document.getElementById('edit-modal').classList.remove('hidden');
         }
-
         function closeEdit() { document.getElementById('edit-modal').classList.add('hidden'); }
-        
         async function saveEdit() {
-            const type = document.getElementById('edit-type').value;
-            const payload = { ...currentEditData };
-            delete payload.id; delete payload.type; delete payload.created_at;
-            
-            if(type === 'employee') {
-                payload.employee_name = document.getElementById('edit-name').value;
-                payload.wage = document.getElementById('edit-wage').value;
-                payload.password = document.getElementById('edit-pwd').value;
-                payload.employee_code = document.getElementById('edit-code').value; 
-                payload.is_admin = document.getElementById('edit-is-admin').checked; 
-            } else if (type === 'payout_history') {
-                // 儲存薪資修改
-                // 將 input type="date" 的 YYYY-MM-DD 轉回 YYYY/MM/DD 顯示用
-                const fixDate = (ds) => ds.replace(/-/g, '/');
-                
-                payload.start_date = fixDate(document.getElementById('edit-pay-start').value);
-                payload.end_date = fixDate(document.getElementById('edit-pay-end').value);
-                payload.total_amount = parseInt(document.getElementById('edit-pay-amount').value) || 0;
-            } else if (type === 'dispatch') {
-                const newTime = new Date(document.getElementById('edit-time').value).toISOString();
-                payload.timestamp = newTime;
-                payload.project_name = document.getElementById('edit-dispatch-loc').value;
-                payload.notes = document.getElementById('edit-dispatch-note').value;
-                const checkboxes = document.querySelectorAll('#edit-dispatch-partners-list input[type="checkbox"]:checked');
-                payload.partners = Array.from(checkboxes).map(cb => cb.value).join(', ');
-            } else {
-                const newTime = new Date(document.getElementById('edit-time').value).toISOString();
-                payload.timestamp = newTime;
-                if(type === 'clock') payload.check_type = document.getElementById('edit-check-type').value;
-                else {
-                    payload.project_name = document.getElementById('edit-proj').value;
-                    payload.progress = document.getElementById('edit-prog').value;
-                    payload.notes = document.getElementById('edit-note').value;
-                }
-            }
+            const type = document.getElementById('edit-type').value, payload = { ...currentEditData }; delete payload.id; delete payload.type; delete payload.created_at;
+            if(type === 'employee') { payload.employee_name = document.getElementById('edit-name').value; payload.wage = document.getElementById('edit-wage').value; payload.password = document.getElementById('edit-pwd').value; payload.employee_code = document.getElementById('edit-code').value; payload.is_admin = document.getElementById('edit-is-admin').checked; }
+            else if (type === 'payout_history') { payload.start_date = document.getElementById('edit-pay-start').value.replace(/-/g, '/'); payload.end_date = document.getElementById('edit-pay-end').value.replace(/-/g, '/'); payload.total_amount = parseInt(document.getElementById('edit-pay-amount').value) || 0; }
+            else if (type === 'dispatch') { payload.timestamp = new Date(document.getElementById('edit-time').value).toISOString(); payload.project_name = document.getElementById('edit-dispatch-loc').value; payload.notes = document.getElementById('edit-dispatch-note').value; payload.partners = Array.from(document.querySelectorAll('#edit-dispatch-partners-list input:checked')).map(c => c.value).join(', '); }
+            else { payload.timestamp = new Date(document.getElementById('edit-time').value).toISOString(); if(type === 'clock') payload.check_type = document.getElementById('edit-check-type').value; else { payload.project_name = document.getElementById('edit-proj').value; payload.notes = document.getElementById('edit-note').value; } }
             if(await updateDataAPI(currentEditId, payload)) { alert("修改成功"); closeEdit(); await loadData(); }
         }
-
         async function addEmployee() {
-            const name = document.getElementById('new-name').value;
-            const id = document.getElementById('new-id').value;
-            const code = document.getElementById('new-code').value; 
-            const wage = document.getElementById('new-wage').value;
-            const pwd = document.getElementById('new-pwd').value || "1234";
-            const isAdmin = document.getElementById('new-is-admin').checked; 
-
+            const name = document.getElementById('new-name').value, id = document.getElementById('new-id').value, code = document.getElementById('new-code').value, wage = document.getElementById('new-wage').value, pwd = document.getElementById('new-pwd').value || "1234", isAdmin = document.getElementById('new-is-admin').checked;
             if(!name) return alert("請輸入姓名");
-            const finalId = id || name; 
-
-            if(await insertData('employee', { 
-                employee_name: name, 
-                employee_id: finalId,
-                employee_code: code, 
-                wage: wage, 
-                password: pwd,
-                is_admin: isAdmin 
-            })) {
-                alert("新增成功"); 
-                document.getElementById('new-name').value=''; 
-                document.getElementById('new-id').value=''; 
-                document.getElementById('new-code').value='';
-                document.getElementById('new-wage').value='';
-                await loadData();
-            }
+            if(await insertData('employee', { employee_name: name, employee_id: id || name, employee_code: code, wage: wage, password: pwd, is_admin: isAdmin })) { alert("新增成功"); document.getElementById('new-name').value=''; document.getElementById('new-id').value=''; document.getElementById('new-code').value=''; document.getElementById('new-wage').value=''; await loadData(); }
         }
 
-        function logout() { 
-            localStorage.removeItem('last_user_id');
-            location.reload(); 
-        }
-        function nav(p) { 
-            ['clock', 'bulletin', 'admin', 'task'].forEach(v => {
-                const el = document.getElementById('page-'+v);
-                const btn = document.getElementById('btn-'+v);
-                if(el) el.classList.add('hidden');
-                if(btn) btn.classList.remove('active');
-            });
-            const el = document.getElementById('page-'+p);
-            const btn = document.getElementById('btn-'+p);
-            if(el) el.classList.remove('hidden');
-            if(btn) btn.classList.add('active');
-        }
+        // --- Utils ---
+        function logout() { localStorage.removeItem('last_user_id'); location.reload(); }
+        function nav(p) { ['clock', 'bulletin', 'admin', 'task'].forEach(v => { document.getElementById('page-'+v).classList.add('hidden'); document.getElementById('btn-'+v).classList.remove('active'); }); document.getElementById('page-'+p).classList.remove('hidden'); document.getElementById('btn-'+p).classList.add('active'); }
+        function requestNotificationPermission() { if ("Notification" in window) Notification.requestPermission(); }
+        function setupRealtimeListener() { supabaseClient.channel('room1').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'construction_records' }, p => { const n=p.new; if(n.type!=='employee' && n.type!=='dispatch') { showBrowserNotification(`${n.employee_name} 已提交：${n.type==='clock'?n.check_type:'回報'}`); setTimeout(()=>loadData(),1000); } }).subscribe(); }
+        function showBrowserNotification(m) { if ("Notification" in window && Notification.permission === "granted") new Notification("全技工程行", { body: m, icon: 'https://vegqsdqxnvqupmzsgbpt.supabase.co/storage/v1/object/public/site_photos/F21060CB-BAB1-4E07-91AC-1E3F35796914.png' }); }
         
-        function requestNotificationPermission() {
-            if ("Notification" in window) Notification.requestPermission();
-        }
-
-        function setupRealtimeListener() {
-            const channel = supabaseClient.channel('room1')
-                .on(
-                    'postgres_changes',
-                    { event: 'INSERT', schema: 'public', table: 'construction_records' },
-                    (payload) => {
-                        const newRecord = payload.new;
-                        if(newRecord.type === 'employee' || newRecord.type === 'dispatch') return;
-                        const msg = `${newRecord.employee_name} 已提交：${newRecord.type === 'clock' ? newRecord.check_type : '施工回報'}`;
-                        showBrowserNotification(msg);
-                        setTimeout(() => loadData(), 1000); 
-                    }
-                )
-                .subscribe();
-        }
-
-        function showBrowserNotification(message) {
-            if ("Notification" in window && Notification.permission === "granted") {
-                new Notification("全技工程行 - 新動態", {
-                    body: message,
-                    icon: 'https://vegqsdqxnvqupmzsgbpt.supabase.co/storage/v1/object/public/site_photos/F21060CB-BAB1-4E07-91AC-1E3F35796914.png'
-                });
-            }
-        }
-
         async function insertData(t, d) { try{const r=await fetch(DB_URL,{method:'POST',headers:HEADERS,body:JSON.stringify({type:t,data:d})});return r.ok;}catch(e){return false;} }
         async function updateDataAPI(i, d) { try{const r=await fetch(`${DB_URL}?id=eq.${i}`,{method:'PATCH',headers:HEADERS,body:JSON.stringify({data:d})});return r.ok;}catch(e){return false;} }
         async function deleteDataAPI(i) { await fetch(`${DB_URL}?id=eq.${i}`,{method:'DELETE',headers:HEADERS}); return true; }
         async function del(b,i) { if(confirm("確定刪除？")) if(await deleteDataAPI(i)) await loadData(); }
-        async function uploadFileAPI(f) { 
-            const n=`img_${Date.now()}_${Math.random().toString(36).substr(2, 5)}.jpg`; 
-            try{
-                const r=await fetch(`${STORAGE_URL}/${n}`,{method:'POST',headers:{'apikey':ANON_KEY,'Authorization':`Bearer ${ANON_KEY}`,'Content-Type':f.type,'x-upsert':'true'},body:f});
-                if(!r.ok)return null; return `${PROJECT_URL}/storage/v1/object/public/site_photos/${n}`;
-            }catch(e){return null;} 
-        }
+        async function uploadFileAPI(f) { const n=`img_${Date.now()}_${Math.random().toString(36).substr(2, 5)}.jpg`; try{const r=await fetch(`${STORAGE_URL}/${n}`,{method:'POST',headers:{'apikey':ANON_KEY,'Authorization':`Bearer ${ANON_KEY}`,'Content-Type':f.type,'x-upsert':'true'},body:f}); if(!r.ok)return null; return `${PROJECT_URL}/storage/v1/object/public/site_photos/${n}`; }catch(e){return null;} }
     </script>
 </body>
 </html>
