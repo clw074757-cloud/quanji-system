@@ -3,9 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>全技工程行 - 管理系統 v2.0</title>
+    <title>全技工程行 - 管理系統 v2.1</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@500;700;900&display=swap" rel="stylesheet">
     <style>
         /* --- 樣式重置與基本設定 --- */
@@ -41,7 +42,7 @@
             opacity: 0.9;
         }
         
-        /* 輸入框強制樣式 (修復自動填入變白色的問題) */
+        /* 輸入框強制樣式 */
         .input-box { 
             width: 100%; 
             padding: 16px; 
@@ -59,7 +60,6 @@
         .input-box::placeholder { color: #7f1d1d; opacity: 1; }
         .input-box:focus { border-color: #ef4444; background-color: #000000 !important; }
         
-        /* 針對 Chrome 自動填入的強制覆蓋 */
         input:-webkit-autofill,
         input:-webkit-autofill:hover, 
         input:-webkit-autofill:focus, 
@@ -69,7 +69,6 @@
             transition: background-color 5000s ease-in-out 0s;
         }
 
-        /* 選單樣式優化 */
         select.input-box {
             appearance: none; 
             background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23dc2626' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
@@ -78,7 +77,6 @@
             background-size: 1.5em;
         }
 
-        /* Checkbox 樣式 */
         .custom-checkbox {
             display: flex;
             align-items: center;
@@ -95,7 +93,6 @@
             accent-color: #dc2626;
         }
 
-        /* 按鈕樣式 */
         .btn { 
             width: 100%; 
             padding: 18px; 
@@ -116,13 +113,11 @@
         .btn-warning { background-color: #f59e0b; color: #000000; } 
         .btn-success { background-color: #10b981; color: #000000; }
         
-        /* 底部導航 */
         .nav-bar { background-color: #0f0f0f; border-top: 2px solid #7f1d1d; }
         .nav-btn { flex: 1; text-align: center; padding: 12px; color: #7f1d1d; font-size: 14px; font-weight: 900; background: #0f0f0f; border: none; min-width: 0; }
         .nav-btn.active { color: #ef4444; background: #1a0505; border-top: 4px solid #dc2626; }
         .nav-icon { width: 28px; height: 28px; margin: 0 auto 4px; display: block; fill: currentColor; } 
 
-        /* 圖片網格 */
         .img-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -139,7 +134,6 @@
             cursor: pointer;
         }
 
-        /* 文字標籤 */
         .text-label { 
             color: #b91c1c; 
             font-weight: bold; 
@@ -149,7 +143,6 @@
         }
         .map-link { color: #ef4444; text-decoration: underline; font-size: 0.9rem; font-weight: bold; }
 
-        /* 讀取中動畫 (Spinner) */
         .loader {
             border: 8px solid #262626;
             border-top: 8px solid #dc2626;
@@ -199,8 +192,10 @@
             <h3 class="text-2xl font-black mb-4 text-[#dc2626]">✏️ 修改資料</h3>
             <input type="hidden" id="edit-id"><input type="hidden" id="edit-type">
             
-            <label class="text-label">名稱</label>
-            <input id="edit-name" class="input-box">
+            <div id="edit-name-group">
+                <label class="text-label">名稱</label>
+                <input id="edit-name" class="input-box">
+            </div>
             
             <div id="edit-time-group">
                 <label class="text-label">時間</label>
@@ -241,6 +236,16 @@
                         <span class="text-[#ef4444] font-bold text-lg">⚠️ 設為管理員</span>
                     </label>
                 </div>
+            </div>
+
+            <div id="edit-payout-area" class="hidden">
+                <label class="text-label">計薪開始日期</label>
+                <input id="edit-pay-start" type="date" class="input-box" style="color-scheme: dark;">
+                <label class="text-label">計薪結束日期</label>
+                <input id="edit-pay-end" type="date" class="input-box" style="color-scheme: dark;">
+                <label class="text-label">總發放金額</label>
+                <input id="edit-pay-amount" type="number" class="input-box">
+                <p class="text-sm text-[#7f1d1d] mt-2">注意：修改金額不會自動連動個別員工的明細，僅作總帳調整。</p>
             </div>
             
             <div class="flex gap-3 mt-4">
@@ -438,6 +443,64 @@
 
     <nav id="bottom-nav" class="nav-bar fixed bottom-0 w-full flex pb-safe z-50 shadow-2xl">
     </nav>
+    
+    <div id="pdf-template" class="fixed top-0 left-0 bg-white text-black p-8 w-[210mm] hidden z-[9999]">
+        <div class="border-b-2 border-black pb-4 mb-4 flex justify-between items-end">
+            <div>
+                <h1 class="text-3xl font-bold tracking-widest">全技工程行</h1>
+                <p class="text-sm font-bold mt-1">統一編號：00304372</p>
+                <p class="text-sm">屏東縣鹽埔鄉新圍村自治街3-1號</p>
+            </div>
+            <div class="text-right">
+                <div class="text-2xl font-black border border-black px-4 py-1 rounded">薪資發放明細表</div>
+                <div id="pdf-date" class="mt-2 text-sm font-bold"></div>
+            </div>
+        </div>
+
+        <div class="mb-6">
+            <div class="flex gap-4 mb-2">
+                <span class="font-bold w-24">計薪週期：</span>
+                <span id="pdf-period" class="border-b border-black flex-1"></span>
+            </div>
+            <div class="flex gap-4">
+                <span class="font-bold w-24">經辦人員：</span>
+                <span id="pdf-handler" class="border-b border-black flex-1"></span>
+            </div>
+        </div>
+
+        <table class="w-full border-collapse border border-black mb-8">
+            <thead class="bg-gray-200">
+                <tr>
+                    <th class="border border-black p-2 text-center w-20">編號</th>
+                    <th class="border border-black p-2 text-left">姓名</th>
+                    <th class="border border-black p-2 text-center">出勤天數</th>
+                    <th class="border border-black p-2 text-right">實發金額</th>
+                    <th class="border border-black p-2 text-center w-32">簽收</th>
+                </tr>
+            </thead>
+            <tbody id="pdf-table-body">
+                </tbody>
+            <tfoot>
+                <tr class="font-bold bg-gray-100">
+                    <td colspan="3" class="border border-black p-2 text-center">總計</td>
+                    <td id="pdf-total" class="border border-black p-2 text-right text-lg"></td>
+                    <td class="border border-black p-2"></td>
+                </tr>
+            </tfoot>
+        </table>
+
+        <div class="flex justify-between mt-12 pt-8">
+            <div class="text-center w-1/3">
+                <p class="mb-12">會計 / 出納</p>
+                <div class="border-t border-black w-2/3 mx-auto"></div>
+            </div>
+            <div class="text-center w-1/3">
+                <p class="mb-12">負責人</p>
+                <div class="border-t border-black w-2/3 mx-auto"></div>
+            </div>
+        </div>
+        <div class="text-center text-xs mt-8 text-gray-500">此表單由全技工程行管理系統自動生成</div>
+    </div>
 
     <script>
         // 設定 Supabase 與基本參數
@@ -456,7 +519,7 @@
         let allData = [];
         let currentUser = null;
         let currentLocation = null;
-        let currentWeeklyData = {}; // 暫存本週計算結果，供結算使用
+        let currentWeeklyData = {}; 
 
         window.onload = async function() {
             if(window.supabase && !supabaseClient) {
@@ -540,7 +603,6 @@
 
             if(!inputVal || !pwd) { msg.innerText = "請輸入姓名或帳號"; return; }
             
-            // 後門
             if (inputVal === 'admin' && pwd === 'admin') {
                 currentUser = { employee_name: '超級管理員', is_admin: true, employee_id: 'admin' };
                 localStorage.setItem('last_user_id', 'admin');
@@ -572,7 +634,7 @@
             document.getElementById('login-msg').innerText = "";
             
             setupNav();
-            nav('clock'); // 預設進入打卡頁
+            nav('clock'); 
             render();
 
             try {
@@ -747,9 +809,9 @@
                     `;
                 }).join('') || '<div class="text-center text-[#7f1d1d] text-sm">無派工記錄</div>';
 
-                // --- 薪資計算邏輯 (自動計算本週) ---
+                // --- 薪資計算邏輯 ---
                 const empMap = {};
-                const empCodeMap = {}; // 存員工編號
+                const empCodeMap = {}; 
                 emps.forEach(e => {
                     empMap[e.employee_name] = parseInt(e.wage) || 0;
                     empCodeMap[e.employee_name] = e.employee_code || '';
@@ -764,7 +826,6 @@
                 const nextMonday = new Date(monday);
                 nextMonday.setDate(monday.getDate() + 7);
 
-                // 保存計算結果的物件，供結算使用
                 currentWeeklyData = {
                     startDate: monday.toLocaleDateString('zh-TW'),
                     endDate: nextMonday.toLocaleDateString('zh-TW'),
@@ -821,7 +882,6 @@
                     const days = workDaysCount[e.employee_name] || 0;
                     totalSalary += pay;
                     
-                    // 將每個人的數據存入 currentWeeklyData，只有當金額大於0時才存，或全部存
                     if (pay > 0) {
                         currentWeeklyData.details.push({
                             name: e.employee_name,
@@ -852,19 +912,33 @@
                 document.getElementById('total-wage').innerText = '$' + totalSalary.toLocaleString();
                 currentWeeklyData.total = totalSalary;
 
-                // --- 渲染歷史薪資記錄 ---
+                // --- 渲染歷史薪資記錄 (新增 PDF 與 修改刪除) ---
                 const historyRecs = allData.filter(r => r.type === 'payout_history');
                 if (historyRecs.length > 0) {
                     document.getElementById('payout-history-list').innerHTML = historyRecs.map(h => {
                         const date = new Date(h.timestamp).toLocaleString('zh-TW', {month:'numeric', day:'numeric', hour:'2-digit'});
+                        const period = (h.start_date && h.end_date) ? `<div class="text-xs text-yellow-500 mt-1">📅 計薪週期：${h.start_date} ~ ${h.end_date}</div>` : '';
+                        
+                        // 需要將 record 字串化傳遞給 PDF 函數 (需注意跳脫字元)
+                        const recordJson = JSON.stringify(h).replace(/"/g, '&quot;');
+
                         return `
-                        <div class="bg-[#262626] border border-green-900 rounded-lg p-3 cursor-pointer" onclick="alert('發放詳情:\\n${h.details.map(d=>d.name + ': $' + d.pay).join('\\n')}')">
-                            <div class="flex justify-between items-center">
+                        <div class="bg-[#262626] border border-green-900 rounded-lg p-3 relative group">
+                            <div class="flex justify-between items-start">
                                 <div>
-                                    <div class="text-green-500 font-bold">💰 已發放: $${h.total_amount.toLocaleString()}</div>
+                                    <div class="text-green-500 font-bold text-lg">💰 已發放: $${parseInt(h.total_amount).toLocaleString()}</div>
                                     <div class="text-[#7f1d1d] text-xs font-bold">結算日: ${date}</div>
+                                    ${period}
                                 </div>
-                                <div class="text-xs text-[#fca5a5] bg-black px-2 py-1 rounded border border-[#7f1d1d]">查看詳情</div>
+                                <div class="flex flex-col items-end gap-2">
+                                     <button onclick="printSalarySlip(${recordJson})" class="bg-white text-black text-xs font-bold px-3 py-1 rounded shadow hover:bg-gray-200 flex items-center gap-1">
+                                        📄 PDF
+                                     </button>
+                                     <div class="flex gap-2">
+                                        <button onclick="openEdit(${h.id})" class="text-sm text-[#fca5a5] border border-[#fca5a5] px-2 rounded hover:bg-[#1a1a1a]">✏️</button>
+                                        <button onclick="del(this, ${h.id})" class="text-sm text-[#ef4444] border border-[#ef4444] px-2 rounded hover:bg-[#1a1a1a]">✕</button>
+                                     </div>
+                                </div>
                             </div>
                         </div>`;
                     }).join('');
@@ -897,7 +971,42 @@
             }
         }
 
-        // --- 新增：結算薪資功能 ---
+        // --- 薪資 PDF 生成 ---
+        function printSalarySlip(record) {
+            // 填充模板
+            document.getElementById('pdf-date').innerText = `發放日期：${new Date(record.timestamp).toLocaleDateString()}`;
+            document.getElementById('pdf-period').innerText = `${record.start_date || 'N/A'} ~ ${record.end_date || 'N/A'}`;
+            document.getElementById('pdf-handler').innerText = record.settled_by || '管理員';
+            document.getElementById('pdf-total').innerText = `$${parseInt(record.total_amount).toLocaleString()}`;
+
+            const tbody = document.getElementById('pdf-table-body');
+            tbody.innerHTML = record.details.map((d, index) => `
+                <tr>
+                    <td class="border border-black p-2 text-center text-sm">${d.code || '-'}</td>
+                    <td class="border border-black p-2 font-bold">${d.name}</td>
+                    <td class="border border-black p-2 text-center">${d.days} 天</td>
+                    <td class="border border-black p-2 text-right font-mono">$${d.pay.toLocaleString()}</td>
+                    <td class="border border-black p-2"></td>
+                </tr>
+            `).join('');
+
+            // 顯示模板並生成 PDF
+            const element = document.getElementById('pdf-template');
+            element.classList.remove('hidden');
+
+            const opt = {
+                margin:       5,
+                filename:     `薪資明細_${record.start_date}_${record.end_date}.pdf`,
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2 },
+                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+
+            html2pdf().set(opt).from(element).save().then(() => {
+                element.classList.add('hidden'); // 生成後隱藏
+            });
+        }
+
         async function settleSalary() {
             if (!currentWeeklyData || currentWeeklyData.total === 0) {
                 alert("目前沒有可結算的金額");
@@ -1047,17 +1156,39 @@
             currentEditId = id; currentEditData = r;
             document.getElementById('edit-id').value = id;
             document.getElementById('edit-type').value = r.type;
-            document.getElementById('edit-name').value = r.employee_name;
             
-            const areas = ['edit-time-group', 'edit-clock-area', 'edit-prog-area', 'edit-emp-area', 'edit-dispatch-area'];
+            // 隱藏所有區域
+            const areas = ['edit-time-group', 'edit-clock-area', 'edit-prog-area', 'edit-emp-area', 'edit-dispatch-area', 'edit-payout-area', 'edit-name-group'];
             areas.forEach(a => document.getElementById(a).classList.add('hidden'));
+
+            // 預設填入名稱 (如果有的話)
+            if(r.employee_name) {
+                document.getElementById('edit-name-group').classList.remove('hidden');
+                document.getElementById('edit-name').value = r.employee_name;
+            }
 
             if(r.type === 'employee') {
                 document.getElementById('edit-emp-area').classList.remove('hidden');
                 document.getElementById('edit-wage').value = r.wage || '';
                 document.getElementById('edit-pwd').value = r.password || '';
-                document.getElementById('edit-code').value = r.employee_code || ''; // 員工編號
+                document.getElementById('edit-code').value = r.employee_code || ''; 
                 document.getElementById('edit-is-admin').checked = !!r.is_admin; 
+            } else if (r.type === 'payout_history') {
+                // 薪資歷史修改模式
+                document.getElementById('edit-payout-area').classList.remove('hidden');
+                document.getElementById('edit-name-group').classList.add('hidden'); // 薪資歷史不改人名
+                
+                // 轉換日期格式給 input type="date"
+                const formatDate = (ds) => {
+                    if(!ds) return '';
+                    // 假設 ds 是 YYYY/MM/DD 格式
+                    return ds.replace(/\//g, '-'); 
+                };
+
+                document.getElementById('edit-pay-start').value = formatDate(r.start_date);
+                document.getElementById('edit-pay-end').value = formatDate(r.end_date);
+                document.getElementById('edit-pay-amount').value = r.total_amount;
+
             } else if (r.type === 'dispatch') {
                 document.getElementById('edit-dispatch-area').classList.remove('hidden');
                 document.getElementById('edit-time-group').classList.remove('hidden');
@@ -1109,8 +1240,16 @@
                 payload.employee_name = document.getElementById('edit-name').value;
                 payload.wage = document.getElementById('edit-wage').value;
                 payload.password = document.getElementById('edit-pwd').value;
-                payload.employee_code = document.getElementById('edit-code').value; // 存入員工編號
+                payload.employee_code = document.getElementById('edit-code').value; 
                 payload.is_admin = document.getElementById('edit-is-admin').checked; 
+            } else if (type === 'payout_history') {
+                // 儲存薪資修改
+                // 將 input type="date" 的 YYYY-MM-DD 轉回 YYYY/MM/DD 顯示用
+                const fixDate = (ds) => ds.replace(/-/g, '/');
+                
+                payload.start_date = fixDate(document.getElementById('edit-pay-start').value);
+                payload.end_date = fixDate(document.getElementById('edit-pay-end').value);
+                payload.total_amount = parseInt(document.getElementById('edit-pay-amount').value) || 0;
             } else if (type === 'dispatch') {
                 const newTime = new Date(document.getElementById('edit-time').value).toISOString();
                 payload.timestamp = newTime;
@@ -1134,7 +1273,7 @@
         async function addEmployee() {
             const name = document.getElementById('new-name').value;
             const id = document.getElementById('new-id').value;
-            const code = document.getElementById('new-code').value; // 讀取員工編號
+            const code = document.getElementById('new-code').value; 
             const wage = document.getElementById('new-wage').value;
             const pwd = document.getElementById('new-pwd').value || "1234";
             const isAdmin = document.getElementById('new-is-admin').checked; 
@@ -1145,7 +1284,7 @@
             if(await insertData('employee', { 
                 employee_name: name, 
                 employee_id: finalId,
-                employee_code: code, // 存入
+                employee_code: code, 
                 wage: wage, 
                 password: pwd,
                 is_admin: isAdmin 
