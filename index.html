@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>全技工程行 - 管理系統 v2.3</title>
+    <title>全技工程行 - 管理系統 v2.4</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
@@ -891,7 +891,7 @@
 
         // --- Utils ---
         function logout() { localStorage.removeItem('last_user_id'); location.reload(); }
-        function nav(p) { ['clock', 'bulletin', 'admin', 'task'].forEach(v => { document.getElementById('page-'+v).classList.add('hidden'); document.getElementById('btn-'+v).classList.remove('active'); }); document.getElementById('page-'+p).classList.remove('hidden'); document.getElementById('btn-'+p).classList.add('active'); }
+        function nav(p) { ['clock', 'bulletin', 'admin', 'task'].forEach(v => { document.getElementById('page-'+v).classList.add('hidden'); const b = document.getElementById('btn-'+v); if(b) b.classList.remove('active'); }); document.getElementById('page-'+p).classList.remove('hidden'); const b = document.getElementById('btn-'+p); if(b) b.classList.add('active'); }
         function requestNotificationPermission() { if ("Notification" in window) Notification.requestPermission(); }
         function setupRealtimeListener() { supabaseClient.channel('room1').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'construction_records' }, p => { const n=p.new; if(n.type!=='employee' && n.type!=='dispatch') { showBrowserNotification(`${n.employee_name} 已提交：${n.type==='clock'?n.check_type:'回報'}`); setTimeout(()=>loadData(),1000); } }).subscribe(); }
         function showBrowserNotification(m) { if ("Notification" in window && Notification.permission === "granted") new Notification("全技工程行", { body: m, icon: 'https://vegqsdqxnvqupmzsgbpt.supabase.co/storage/v1/object/public/site_photos/F21060CB-BAB1-4E07-91AC-1E3F35796914.png' }); }
