@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>全技工程行 - 管理系統 v3.3</title>
+    <title>全技工程行 - 管理系統 v3.4</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@500;700;900&display=swap" rel="stylesheet">
@@ -74,7 +74,7 @@
             <div id="edit-time-group"><label class="text-label">時間</label><input id="edit-time" type="datetime-local" class="input-box" style="color-scheme: dark;"></div>
             <div id="edit-clock-area" class="hidden"><label class="text-label">類型</label><select id="edit-check-type" class="input-box"><option value="上班">上班</option><option value="下班">下班</option></select></div>
             <div id="edit-prog-area" class="hidden"><label class="text-label">工程名稱</label><input id="edit-proj" class="input-box"><label class="text-label">進度</label><input id="edit-prog" class="input-box"><label class="text-label">備註</label><textarea id="edit-note" class="input-box" rows="2"></textarea></div>
-            <div id="edit-dispatch-area" class="hidden"><label class="text-label">指派負責人</label><input id="edit-dispatch-emp" class="input-box" readonly><label class="text-label">陪同人員</label><div id="edit-dispatch-partners-list" class="grid grid-cols-2 gap-2 mb-3"></div><label class="text-label">施工地點</label><input id="edit-dispatch-loc" class="input-box"><label class="text-label">任務內容</label><textarea id="edit-dispatch-note" class="input-box" rows="3"></textarea></div>
+            <div id="edit-dispatch-area" class="hidden"><label class="text-label">指派負責人</label><input id="edit-dispatch-emp" class="input-box" readonly><label class="text-label">陪同人員</label><div id="edit-dispatch-partners-list" class="grid grid-cols-2 gap-2 mb-3"></div><label class="text-label">施工地點</label><input id="edit-dispatch-loc" class="input-box"><label class="text-label">派工內容</label><textarea id="edit-dispatch-note" class="input-box" rows="3"></textarea></div>
             <div id="edit-emp-area" class="hidden"><label class="text-label">員工編號</label><input id="edit-code" class="input-box" placeholder="例如：A01"><label class="text-label">日薪 (元)</label><input id="edit-wage" type="number" class="input-box"><label class="text-label">登入密碼</label><input id="edit-pwd" type="text" class="input-box"><div class="mt-4 p-3 bg-[#262626] rounded border border-[#7f1d1d]"><label class="custom-checkbox"><input type="checkbox" id="edit-is-admin"><span class="text-[#ef4444] font-bold text-lg">⚠️ 設為管理員</span></label></div></div>
             <div id="edit-payout-area" class="hidden"><label class="text-label">計薪開始日期</label><input id="edit-pay-start" type="date" class="input-box" style="color-scheme: dark;"><label class="text-label">計薪結束日期</label><input id="edit-pay-end" type="date" class="input-box" style="color-scheme: dark;"><label class="text-label">總發放金額</label><input id="edit-pay-amount" type="number" class="input-box"></div>
             <div class="flex gap-3 mt-4"><button onclick="closeEdit()" class="btn btn-secondary">取消</button><button onclick="saveEdit()" class="btn btn-primary">儲存</button></div>
@@ -102,6 +102,15 @@
                     <button onclick="clockIn('上班')" class="btn btn-primary text-2xl py-8 shadow-xl hover:bg-red-500">上班</button>
                     <button onclick="clockIn('下班')" class="btn btn-secondary text-2xl py-8 shadow-xl border border-[#7f1d1d]">下班</button>
                 </div>
+                
+                <div id="my-salary-container" class="mt-4 mb-4 pt-4 border-t border-[#404040]">
+                    <div class="flex justify-between items-center bg-[#262626] p-4 rounded-xl border border-[#404040]">
+                        <div class="font-bold text-[#fca5a5]">💰 本週預估薪資</div>
+                        <div id="my-salary-text" class="text-2xl font-black text-[#dc2626] font-mono">$0</div>
+                    </div>
+                    <div class="text-right text-xs text-[#7f1d1d] mt-1 pr-2">* 僅供參考，以管理員結算為準</div>
+                </div>
+
                 <div id="upcoming-missions-container"></div>
                 <div class="mt-4 text-center"><span id="gps-status" class="text-sm font-bold text-[#ef4444] bg-[#262626] px-3 py-1 rounded-full border border-[#7f1d1d]">📍 定位搜尋中...</span></div>
             </div>
@@ -141,7 +150,7 @@
             <button onclick="manualRefresh()" class="btn btn-secondary mb-4 border border-[#dc2626] shadow-lg">🔄 更新數據</button>
 
             <div class="card border-yellow-600">
-                <h2 class="font-black text-yellow-500 text-xl mb-4">👷 派工任務指派</h2>
+                <h2 class="font-black text-yellow-500 text-xl mb-4">👷 派工指派</h2>
                 <div class="space-y-3">
                     <div class="grid grid-cols-2 gap-3">
                         <div><label class="text-label">指派負責人</label><select id="dispatch-emp-select" class="input-box"></select></div>
@@ -149,7 +158,7 @@
                     </div>
                     <div><label class="text-label">陪同人員 (勾選)</label><div id="dispatch-partners-list" class="grid grid-cols-2 gap-2 bg-[#262626] p-3 rounded border border-[#7f1d1d]"></div></div>
                     <div><label class="text-label">施工地點</label><input id="dispatch-loc" placeholder="輸入地點" class="input-box"></div>
-                    <div><label class="text-label">任務內容</label><textarea id="dispatch-note" placeholder="輸入詳細工作內容..." rows="2" class="input-box"></textarea></div>
+                    <div><label class="text-label">派工內容</label><textarea id="dispatch-note" placeholder="輸入詳細工作內容..." rows="2" class="input-box"></textarea></div>
                     <button onclick="submitDispatch()" class="btn btn-warning text-lg">指派任務</button>
                 </div>
                 <h3 class="font-bold text-[#fca5a5] mt-6 mb-2">📅 派工歷史記錄</h3>
@@ -157,7 +166,7 @@
             </div>
 
             <div class="card">
-                <h2 class="font-black text-[#dc2626] text-xl mb-4">👤 員工資料管理 </h2>
+                <h2 class="font-black text-[#dc2626] text-xl mb-4">👤 員工資料管理</h2>
                 <div class="grid grid-cols-2 gap-3 mb-3">
                     <div><label class="text-label">帳號</label><input id="new-id" placeholder="自訂 (如: boss)" class="input-box"></div>
                     <div><label class="text-label">編號</label><input id="new-code" placeholder="如: A01" class="input-box"></div>
@@ -275,12 +284,41 @@
             const emps = allData.filter(r => r.type === 'employee');
             const today = new Date(); today.setHours(0,0,0,0);
 
-            // 員工端：
+            // 員工端：計算自己的本週預估薪資
+            if (!isAdmin) {
+                const myWage = parseInt(currentUser.wage) || 0;
+                let myTotalPay = 0;
+                // 員工只看「當前週」
+                const thisWeek = getWeekRange(new Date());
+                const myDailyGroups = {};
+                
+                allData.filter(r => r.type === 'clock' && r.employee_name === currentUser.employee_name).forEach(r => {
+                    const t = new Date(r.timestamp);
+                    if(t >= thisWeek.monday && t < thisWeek.nextMonday) {
+                        const k = t.toDateString();
+                        if(!myDailyGroups[k]) myDailyGroups[k] = {start:null, end:null};
+                        const tv = t.getTime();
+                        if(r.check_type === '上班' && (!myDailyGroups[k].start || tv < myDailyGroups[k].start)) myDailyGroups[k].start = tv;
+                        if(r.check_type === '下班' && (!myDailyGroups[k].end || tv > myDailyGroups[k].end)) myDailyGroups[k].end = tv;
+                    }
+                });
+
+                Object.values(myDailyGroups).forEach(v => {
+                    if(v.start && v.end) {
+                        const hrs = (v.end - v.start) / 36e5;
+                        const pay = (Math.max(0, hrs - 1) >= 7.5) ? myWage : Math.floor(Math.max(0, hrs - 1) * (myWage / 8));
+                        myTotalPay += pay;
+                    }
+                });
+                document.getElementById('my-salary-text').innerText = `$${myTotalPay.toLocaleString()}`;
+            }
+
+            // 員工端：派工 (原任務)
             const myMissions = allData.filter(r => r.type==='dispatch' && new Date(r.timestamp)>=today && (r.employee_name===currentUser.employee_name || (r.partners||'').includes(currentUser.employee_name))).sort((a,b)=>new Date(a.timestamp)-new Date(b.timestamp));
             document.getElementById('upcoming-missions-container').innerHTML = myMissions.map(m => {
                 const isToday = new Date(m.timestamp).toDateString() === today.toDateString();
                 const partnerText = m.partners ? `<div class="text-sm text-[#fca5a5] mt-1">👥 陪同：${m.partners}</div>` : '';
-                return `<div class="card ${isToday?'card-today border-l-yellow-500':'card-future border-l-gray-500'} border-l-8 mb-4 relative"><div class="absolute -top-3 -right-2 ${isToday?'bg-yellow-500 text-black':'bg-gray-600 text-white'} font-black px-3 py-1 rounded-full text-sm">${isToday?'今日任務':new Date(m.timestamp).toLocaleDateString('zh-TW')}</div><h3 class="text-xl font-black mb-2">🚀 任務</h3><div class="mb-1">負責：${m.employee_name}</div><div class="mb-1">地點：${m.project_name}</div>${partnerText}<div class="bg-[#262626] p-3 rounded mt-2">${m.notes}</div></div>`;
+                return `<div class="card ${isToday?'card-today border-l-yellow-500':'card-future border-l-gray-500'} border-l-8 mb-4 relative"><div class="absolute -top-3 -right-2 ${isToday?'bg-yellow-500 text-black':'bg-gray-600 text-white'} font-black px-3 py-1 rounded-full text-sm">${isToday?'今日派工':new Date(m.timestamp).toLocaleDateString('zh-TW')}</div><h3 class="text-xl font-black mb-2">🚀 派工</h3><div class="mb-1">負責：${m.employee_name}</div><div class="mb-1">地點：${m.project_name}</div>${partnerText}<div class="bg-[#262626] p-3 rounded mt-2">${m.notes}</div></div>`;
             }).join('');
 
             // 公共區
@@ -328,7 +366,6 @@
                     if(v.start && v.end) {
                         const hrs = (v.end - v.start)/36e5; 
                         const wage = empMap[name]||0;
-                        // 修改處：將滿全天薪水的門檻從 8 小時調降為 7.5 小時 (扣掉 1 小時休息後)
                         const pay = (Math.max(0, hrs-1) >= 7.5) ? wage : Math.floor(Math.max(0, hrs-1)*(wage/8));
                         weeklyCalc[name] = (weeklyCalc[name]||0) + pay;
                         workDaysCount[name] = (workDaysCount[name]||0) + 1;
