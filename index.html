@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>全技工程行 - 管理系統 v3.2</title>
+    <title>全技工程行 - 管理系統 v3.3</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@500;700;900&display=swap" rel="stylesheet">
@@ -275,7 +275,7 @@
             const emps = allData.filter(r => r.type === 'employee');
             const today = new Date(); today.setHours(0,0,0,0);
 
-            // 員工端：任務
+            // 員工端：
             const myMissions = allData.filter(r => r.type==='dispatch' && new Date(r.timestamp)>=today && (r.employee_name===currentUser.employee_name || (r.partners||'').includes(currentUser.employee_name))).sort((a,b)=>new Date(a.timestamp)-new Date(b.timestamp));
             document.getElementById('upcoming-missions-container').innerHTML = myMissions.map(m => {
                 const isToday = new Date(m.timestamp).toDateString() === today.toDateString();
@@ -328,7 +328,8 @@
                     if(v.start && v.end) {
                         const hrs = (v.end - v.start)/36e5; 
                         const wage = empMap[name]||0;
-                        const pay = (Math.max(0, hrs-1) >= 8) ? wage : Math.floor(Math.max(0, hrs-1)*(wage/8));
+                        // 修改處：將滿全天薪水的門檻從 8 小時調降為 7.5 小時 (扣掉 1 小時休息後)
+                        const pay = (Math.max(0, hrs-1) >= 7.5) ? wage : Math.floor(Math.max(0, hrs-1)*(wage/8));
                         weeklyCalc[name] = (weeklyCalc[name]||0) + pay;
                         workDaysCount[name] = (workDaysCount[name]||0) + 1;
                     }
