@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>全技工程行 - 管理系統 v4.0</title>
+    <title>全技工程行 - 管理系統 v4.1</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@500;700;900&display=swap" rel="stylesheet">
@@ -231,14 +231,15 @@
 
         let allData = [], currentUser = null, currentLocation = null, currentWeeklyData = {};
         let currentViewDate = new Date();
-        window.galleryMap = {}; // Global gallery storage
+        window.galleryMap = {}; 
         let lbIndex = 0, currentLbId = null;
 
         window.onload = async function() {
             if(window.supabase && !supabaseClient) supabaseClient = window.supabase.createClient(PROJECT_URL, ANON_KEY);
             setInterval(() => {
                 const n = new Date();
-                if(document.getElementById('current-time-display')) document.getElementById('current-time-display').innerText = `${n.toLocaleString('zh-TW', {weekday:'long', month:'long', day:'numeric'})} ${n.toLocaleTimeString('zh-TW', {hour:'2-digit', minute:'2-digit'})}`;
+                const dEl = document.getElementById('current-time-display');
+                if(dEl) dEl.innerText = `${n.toLocaleString('zh-TW', {weekday:'long', month:'long', day:'numeric'})} ${n.toLocaleTimeString('zh-TW', {hour:'2-digit', minute:'2-digit'})}`;
                 
                 const h = n.getHours();
                 let greet = "早安";
@@ -249,27 +250,30 @@
             }, 1000);
 
             if(navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(p => { currentLocation = `${p.coords.latitude.toFixed(5)}, ${p.coords.longitude.toFixed(5)}`; document.getElementById('gps-status').innerText = `📍 已定位`; document.getElementById('gps-status').className = "text-sm font-bold text-[#fca5a5] bg-[#1a0505] px-3 py-1 rounded-full border border-[#dc2626]"; }, () => { document.getElementById('gps-status').innerText = "⚠️ 定位失敗"; });
-            } else { document.getElementById('gps-status').innerText = "⚠️ 裝置不支援定位"; }
+                navigator.geolocation.getCurrentPosition(p => { currentLocation = `${p.coords.latitude.toFixed(5)}, ${p.coords.longitude.toFixed(5)}`; const gps=document.getElementById('gps-status'); if(gps) { gps.innerText = `📍 已定位`; gps.className = "text-sm font-bold text-[#fca5a5] bg-[#1a0505] px-3 py-1 rounded-full border border-[#dc2626]"; } }, () => { const gps=document.getElementById('gps-status'); if(gps) gps.innerText = "⚠️ 定位失敗"; });
+            } else { const gps=document.getElementById('gps-status'); if(gps) gps.innerText = "⚠️ 裝置不支援定位"; }
             await loadData();
             const savedId = localStorage.getItem('last_user_id');
             if (savedId) {
                 if(savedId === 'admin') { currentUser = { employee_name: '超級管理員', is_admin: true, employee_id: 'admin' }; performLogin(currentUser); }
                 else { const user = allData.find(r => r.type === 'employee' && r.employee_id === savedId); if(user) { currentUser = user; performLogin(user); } }
             }
-            document.getElementById('dispatch-date').valueAsDate = new Date();
+            const dDate = document.getElementById('dispatch-date');
+            if(dDate) dDate.valueAsDate = new Date();
         };
 
-        // Lightbox Functions (Safer Implementation)
+        // Lightbox Functions
         function openLightbox(galleryId, index) {
             currentLbId = galleryId;
             lbIndex = index;
             updateLightbox();
-            document.getElementById('lightbox-modal').classList.remove('hidden');
+            const modal = document.getElementById('lightbox-modal');
+            if(modal) modal.classList.remove('hidden');
         }
 
         function closeLightbox() {
-            document.getElementById('lightbox-modal').classList.add('hidden');
+            const modal = document.getElementById('lightbox-modal');
+            if(modal) modal.classList.add('hidden');
             currentLbId = null;
         }
 
@@ -280,14 +284,14 @@
             const prev = document.getElementById('lb-prev');
             const next = document.getElementById('lb-next');
 
-            img.src = images[lbIndex];
+            if(img) img.src = images[lbIndex];
 
             if (images.length > 1) {
-                prev.classList.remove('hidden');
-                next.classList.remove('hidden');
+                if(prev) prev.classList.remove('hidden');
+                if(next) next.classList.remove('hidden');
             } else {
-                prev.classList.add('hidden');
-                next.classList.add('hidden');
+                if(prev) prev.classList.add('hidden');
+                if(next) next.classList.add('hidden');
             }
         }
 
@@ -332,153 +336,180 @@
         function performLogin(u) {
             try {
                 document.getElementById('login-screen').classList.add('hidden');
-                document.getElementById('welcome-name').innerText = u.employee_name;
-                document.getElementById('user-role-display').innerText = u.employee_name + (u.is_admin ? ' (管理員)' : ' (員工)');
+                const wName = document.getElementById('welcome-name'); if(wName) wName.innerText = u.employee_name;
+                const rDisp = document.getElementById('user-role-display'); if(rDisp) rDisp.innerText = u.employee_name + (u.is_admin ? ' (管理員)' : ' (員工)');
                 
                 try { setupNav(); } catch(e) { console.error('Nav Error:', e); }
                 try { nav('clock'); } catch(e) { console.error('Page Error:', e); }
-                try { render(); } catch(e) { console.error('Render Error:', e); alert('系統提示：部分資料顯示可能不完整，請重新整理試試看 (Render Error)'); }
+                try { render(); } catch(e) { console.error('Render Error:', e); }
                 
                 try { if("Notification" in window) Notification.requestPermission(); if(supabaseClient) setupRealtimeListener(); } catch(e){}
             } catch(mainErr) {
-                alert("登入過程發生錯誤，請重新整理網頁");
+                alert("登入過程發生嚴重錯誤: " + mainErr.message);
                 location.reload();
             }
         }
 
         function render() {
-            const isAdmin = currentUser.is_admin;
-            const emps = allData.filter(r => r.type === 'employee');
-            const today = new Date(); today.setHours(0,0,0,0);
+            try {
+                const isAdmin = currentUser.is_admin;
+                const emps = allData.filter(r => r.type === 'employee');
+                const today = new Date(); today.setHours(0,0,0,0);
 
-            // 計算薪資
-            const myWage = parseInt(currentUser.wage) || 0;
-            let myTotalPay = 0;
-            const thisWeek = getWeekRange(new Date());
-            const myDailyGroups = {};
-            
-            allData.filter(r => r.type === 'clock' && r.employee_name === currentUser.employee_name).forEach(r => {
-                const t = new Date(r.timestamp);
-                if(t >= thisWeek.monday && t < thisWeek.nextMonday) {
-                    const k = t.toDateString();
-                    if(!myDailyGroups[k]) myDailyGroups[k] = {start:null, end:null};
-                    const tv = t.getTime();
-                    if(r.check_type === '上班' && (!myDailyGroups[k].start || tv < myDailyGroups[k].start)) myDailyGroups[k].start = tv;
-                    if(r.check_type === '下班' && (!myDailyGroups[k].end || tv > myDailyGroups[k].end)) myDailyGroups[k].end = tv;
-                }
-            });
-
-            Object.values(myDailyGroups).forEach(v => {
-                if(v.start && v.end) {
-                    const hrs = (v.end - v.start) / 36e5;
-                    const pay = (Math.max(0, hrs - 1) >= 7.5) ? myWage : Math.floor(Math.max(0, hrs - 1) * (myWage / 8));
-                    myTotalPay += pay;
-                }
-            });
-            const salaryEl = document.getElementById('my-salary-text');
-            if(salaryEl) salaryEl.innerText = `$${myTotalPay.toLocaleString()}`;
-
-            // 員工端：派工
-            const myMissions = allData.filter(r => r.type==='dispatch' && new Date(r.timestamp)>=today && (r.employee_name===currentUser.employee_name || (r.partners||'').includes(currentUser.employee_name))).sort((a,b)=>new Date(a.timestamp)-new Date(b.timestamp));
-            document.getElementById('upcoming-missions-container').innerHTML = myMissions.map(m => {
-                const isToday = new Date(m.timestamp).toDateString() === today.toDateString();
-                const partnerText = m.partners ? `<div class="text-sm text-[#fca5a5] mt-1">👥 陪同：${m.partners}</div>` : '';
-                return `<div class="card ${isToday?'card-today border-l-yellow-500':'card-future border-l-gray-500'} border-l-8 mb-4 relative"><div class="absolute -top-3 -right-2 ${isToday?'bg-yellow-500 text-black':'bg-gray-600 text-white'} font-black px-3 py-1 rounded-full text-sm">${isToday?'今日派工':new Date(m.timestamp).toLocaleDateString('zh-TW')}</div><h3 class="text-xl font-black mb-2">🚀 派工</h3><div class="mb-1">負責：${m.employee_name}</div><div class="mb-1">地點：${m.project_name}</div>${partnerText}<div class="bg-[#262626] p-3 rounded mt-2">${m.notes}</div></div>`;
-            }).join('');
-
-            // 公共區
-            const allTasks = allData.filter(r => r.type==='dispatch').sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp));
-            document.getElementById('public-task-list').innerHTML = allTasks.map(t => {
-                const partnerBadge = t.partners ? `<div class="text-sm text-yellow-600 mt-1">👥 陪同：${t.partners}</div>` : '';
-                return `<div class="bg-[#171717] border border-yellow-900/50 rounded-xl p-4 shadow-sm mb-2"><div class="flex justify-between mb-1"><span class="text-lg font-black text-yellow-500">${t.employee_name}</span><span class="text-xs text-[#7f1d1d] border border-[#7f1d1d] px-2 rounded">${new Date(t.timestamp).toLocaleDateString('zh-TW')}</span></div><div class="text-[#fca5a5]">${t.project_name}</div>${partnerBadge}<div class="text-sm bg-[#262626] p-2 rounded mt-2 text-[#fca5a5]">${t.notes}</div></div>`
-            }).join('');
-            
-            // 回報區 (Fix Lightbox Data Storage)
-            const bulletins = allData.filter(r => r.type==='progress');
-            document.getElementById('bulletin-list').innerHTML = bulletins.map(r => {
-                let imgs = '';
-                if (r.image_url) {
-                    const urls = Array.isArray(r.image_url) ? r.image_url : [r.image_url];
-                    if (urls.length > 0) {
-                        const galleryId = 'gal_' + r.id;
-                        window.galleryMap[galleryId] = urls;
-                        imgs = `<div class="img-grid">${urls.map((u, idx) => `<img src="${u}" onclick="openLightbox('${galleryId}', ${idx})">`).join('')}</div>`;
-                    }
-                }
-                return `<div class="card relative">${isAdmin?`<div class="absolute top-4 right-4"><button onclick="del(this,${r.id})" class="action-btn btn-del">✕</button></div>`:''}<div class="flex items-center gap-3 mb-2"><div class="w-10 h-10 rounded-full bg-[#404040] flex items-center justify-center font-bold text-[#fca5a5] border border-[#7f1d1d]">${r.employee_name[0]}</div><div><div class="font-bold text-[#fca5a5]">${r.employee_name}</div><div class="text-xs text-[#7f1d1d]">${new Date(r.timestamp).toLocaleString('zh-TW',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}</div></div></div><div class="font-bold text-xl text-[#ef4444] mb-1">${r.project_name}</div><div class="bg-[#262626] p-3 rounded-lg border border-[#7f1d1d] font-bold text-[#fca5a5]">${r.notes}</div>${imgs}</div>`;
-            }).join('');
-
-            const myRecs = allData.filter(r => r.type==='clock' && r.employee_name===currentUser.employee_name).slice(0,20);
-            document.getElementById('my-records-list').innerHTML = myRecs.map(r => `<div class="flex justify-between items-center p-4 bg-[#171717] rounded-xl border-l-8 ${r.check_type==='上班'?'border-l-green-600':'border-l-orange-600'} border-2 border-[#262626] mb-2"><div><span class="font-black text-lg text-[#fca5a5] mr-2">${r.check_type}</span>${getOvertimeDisplay(r)}</div><span class="font-bold text-[#7f1d1d] font-mono">${new Date(r.timestamp).toLocaleString('zh-TW',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}</span></div>`).join('');
-
-            if(isAdmin) {
-                document.getElementById('dispatch-emp-select').innerHTML = emps.map(e => `<option value="${e.employee_name}">${e.employee_name}</option>`).join('');
-                document.getElementById('dispatch-partners-list').innerHTML = emps.map(e => `<label class="custom-checkbox"><input type="checkbox" value="${e.employee_name}"><span class="text-[#fca5a5] font-bold">${e.employee_name}</span></label>`).join('');
-                document.getElementById('dispatch-list').innerHTML = allData.filter(r=>r.type==='dispatch').map(d=>`<div class="bg-[#262626] p-3 rounded border border-yellow-900 flex justify-between"><div><div class="font-bold text-yellow-500">${new Date(d.timestamp).toLocaleDateString('zh-TW')} ➤ ${d.employee_name}</div><div class="text-[#fca5a5]">${d.project_name}</div>${d.partners?`<div class="text-xs text-gray-400">👥 ${d.partners}</div>`:''}<div class="text-sm text-[#7f1d1d] mt-1">${d.notes}</div></div><div class="flex gap-2"><button onclick="openEdit(${d.id})" class="action-btn btn-edit">✏️</button><button onclick="del(this,${d.id})" class="action-btn btn-del">✕</button></div></div>`).join('');
-
-                const empMap={}; emps.forEach(e => empMap[e.employee_name]=parseInt(e.wage)||0);
-                const weekRange = getWeekRange(currentViewDate);
-                document.getElementById('current-week-display').innerText = `週期：${weekRange.startStr} ~ ${weekRange.endStr}`;
-                const hasSettledThisWeek = allData.some(r => r.type === 'payout_history' && r.start_date === weekRange.startStr);
-
-                currentWeeklyData = { startDate: weekRange.startStr, endDate: weekRange.endStr, details: [] };
-                const weeklyCalc={}; const workDaysCount={}; const dailyGroups={};
-
-                allData.filter(r => r.type==='clock').forEach(r => {
-                    const t = new Date(r.timestamp);
-                    if(t >= weekRange.monday && t < weekRange.nextMonday) {
-                        const k = `${r.employee_name}|${t.toDateString()}`;
-                        if(!dailyGroups[k]) dailyGroups[k]={start:null, end:null};
-                        const tv = t.getTime();
-                        if(r.check_type==='上班' && (!dailyGroups[k].start || tv<dailyGroups[k].start)) dailyGroups[k].start = tv;
-                        if(r.check_type==='下班' && (!dailyGroups[k].end || tv>dailyGroups[k].end)) dailyGroups[k].end = tv;
-                    }
-                });
-
-                Object.entries(dailyGroups).forEach(([k,v]) => {
-                    const name = k.split('|')[0];
-                    if(v.start && v.end) {
-                        const hrs = (v.end - v.start)/36e5; 
-                        const wage = empMap[name]||0;
-                        const pay = (Math.max(0, hrs-1) >= 7.5) ? wage : Math.floor(Math.max(0, hrs-1)*(wage/8));
-                        weeklyCalc[name] = (weeklyCalc[name]||0) + pay;
-                        workDaysCount[name] = (workDaysCount[name]||0) + 1;
-                    }
-                });
-
-                document.getElementById('emp-directory-list').innerHTML = emps.map(e => `<div class="flex justify-between items-center p-3 bg-[#171717] rounded-xl border border-[#7f1d1d] shadow-sm"><div><div class="font-black text-[#fca5a5]">${e.employee_code?`[${e.employee_code}]`:''} ${e.employee_name} ${e.is_admin?'(Admin)':''}</div><div class="text-xs text-[#7f1d1d]">日薪: $${e.wage}</div></div><div class="flex gap-2"><button onclick="openEdit(${e.id})" class="action-btn btn-edit">✏️</button><button onclick="del(this,${e.id})" class="action-btn btn-del">✕</button></div></div>`).join('');
-
-                let totalSalary = 0;
-                document.getElementById('salary-calc-list').innerHTML = emps.map(e => {
-                    let pay = weeklyCalc[e.employee_name] || 0;
-                    const days = workDaysCount[e.employee_name] || 0;
-                    if(pay > 0) currentWeeklyData.details.push({name:e.employee_name, code:e.employee_code, pay:pay, days:days});
-                    totalSalary += pay;
-                    let settledText = hasSettledThisWeek ? '<span class="text-xs text-green-500 font-bold ml-2">(已結算)</span>' : '';
-                    return `<div class="flex justify-between items-center p-4 bg-[#262626] rounded-xl border border-[#404040]"><div class="font-bold text-[#fca5a5]">${e.employee_name}</div><div class="text-right"><div class="text-xs text-[#7f1d1d]">本週出勤 ${days} 天</div><div class="font-black text-[#dc2626] text-xl">$${pay.toLocaleString()}${settledText}</div></div></div>`;
-                }).join('');
-
-                const btnSettle = document.getElementById('btn-settle');
-                const statusDiv = document.getElementById('settled-status');
-                currentWeeklyData.total = totalSalary;
+                // 薪資計算 (Safe)
+                const myWage = parseInt(currentUser.wage) || 0;
+                let myTotalPay = 0;
+                const thisWeek = getWeekRange(new Date());
+                const myDailyGroups = {};
                 
-                if(hasSettledThisWeek) {
-                    document.getElementById('total-wage').innerText = "$0"; 
-                    btnSettle.innerText = "已完成結算";
-                    btnSettle.classList.add('btn-disabled');
-                    btnSettle.onclick = null;
-                    statusDiv.classList.remove('hidden');
-                } else {
-                    document.getElementById('total-wage').innerText = "$" + totalSalary.toLocaleString();
-                    btnSettle.innerText = "💰 結算本週薪資 (歸檔)";
-                    btnSettle.classList.remove('btn-disabled');
-                    btnSettle.onclick = settleSalary;
-                    statusDiv.classList.add('hidden');
+                allData.filter(r => r.type === 'clock' && r.employee_name === currentUser.employee_name).forEach(r => {
+                    const t = new Date(r.timestamp);
+                    if(t >= thisWeek.monday && t < thisWeek.nextMonday) {
+                        const k = t.toDateString();
+                        if(!myDailyGroups[k]) myDailyGroups[k] = {start:null, end:null};
+                        const tv = t.getTime();
+                        if(r.check_type === '上班' && (!myDailyGroups[k].start || tv < myDailyGroups[k].start)) myDailyGroups[k].start = tv;
+                        if(r.check_type === '下班' && (!myDailyGroups[k].end || tv > myDailyGroups[k].end)) myDailyGroups[k].end = tv;
+                    }
+                });
+
+                Object.values(myDailyGroups).forEach(v => {
+                    if(v.start && v.end) {
+                        const hrs = (v.end - v.start) / 36e5;
+                        const pay = (Math.max(0, hrs - 1) >= 7.5) ? myWage : Math.floor(Math.max(0, hrs - 1) * (myWage / 8));
+                        myTotalPay += pay;
+                    }
+                });
+                const salaryEl = document.getElementById('my-salary-text');
+                if(salaryEl) salaryEl.innerText = `$${myTotalPay.toLocaleString()}`;
+
+                // 派工顯示 (Safe)
+                const missionContainer = document.getElementById('upcoming-missions-container');
+                if (missionContainer) {
+                    const myMissions = allData.filter(r => r.type==='dispatch' && new Date(r.timestamp)>=today && (r.employee_name===currentUser.employee_name || (r.partners||'').includes(currentUser.employee_name))).sort((a,b)=>new Date(a.timestamp)-new Date(b.timestamp));
+                    missionContainer.innerHTML = myMissions.map(m => {
+                        const isToday = new Date(m.timestamp).toDateString() === today.toDateString();
+                        const partnerText = m.partners ? `<div class="text-sm text-[#fca5a5] mt-1">👥 陪同：${m.partners}</div>` : '';
+                        return `<div class="card ${isToday?'card-today border-l-yellow-500':'card-future border-l-gray-500'} border-l-8 mb-4 relative"><div class="absolute -top-3 -right-2 ${isToday?'bg-yellow-500 text-black':'bg-gray-600 text-white'} font-black px-3 py-1 rounded-full text-sm">${isToday?'今日派工':new Date(m.timestamp).toLocaleDateString('zh-TW')}</div><h3 class="text-xl font-black mb-2">🚀 派工</h3><div class="mb-1">負責：${m.employee_name}</div><div class="mb-1">地點：${m.project_name}</div>${partnerText}<div class="bg-[#262626] p-3 rounded mt-2">${m.notes}</div></div>`;
+                    }).join('');
                 }
 
-                const historyList = allData.filter(r=>r.type==='payout_history');
-                document.getElementById('payout-history-list').innerHTML = historyList.length ? historyList.map(h => `<div class="bg-[#262626] border border-green-900 rounded-lg p-3 relative group"><div class="flex justify-between items-start"><div><div class="text-green-500 font-bold text-lg">💰 已發放: $${parseInt(h.total_amount).toLocaleString()}</div><div class="text-[#7f1d1d] text-xs font-bold">結算日: ${new Date(h.timestamp).toLocaleDateString()}</div><div class="text-xs text-yellow-500">週期: ${h.start_date}~${h.end_date}</div></div><div class="flex flex-col items-end gap-2"><button onclick="exportToCSV('${h.id}')" class="bg-white text-black text-xs font-bold px-3 py-1 rounded">📊 CSV</button><div class="flex gap-2"><button onclick="openEdit(${h.id})" class="action-btn btn-edit">✏️</button><button onclick="del(this,${h.id})" class="action-btn btn-del">✕</button></div></div></div></div>`).join('') : '<div class="text-center text-[#7f1d1d]">無記錄</div>';
-                document.getElementById('admin-clock-list').innerHTML = allData.filter(r=>r.type==='clock').map(r => `<div class="flex justify-between items-center p-3 bg-[#171717] rounded-lg border border-[#262626] mb-2"><div><span class="font-black text-[#fca5a5] mr-2">${r.employee_name}</span><span class="text-[#7f1d1d] text-sm">${new Date(r.timestamp).toLocaleString('zh-TW',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}</span></div><div class="flex items-center gap-2"><span class="${r.check_type==='上班'?'text-green-600':'text-orange-600'} font-bold">${r.check_type}</span><button onclick="openEdit(${r.id})" class="action-btn btn-edit">✏️</button><button onclick="del(this,${r.id})" class="action-btn btn-del">✕</button></div></div>`).join('');
+                // 公共區 (Safe)
+                const taskList = document.getElementById('public-task-list');
+                if (taskList) {
+                    const allTasks = allData.filter(r => r.type==='dispatch').sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp));
+                    taskList.innerHTML = allTasks.map(t => {
+                        const partnerBadge = t.partners ? `<div class="text-sm text-yellow-600 mt-1">👥 陪同：${t.partners}</div>` : '';
+                        return `<div class="bg-[#171717] border border-yellow-900/50 rounded-xl p-4 shadow-sm mb-2"><div class="flex justify-between mb-1"><span class="text-lg font-black text-yellow-500">${t.employee_name}</span><span class="text-xs text-[#7f1d1d] border border-[#7f1d1d] px-2 rounded">${new Date(t.timestamp).toLocaleDateString('zh-TW')}</span></div><div class="text-[#fca5a5]">${t.project_name}</div>${partnerBadge}<div class="text-sm bg-[#262626] p-2 rounded mt-2 text-[#fca5a5]">${t.notes}</div></div>`
+                    }).join('');
+                }
+                
+                // 回報區 (Safe)
+                const blist = document.getElementById('bulletin-list');
+                if (blist) {
+                    const bulletins = allData.filter(r => r.type==='progress');
+                    blist.innerHTML = bulletins.map(r => {
+                        let imgs = '';
+                        if (r.image_url) {
+                            const urls = Array.isArray(r.image_url) ? r.image_url : [r.image_url];
+                            if (urls.length > 0) {
+                                const galleryId = 'gal_' + r.id;
+                                window.galleryMap[galleryId] = urls;
+                                imgs = `<div class="img-grid">${urls.map((u, idx) => `<img src="${u}" onclick="openLightbox('${galleryId}', ${idx})">`).join('')}</div>`;
+                            }
+                        }
+                        return `<div class="card relative">${isAdmin?`<div class="absolute top-4 right-4"><button onclick="del(this,${r.id})" class="action-btn btn-del">✕</button></div>`:''}<div class="flex items-center gap-3 mb-2"><div class="w-10 h-10 rounded-full bg-[#404040] flex items-center justify-center font-bold text-[#fca5a5] border border-[#7f1d1d]">${r.employee_name[0]}</div><div><div class="font-bold text-[#fca5a5]">${r.employee_name}</div><div class="text-xs text-[#7f1d1d]">${new Date(r.timestamp).toLocaleString('zh-TW',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}</div></div></div><div class="font-bold text-xl text-[#ef4444] mb-1">${r.project_name}</div><div class="bg-[#262626] p-3 rounded-lg border border-[#7f1d1d] font-bold text-[#fca5a5]">${r.notes}</div>${imgs}</div>`;
+                    }).join('');
+                }
+
+                // 我的記錄 (Safe)
+                const recList = document.getElementById('my-records-list');
+                if (recList) {
+                    const myRecs = allData.filter(r => r.type==='clock' && r.employee_name===currentUser.employee_name).slice(0,20);
+                    recList.innerHTML = myRecs.map(r => `<div class="flex justify-between items-center p-4 bg-[#171717] rounded-xl border-l-8 ${r.check_type==='上班'?'border-l-green-600':'border-l-orange-600'} border-2 border-[#262626] mb-2"><div><span class="font-black text-lg text-[#fca5a5] mr-2">${r.check_type}</span>${getOvertimeDisplay(r)}</div><span class="font-bold text-[#7f1d1d] font-mono">${new Date(r.timestamp).toLocaleString('zh-TW',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}</span></div>`).join('');
+                }
+
+                if(isAdmin) {
+                    const elEmpSelect = document.getElementById('dispatch-emp-select');
+                    if (elEmpSelect) elEmpSelect.innerHTML = emps.map(e => `<option value="${e.employee_name}">${e.employee_name}</option>`).join('');
+                    
+                    const elPartners = document.getElementById('dispatch-partners-list');
+                    if (elPartners) elPartners.innerHTML = emps.map(e => `<label class="custom-checkbox"><input type="checkbox" value="${e.employee_name}"><span class="text-[#fca5a5] font-bold">${e.employee_name}</span></label>`).join('');
+                    
+                    const elDispList = document.getElementById('dispatch-list');
+                    if (elDispList) elDispList.innerHTML = allData.filter(r=>r.type==='dispatch').map(d=>`<div class="bg-[#262626] p-3 rounded border border-yellow-900 flex justify-between"><div><div class="font-bold text-yellow-500">${new Date(d.timestamp).toLocaleDateString('zh-TW')} ➤ ${d.employee_name}</div><div class="text-[#fca5a5]">${d.project_name}</div>${d.partners?`<div class="text-xs text-gray-400">👥 ${d.partners}</div>`:''}<div class="text-sm text-[#7f1d1d] mt-1">${d.notes}</div></div><div class="flex gap-2"><button onclick="openEdit(${d.id})" class="action-btn btn-edit">✏️</button><button onclick="del(this,${d.id})" class="action-btn btn-del">✕</button></div></div>`).join('');
+
+                    const empMap={}; emps.forEach(e => empMap[e.employee_name]=parseInt(e.wage)||0);
+                    const weekRange = getWeekRange(currentViewDate);
+                    const weekDisp = document.getElementById('current-week-display');
+                    if (weekDisp) weekDisp.innerText = `週期：${weekRange.startStr} ~ ${weekRange.endStr}`;
+                    
+                    const hasSettledThisWeek = allData.some(r => r.type === 'payout_history' && r.start_date === weekRange.startStr);
+
+                    currentWeeklyData = { startDate: weekRange.startStr, endDate: weekRange.endStr, details: [] };
+                    const weeklyCalc={}; const workDaysCount={}; const dailyGroups={};
+
+                    allData.filter(r => r.type==='clock').forEach(r => {
+                        const t = new Date(r.timestamp);
+                        if(t >= weekRange.monday && t < weekRange.nextMonday) {
+                            const k = `${r.employee_name}|${t.toDateString()}`;
+                            if(!dailyGroups[k]) dailyGroups[k]={start:null, end:null};
+                            const tv = t.getTime();
+                            if(r.check_type==='上班' && (!dailyGroups[k].start || tv<dailyGroups[k].start)) dailyGroups[k].start = tv;
+                            if(r.check_type==='下班' && (!dailyGroups[k].end || tv>dailyGroups[k].end)) dailyGroups[k].end = tv;
+                        }
+                    });
+
+                    Object.entries(dailyGroups).forEach(([k,v]) => {
+                        const name = k.split('|')[0];
+                        if(v.start && v.end) {
+                            const hrs = (v.end - v.start)/36e5; 
+                            const wage = empMap[name]||0;
+                            const pay = (Math.max(0, hrs-1) >= 7.5) ? wage : Math.floor(Math.max(0, hrs-1)*(wage/8));
+                            weeklyCalc[name] = (weeklyCalc[name]||0) + pay;
+                            workDaysCount[name] = (workDaysCount[name]||0) + 1;
+                        }
+                    });
+
+                    const elDirList = document.getElementById('emp-directory-list');
+                    if (elDirList) elDirList.innerHTML = emps.map(e => `<div class="flex justify-between items-center p-3 bg-[#171717] rounded-xl border border-[#7f1d1d] shadow-sm"><div><div class="font-black text-[#fca5a5]">${e.employee_code?`[${e.employee_code}]`:''} ${e.employee_name} ${e.is_admin?'(Admin)':''}</div><div class="text-xs text-[#7f1d1d]">日薪: $${e.wage}</div></div><div class="flex gap-2"><button onclick="openEdit(${e.id})" class="action-btn btn-edit">✏️</button><button onclick="del(this,${e.id})" class="action-btn btn-del">✕</button></div></div>`).join('');
+
+                    let totalSalary = 0;
+                    const elSalList = document.getElementById('salary-calc-list');
+                    if (elSalList) elSalList.innerHTML = emps.map(e => {
+                        let pay = weeklyCalc[e.employee_name] || 0;
+                        const days = workDaysCount[e.employee_name] || 0;
+                        if(pay > 0) currentWeeklyData.details.push({name:e.employee_name, code:e.employee_code, pay:pay, days:days});
+                        totalSalary += pay;
+                        let settledText = hasSettledThisWeek ? '<span class="text-xs text-green-500 font-bold ml-2">(已結算)</span>' : '';
+                        return `<div class="flex justify-between items-center p-4 bg-[#262626] rounded-xl border border-[#404040]"><div class="font-bold text-[#fca5a5]">${e.employee_name}</div><div class="text-right"><div class="text-xs text-[#7f1d1d]">本週出勤 ${days} 天</div><div class="font-black text-[#dc2626] text-xl">$${pay.toLocaleString()}${settledText}</div></div></div>`;
+                    }).join('');
+
+                    const btnSettle = document.getElementById('btn-settle');
+                    const statusDiv = document.getElementById('settled-status');
+                    const totalWageDiv = document.getElementById('total-wage');
+                    currentWeeklyData.total = totalSalary;
+                    
+                    if(hasSettledThisWeek) {
+                        if(totalWageDiv) totalWageDiv.innerText = "$0"; 
+                        if(btnSettle) { btnSettle.innerText = "已完成結算"; btnSettle.classList.add('btn-disabled'); btnSettle.onclick = null; }
+                        if(statusDiv) statusDiv.classList.remove('hidden');
+                    } else {
+                        if(totalWageDiv) totalWageDiv.innerText = "$" + totalSalary.toLocaleString();
+                        if(btnSettle) { btnSettle.innerText = "💰 結算本週薪資 (歸檔)"; btnSettle.classList.remove('btn-disabled'); btnSettle.onclick = settleSalary; }
+                        if(statusDiv) statusDiv.classList.add('hidden');
+                    }
+
+                    const historyList = allData.filter(r=>r.type==='payout_history');
+                    const elHistList = document.getElementById('payout-history-list');
+                    if (elHistList) elHistList.innerHTML = historyList.length ? historyList.map(h => `<div class="bg-[#262626] border border-green-900 rounded-lg p-3 relative group"><div class="flex justify-between items-start"><div><div class="text-green-500 font-bold text-lg">💰 已發放: $${parseInt(h.total_amount).toLocaleString()}</div><div class="text-[#7f1d1d] text-xs font-bold">結算日: ${new Date(h.timestamp).toLocaleDateString()}</div><div class="text-xs text-yellow-500">週期: ${h.start_date}~${h.end_date}</div></div><div class="flex flex-col items-end gap-2"><button onclick="exportToCSV('${h.id}')" class="bg-white text-black text-xs font-bold px-3 py-1 rounded">📊 CSV</button><div class="flex gap-2"><button onclick="openEdit(${h.id})" class="action-btn btn-edit">✏️</button><button onclick="del(this,${h.id})" class="action-btn btn-del">✕</button></div></div></div></div>`).join('') : '<div class="text-center text-[#7f1d1d]">無記錄</div>';
+                    
+                    const elClockList = document.getElementById('admin-clock-list');
+                    if (elClockList) elClockList.innerHTML = allData.filter(r=>r.type==='clock').map(r => `<div class="flex justify-between items-center p-3 bg-[#171717] rounded-lg border border-[#262626] mb-2"><div><span class="font-black text-[#fca5a5] mr-2">${r.employee_name}</span><span class="text-[#7f1d1d] text-sm">${new Date(r.timestamp).toLocaleString('zh-TW',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}</span></div><div class="flex items-center gap-2"><span class="${r.check_type==='上班'?'text-green-600':'text-orange-600'} font-bold">${r.check_type}</span><button onclick="openEdit(${r.id})" class="action-btn btn-edit">✏️</button><button onclick="del(this,${r.id})" class="action-btn btn-del">✕</button></div></div>`).join('');
+                }
+            } catch(e) {
+                console.error("Render Crashed", e);
+                // Silent fail to keep UI running
             }
         }
 
@@ -505,23 +536,29 @@
         function logout() { localStorage.removeItem('last_user_id'); currentUser = null; location.reload(); }
 
         function getOvertimeDisplay(r) {
-            if (r.check_type !== '下班') return '';
-            const cStr = new Date(r.timestamp).toDateString(); 
-            const sRecs = allData.filter(x => x.type === 'clock' && x.employee_name === r.employee_name && x.check_type === '上班' && new Date(x.timestamp).toDateString() === cStr);
-            if (sRecs.length === 0) return '';
-            
-            // 安全計算
-            const startTime = Math.min(...sRecs.map(x=>new Date(x.timestamp).getTime()));
-            const endTime = new Date(r.timestamp).getTime();
-            const dur = (endTime - startTime) / 36e5;
+            try {
+                if (r.check_type !== '下班') return '';
+                const cStr = new Date(r.timestamp).toDateString(); 
+                const sRecs = allData.filter(x => x.type === 'clock' && x.employee_name === r.employee_name && x.check_type === '上班' && new Date(x.timestamp).toDateString() === cStr);
+                if (sRecs.length === 0) return '';
+                
+                // 安全計算
+                const startTimes = sRecs.map(x=>new Date(x.timestamp).getTime());
+                const startTime = Math.min(...startTimes);
+                const endTime = new Date(r.timestamp).getTime();
+                
+                if (isNaN(startTime) || isNaN(endTime)) return '';
 
-            if (dur > 9) {
-                const ot = dur - 9;
-                let h = Math.floor(ot);
-                let m = Math.round((ot - h) * 60);
-                if (m === 60) { h += 1; m = 0; } // 進位處理
-                return `<span class="text-[#dc2626] font-black text-sm ml-2 bg-[#262626] px-2 py-1 rounded-full border border-[#7f1d1d]">加班 ${h}小時${m}分</span>`;
-            }
+                const dur = (endTime - startTime) / 36e5;
+
+                if (dur > 9) {
+                    const ot = dur - 9;
+                    let h = Math.floor(ot);
+                    let m = Math.round((ot - h) * 60);
+                    if (m === 60) { h += 1; m = 0; }
+                    return `<span class="text-[#dc2626] font-black text-sm ml-2 bg-[#262626] px-2 py-1 rounded-full border border-[#7f1d1d]">加班 ${h}小時${m}分</span>`;
+                }
+            } catch(e) { return ''; }
             return '';
         }
 
