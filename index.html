@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>全技工程行 - 管理系統 v3.96 (定位顯示版)</title>
+    <title>全技工程行 - 管理系統 v3.97 (薪資修正版)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@500;700;900&display=swap" rel="stylesheet">
@@ -67,9 +67,9 @@
     </div>
 
     <div id="lightbox-modal" class="fixed inset-0 bg-black/95 z-[300] hidden flex items-center justify-center touch-none">
-        <button onclick="closeLightbox()" class="absolute top-4 right-4 text-white text-4xl font-bold z-[310] w-12 h-12 flex items-center justify-center bg-gray-800/50 rounded-full border border-gray-600">&times;</button>
-        <button id="lb-prev" onclick="changeLightboxImage(-1)" class="absolute left-2 text-white text-5xl font-bold z-[310] p-4 hidden bg-gray-800/30 h-24 flex items-center rounded-r-xl">&#8249;</button>
-        <button id="lb-next" onclick="changeLightboxImage(1)" class="absolute right-2 text-white text-5xl font-bold z-[310] p-4 hidden bg-gray-800/30 h-24 flex items-center rounded-l-xl">&#8250;</button>
+        <button onclick="closeLightbox()" class="absolute top-4 right-4 text-white text-4xl font-bold z-[310] w-12 h-12 flex items-center justify-center bg-gray-800/50 rounded-full border border-gray-600">×</button>
+        <button id="lb-prev" onclick="changeLightboxImage(-1)" class="absolute left-2 text-white text-5xl font-bold z-[310] p-4 hidden bg-gray-800/30 h-24 flex items-center rounded-r-xl">‹</button>
+        <button id="lb-next" onclick="changeLightboxImage(1)" class="absolute right-2 text-white text-5xl font-bold z-[310] p-4 hidden bg-gray-800/30 h-24 flex items-center rounded-l-xl">›</button>
         <img id="lightbox-img" class="max-h-[90vh] max-w-[95vw] object-contain select-none" src="">
     </div>
 
@@ -371,7 +371,9 @@
             Object.values(myDailyGroups).forEach(v => {
                 if(v.start && v.end) {
                     const hrs = (v.end - v.start) / 36e5;
-                    const pay = (Math.max(0, hrs - 1) >= 7.5) ? myWage : Math.floor(Math.max(0, hrs - 1) * (myWage / 8));
+                    // FIX: 只有工作超過 5 小時才扣除 1 小時午休，否則視為半天班不扣午休
+                    const workHrs = hrs > 5 ? hrs - 1 : hrs; 
+                    const pay = (workHrs >= 7.5) ? myWage : Math.floor(workHrs * (myWage / 8));
                     myTotalPay += pay;
                 }
             });
@@ -407,7 +409,7 @@
             }).join('');
 
             const myRecs = allData.filter(r => r.type==='clock' && r.employee_name===currentUser.employee_name).slice(0,20);
-            document.getElementById('my-records-list').innerHTML = myRecs.map(r => `<div class="flex justify-between items-center p-4 bg-[#171717] rounded-xl border-l-8 ${r.check_type==='上班'?'border-l-green-600':'border-l-orange-600'} border-2 border-[#262626] mb-2"><div><span class="font-black text-lg text-[#fca5a5] mr-2">${r.check_type}</span>${getOvertimeDisplay(r)}<div class="text-xs text-[#7f1d1d] mt-1 font-bold">📍 <a href="https://www.google.com/maps?q=${r.location}" target="_blank" class="underline">${r.location || '未定位'}</a></div></div><span class="font-bold text-[#7f1d1d] font-mono">${new Date(r.timestamp).toLocaleString('zh-TW',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}</span></div>`).join('');
+            document.getElementById('my-records-list').innerHTML = myRecs.map(r => `<div class="flex justify-between items-center p-4 bg-[#171717] rounded-xl border-l-8 ${r.check_type==='上班'?'border-l-green-600':'border-l-orange-600'} border-2 border-[#262626] mb-2"><div><span class="font-black text-lg text-[#fca5a5] mr-2">${r.check_type}</span>${getOvertimeDisplay(r)}<div class="text-xs text-[#7f1d1d] mt-1 font-bold">📍 <a href="https://www.google.com/maps?q=$?q=${r.location}" target="_blank" class="underline">${r.location || '未定位'}</a></div></div><span class="font-bold text-[#7f1d1d] font-mono">${new Date(r.timestamp).toLocaleString('zh-TW',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}</span></div>`).join('');
 
             if(isAdmin) {
                 document.getElementById('dispatch-emp-select').innerHTML = emps.map(e => `<option value="${e.employee_name}">${e.employee_name}</option>`).join('');
@@ -438,7 +440,9 @@
                     if(v.start && v.end) {
                         const hrs = (v.end - v.start)/36e5; 
                         const wage = empMap[name]||0;
-                        const pay = (Math.max(0, hrs-1) >= 7.5) ? wage : Math.floor(Math.max(0, hrs-1)*(wage/8));
+                        // FIX: 只有工作超過 5 小時才扣除 1 小時午休
+                        const workHrs = hrs > 5 ? hrs - 1 : hrs; 
+                        const pay = (workHrs >= 7.5) ? wage : Math.floor(workHrs * (wage/8));
                         weeklyCalc[name] = (weeklyCalc[name]||0) + pay;
                         workDaysCount[name] = (workDaysCount[name]||0) + 1;
                     }
@@ -477,7 +481,7 @@
                 const historyList = allData.filter(r=>r.type==='payout_history');
                 document.getElementById('payout-history-list').innerHTML = historyList.length ? historyList.map(h => `<div class="bg-[#262626] border border-green-900 rounded-lg p-3 relative group"><div class="flex justify-between items-start"><div><div class="text-green-500 font-bold text-lg">💰 已發放: $${parseInt(h.total_amount).toLocaleString()}</div><div class="text-[#7f1d1d] text-xs font-bold">結算日: ${new Date(h.timestamp).toLocaleDateString()}</div><div class="text-xs text-yellow-500">週期: ${h.start_date}~${h.end_date}</div></div><div class="flex flex-col items-end gap-2"><button onclick="exportToCSV('${h.id}')" class="bg-white text-black text-xs font-bold px-3 py-1 rounded">📊 CSV</button><div class="flex gap-2"><button onclick="openEdit(${h.id})" class="action-btn btn-edit">✏️</button><button onclick="del(this,${h.id})" class="action-btn btn-del">✕</button></div></div></div></div>`).join('') : '<div class="text-center text-[#7f1d1d]">無記錄</div>';
                 
-                document.getElementById('admin-clock-list').innerHTML = allData.filter(r=>r.type==='clock').map(r => `<div class="flex justify-between items-center p-3 bg-[#171717] rounded-lg border border-[#262626] mb-2"><div><div class="font-black text-[#fca5a5] mr-2">${r.employee_name}</div><div class="text-[#7f1d1d] text-sm">${new Date(r.timestamp).toLocaleString('zh-TW',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}</div><div class="text-xs text-gray-500 mt-1">📍 <a href="https://www.google.com/maps?q=${r.location}" target="_blank" class="underline">${r.location || '未定位'}</a></div></div><div class="flex items-center gap-2">${getOvertimeDisplay(r)}<span class="${r.check_type==='上班'?'text-green-600':'text-orange-600'} font-bold">${r.check_type}</span><button onclick="openEdit(${r.id})" class="action-btn btn-edit">✏️</button><button onclick="del(this,${r.id})" class="action-btn btn-del">✕</button></div></div>`).join('');
+                document.getElementById('admin-clock-list').innerHTML = allData.filter(r=>r.type==='clock').map(r => `<div class="flex justify-between items-center p-3 bg-[#171717] rounded-lg border border-[#262626] mb-2"><div><div class="font-black text-[#fca5a5] mr-2">${r.employee_name}</div><div class="text-[#7f1d1d] text-sm">${new Date(r.timestamp).toLocaleString('zh-TW',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}</div><div class="text-xs text-gray-500 mt-1">📍 <a href="https://www.google.com/maps?q=$?q=${r.location}" target="_blank" class="underline">${r.location || '未定位'}</a></div></div><div class="flex items-center gap-2">${getOvertimeDisplay(r)}<span class="${r.check_type==='上班'?'text-green-600':'text-orange-600'} font-bold">${r.check_type}</span><button onclick="openEdit(${r.id})" class="action-btn btn-edit">✏️</button><button onclick="del(this,${r.id})" class="action-btn btn-del">✕</button></div></div>`).join('');
             }
         }
 
