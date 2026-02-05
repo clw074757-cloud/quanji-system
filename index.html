@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>全技工程行 - 管理系統 v4.0 (修復版)</title>
+    <title>全技工程行 - 管理系統 v4.2 (天數與半薪修正版)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@500;700;900&display=swap" rel="stylesheet">
@@ -384,7 +384,7 @@
                     const workHrs = hrs > 5 ? hrs - 1 : hrs; 
                     let pay = 0;
                     if (workHrs >= 7) pay = myWage;
-                    else if (workHrs >= 3) pay = Math.floor(myWage / 2);
+                    else if (workHrs >= 1) pay = Math.floor(myWage / 2); // 修正：1小時以上就算半薪
                     else pay = Math.floor(workHrs * (myWage / 8));
                     myTotalPay += pay;
                 }
@@ -413,7 +413,7 @@
                 if (r.image_url) {
                     const urls = Array.isArray(r.image_url) ? r.image_url : [r.image_url];
                     if (urls.length > 0) {
-                        const safeUrls = JSON.stringify(urls).replace(/"/g, "&quot;");
+                        const safeUrls = JSON.stringify(urls).replace(/"/g, """);
                         imgs = `<div class="img-grid">${urls.map((u, idx) => `<img src="${u}" onclick="openLightbox(${safeUrls}, ${idx})">`).join('')}</div>`;
                     }
                 }
@@ -455,12 +455,21 @@
                         const workHrs = hrs > 5 ? hrs - 1 : hrs; 
                         
                         let pay = 0;
-                        if (workHrs >= 7) pay = wage;
-                        else if (workHrs >= 3) pay = Math.floor(wage / 2);
-                        else pay = Math.floor(workHrs * (wage/8));
+                        let dayCount = 0; // 新增天數計算變數
+
+                        if (workHrs >= 7) {
+                            pay = wage;
+                            dayCount = 1.0;
+                        } else if (workHrs >= 1) { // 1小時~7小時 算半薪 + 0.5天
+                            pay = Math.floor(wage / 2);
+                            dayCount = 0.5;
+                        } else {
+                            pay = Math.floor(workHrs * (wage/8));
+                            dayCount = parseFloat((workHrs/8).toFixed(1)); // 未滿1小時按比例
+                        }
 
                         weeklyCalc[name] = (weeklyCalc[name]||0) + pay;
-                        workDaysCount[name] = (workDaysCount[name]||0) + 1;
+                        workDaysCount[name] = (workDaysCount[name]||0) + dayCount;
                     }
                 });
 
