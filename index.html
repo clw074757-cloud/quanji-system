@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>全技工程行 - 管理系統 v3.99 (判定優化版)</title>
+    <title>全技工程行 - 管理系統 v4.0 (修復版)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@500;700;900&display=swap" rel="stylesheet">
@@ -58,6 +58,7 @@
             </div>
             <button onclick="doLogin()" class="btn btn-primary mt-6 text-2xl">登入</button>
             <p id="login-msg" class="text-center text-[#ef4444] font-bold text-base mt-4 min-h-[24px]"></p>
+            <p id="system-status" class="text-center text-gray-500 text-xs mt-2">連線檢查中...</p>
         </div>
     </div>
 
@@ -250,12 +251,21 @@
             if(navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(p => { currentLocation = `${p.coords.latitude.toFixed(5)}, ${p.coords.longitude.toFixed(5)}`; document.getElementById('gps-status').innerText = `📍 已定位`; document.getElementById('gps-status').className = "text-sm font-bold text-[#fca5a5] bg-[#1a0505] px-3 py-1 rounded-full border border-[#dc2626]"; }, () => { document.getElementById('gps-status').innerText = "⚠️ 定位失敗"; });
             } else { document.getElementById('gps-status').innerText = "⚠️ 裝置不支援定位"; }
-            await loadData();
-            const savedId = localStorage.getItem('last_user_id');
-            if (savedId) {
-                if(savedId === 'admin') { currentUser = { employee_name: '超級管理員', is_admin: true, employee_id: 'admin' }; performLogin(currentUser); }
-                else { const user = allData.find(r => r.type === 'employee' && r.employee_id === savedId); if(user) { currentUser = user; performLogin(user); } }
+            
+            try {
+                await loadData();
+                document.getElementById('system-status').innerText = "✅ 系統連線正常";
+                document.getElementById('system-status').classList.add('text-green-500');
+                const savedId = localStorage.getItem('last_user_id');
+                if (savedId) {
+                    if(savedId === 'admin') { currentUser = { employee_name: '超級管理員', is_admin: true, employee_id: 'admin' }; performLogin(currentUser); }
+                    else { const user = allData.find(r => r.type === 'employee' && r.employee_id === savedId); if(user) { currentUser = user; performLogin(user); } }
+                }
+            } catch (err) {
+                document.getElementById('system-status').innerText = "❌ 連線失敗: " + err.message;
+                document.getElementById('system-status').classList.add('text-red-500');
             }
+            
             document.getElementById('dispatch-date').valueAsDate = new Date();
         };
 
@@ -319,7 +329,7 @@
         }
 
         async function loadData() {
-            try { const res = await fetch(`${DB_URL}?select=*&order=created_at.desc`, { headers: HEADERS }); if(!res.ok) throw new Error("Err"); const data = await res.json(); allData = data.map(r => ({ id: r.id, type: r.type, created_at: r.created_at, ...r.data })); if(currentUser) render(); } catch(e){ console.error(e); }
+            try { const res = await fetch(`${DB_URL}?select=*&order=created_at.desc`, { headers: HEADERS }); if(!res.ok) throw new Error("Err"); const data = await res.json(); allData = data.map(r => ({ id: r.id, type: r.type, created_at: r.created_at, ...r.data })); if(currentUser) render(); } catch(e){ console.error(e); throw e; }
         }
         function doLogin() {
             const id = document.getElementById('login-id').value.trim(), pwd = document.getElementById('login-pwd').value.trim();
@@ -371,20 +381,11 @@
             Object.values(myDailyGroups).forEach(v => {
                 if(v.start && v.end) {
                     const hrs = (v.end - v.start) / 36e5;
-                    // FIX: 只有工作超過 5 小時才扣除 1 小時午休，否則視為半天班不扣午休
                     const workHrs = hrs > 5 ? hrs - 1 : hrs; 
-                    
                     let pay = 0;
-                    if (workHrs >= 7) {
-                        // 滿 7 小時算全天 (寬容度)
-                        pay = myWage;
-                    } else if (workHrs >= 3) {
-                        // 滿 3 小時 ~ 未滿 7 小時算半天 (解決唐嘉誠 3 小時問題)
-                        pay = Math.floor(myWage / 2);
-                    } else {
-                        // 未滿 3 小時按比例
-                        pay = Math.floor(workHrs * (myWage / 8));
-                    }
+                    if (workHrs >= 7) pay = myWage;
+                    else if (workHrs >= 3) pay = Math.floor(myWage / 2);
+                    else pay = Math.floor(workHrs * (myWage / 8));
                     myTotalPay += pay;
                 }
             });
@@ -412,7 +413,7 @@
                 if (r.image_url) {
                     const urls = Array.isArray(r.image_url) ? r.image_url : [r.image_url];
                     if (urls.length > 0) {
-                        const safeUrls = JSON.stringify(urls).replace(/"/g, """);
+                        const safeUrls = JSON.stringify(urls).replace(/"/g, "&quot;");
                         imgs = `<div class="img-grid">${urls.map((u, idx) => `<img src="${u}" onclick="openLightbox(${safeUrls}, ${idx})">`).join('')}</div>`;
                     }
                 }
@@ -451,18 +452,12 @@
                     if(v.start && v.end) {
                         const hrs = (v.end - v.start)/36e5; 
                         const wage = empMap[name]||0;
-                        // FIX: 同步後台的計算邏輯 - 3 小時就算半天
                         const workHrs = hrs > 5 ? hrs - 1 : hrs; 
                         
                         let pay = 0;
-                        if (workHrs >= 7) {
-                            pay = wage;
-                        } else if (workHrs >= 3) {
-                            // 半天班判定放寬到 3 小時
-                            pay = Math.floor(wage / 2);
-                        } else {
-                            pay = Math.floor(workHrs * (wage/8));
-                        }
+                        if (workHrs >= 7) pay = wage;
+                        else if (workHrs >= 3) pay = Math.floor(wage / 2);
+                        else pay = Math.floor(workHrs * (wage/8));
 
                         weeklyCalc[name] = (weeklyCalc[name]||0) + pay;
                         workDaysCount[name] = (workDaysCount[name]||0) + 1;
@@ -530,29 +525,18 @@
 
         function getOvertimeDisplay(r) {
             if (r.check_type !== '下班') return '';
-            
-            // 找出同一天最早的「上班」紀錄
             const cStr = new Date(r.timestamp).toDateString(); 
             const sRecs = allData.filter(x => x.type === 'clock' && x.employee_name === r.employee_name && x.check_type === '上班' && new Date(x.timestamp).toDateString() === cStr);
-            
             if (sRecs.length === 0) return '';
-            
             const startTime = Math.min(...sRecs.map(x => new Date(x.timestamp)));
             const endTime = new Date(r.timestamp);
-            
-            // 計算總毫秒數 -> 分鐘數 (無條件捨去小數)
             const totalMs = endTime - startTime;
             const totalMinutes = Math.floor(totalMs / 60000); 
-            
-            // 設定標準工時 9 小時 = 540 分鐘
             const standardMinutes = 540; 
-            
             if (totalMinutes <= standardMinutes) return '';
-            
             const overtimeTotalMinutes = totalMinutes - standardMinutes;
             const otHours = Math.floor(overtimeTotalMinutes / 60);
             const otMins = overtimeTotalMinutes % 60;
-
             return `<span class="text-[#dc2626] font-black text-sm ml-2 bg-[#262626] px-2 py-1 rounded-full border border-[#7f1d1d]">加班 ${otHours}小時${otMins}分</span>`;
         }
 
