@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>全技工程行 - 管理系統 v4.6 (員工獨立打卡面板版)</title>
+    <title>全技工程行 - 管理系統 v4.7 (穩定修復版)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -263,7 +263,7 @@
                 if(gEl) gEl.innerText = greet;
             }, 1000);
 
-            document.getElementById('system-status').innerText = "✅ 系統就緒，請登入";
+            document.getElementById('system-status').innerText = "✅ 系統連線就緒";
             document.getElementById('system-status').classList.add('text-green-500');
 
             try {
@@ -274,12 +274,45 @@
                     else { const user = allData.find(r => r.type === 'employee' && r.employee_id === savedId); if(user) { currentUser = user; performLogin(user); } }
                 }
             } catch (err) {
-                document.getElementById('system-status').innerText = "❌ 連線失敗: " + err.message;
-                document.getElementById('system-status').classList.add('text-red-500');
+                document.getElementById('system-status').innerText = "❌ 連線異常: 請檢查網路";
+                document.getElementById('system-status').className = "text-center text-red-500 text-xs mt-2";
             }
             
             document.getElementById('dispatch-date').valueAsDate = new Date();
         };
+
+        // --- 防呆登入邏輯 ---
+        async function doLogin() {
+            const id = document.getElementById('login-id').value.trim(), pwd = document.getElementById('login-pwd').value.trim();
+            if(!id || !pwd) return alert("請輸入帳號密碼");
+            
+            document.getElementById('login-msg').innerText = "登入驗證中...";
+            
+            // 如果剛好網路慢，這裡強制等待資料庫回來
+            if(allData.length === 0) {
+                try {
+                    await loadData();
+                } catch(e) {
+                    return document.getElementById('login-msg').innerText = "伺服器無回應，請重新整理";
+                }
+            }
+
+            if(id==='admin' && pwd==='admin') { 
+                currentUser = { employee_name: '超級管理員', is_admin: true, employee_id: 'admin' }; 
+                localStorage.setItem('last_user_id', 'admin'); 
+                performLogin(currentUser); 
+                return; 
+            }
+            
+            const u = allData.find(r => r.type==='employee' && (r.employee_name===id || r.employee_id===id || r.employee_code===id));
+            if(u && u.password===pwd) { 
+                localStorage.setItem('last_user_id', u.employee_id); 
+                currentUser = u; 
+                performLogin(u); 
+            } else { 
+                document.getElementById('login-msg').innerText = "帳號或密碼錯誤"; 
+            }
+        }
 
         async function executeClockIn(type, btnElement) {
             const originalText = btnElement.innerText;
@@ -382,22 +415,15 @@
             try { const res = await fetch(`${DB_URL}?select=*&order=created_at.desc&limit=1000`, { headers: HEADERS }); if(!res.ok) throw new Error("Err"); const data = await res.json(); allData = data.map(r => ({ id: r.id, type: r.type, created_at: r.created_at, ...r.data })); if(currentUser) render(); } catch(e){ console.error(e); throw e; }
         }
 
-        function doLogin() {
-            const id = document.getElementById('login-id').value.trim(), pwd = document.getElementById('login-pwd').value.trim();
-            if(!id || !pwd) return alert("請輸入帳號密碼");
-            if(id==='admin' && pwd==='admin') { currentUser = { employee_name: '超級管理員', is_admin: true, employee_id: 'admin' }; localStorage.setItem('last_user_id', 'admin'); performLogin(currentUser); return; }
-            const u = allData.find(r => r.type==='employee' && (r.employee_name===id || r.employee_id===id || r.employee_code===id));
-            if(u && u.password===pwd) { localStorage.setItem('last_user_id', u.employee_id); currentUser = u; performLogin(u); } else { document.getElementById('login-msg').innerText = "帳號或密碼錯誤"; }
-        }
-        
         function performLogin(u) {
             try {
+                document.getElementById('login-msg').innerText = "";
                 document.getElementById('login-screen').classList.add('hidden');
                 document.getElementById('welcome-name').innerText = u.employee_name;
                 document.getElementById('user-role-display').innerText = u.employee_name + (u.is_admin ? ' (管理員)' : ' (員工)');
                 try { setupNav(); } catch(e) { console.error('Nav Error:', e); }
                 try { nav('clock'); } catch(e) { console.error('Page Error:', e); }
-                try { render(); } catch(e) { console.error('Render Error:', e); alert('部分資料載入失敗，請重新整理'); }
+                try { render(); } catch(e) { console.error('Render Error:', e); alert('畫面繪製失敗，請重新整理'); }
                 try { if("Notification" in window) Notification.requestPermission(); if(supabaseClient) setupRealtimeListener(); } catch(e){}
             } catch(mainErr) {
                 alert("登入過程發生嚴重錯誤，請截圖給開發者: " + mainErr.message);
@@ -410,7 +436,7 @@
             const emps = allData.filter(r => r.type === 'employee');
             const today = new Date(); today.setHours(0,0,0,0);
 
-            // -- 員工端預估薪資計算 (包含本週駕駛津貼) --
+            // -- 員工端預估薪資計算 --
             const myWage = parseInt(currentUser.wage) || 0;
             let myTotalPay = 0;
             let myDriverCount = 0;
@@ -452,7 +478,7 @@
             const salaryEl = document.getElementById('my-salary-text');
             if(salaryEl) salaryEl.innerText = `$${myTotalPay.toLocaleString()}`;
 
-            // -- 派工總覽 (加入駕駛顯示) --
+            // -- 派工總覽 --
             const myMissions = allData.filter(r => r.type==='dispatch' && new Date(r.timestamp)>=today && (r.employee_name===currentUser.employee_name || (r.partners||'').includes(currentUser.employee_name) || (r.drivers||'').includes(currentUser.employee_name))).sort((a,b)=>new Date(a.timestamp)-new Date(b.timestamp));
             document.getElementById('upcoming-missions-container').innerHTML = myMissions.map(m => {
                 const isToday = new Date(m.timestamp).toDateString() === today.toDateString();
@@ -468,7 +494,7 @@
                 return `<div class="bg-[#171717] border border-yellow-900/50 rounded-xl p-4 shadow-sm mb-2"><div class="flex justify-between mb-1"><span class="text-lg font-black text-yellow-500">${t.employee_name}</span><span class="text-xs text-[#7f1d1d] border border-[#7f1d1d] px-2 rounded">${new Date(t.timestamp).toLocaleDateString('zh-TW')}</span></div><div class="text-[#fca5a5]">${t.project_name}</div>${drvBadge}${partnerBadge}<div class="text-sm bg-[#262626] p-2 rounded mt-2 text-[#fca5a5]">${t.notes}</div></div>`
             }).join('');
             
-            // -- 派工回報 (加入下載按鈕) --
+            // -- 派工回報 (修正引號語法錯誤) --
             const bulletins = allData.filter(r => r.type==='progress');
             document.getElementById('bulletin-list').innerHTML = bulletins.map(r => {
                 let imgs = '';
@@ -476,7 +502,8 @@
                 if (r.image_url) {
                     const urls = Array.isArray(r.image_url) ? r.image_url : [r.image_url];
                     if (urls.length > 0) {
-                        const safeUrls = JSON.stringify(urls).replace(/"/g, """);
+                        // 修正這裡的引號逃脫問題，確保不會搞崩 JS 引擎
+                        const safeUrls = JSON.stringify(urls).replace(/"/g, '&quot;');
                         imgs = `<div class="img-grid">${urls.map((u, idx) => `<img src="${u}" onclick="openLightbox(${safeUrls}, ${idx})">`).join('')}</div>`;
                         downloadBtn = `<button onclick="downloadAll(${safeUrls}, '${r.project_name || '工程照片'}')" class="mt-3 w-full bg-[#262626] hover:bg-[#404040] text-blue-400 font-bold py-2 px-4 rounded-lg border border-blue-900 flex justify-center items-center gap-2 transition-colors">📦 一鍵打包下載全部照片</button>`;
                     }
@@ -484,9 +511,9 @@
                 return `<div class="card relative">${isAdmin?`<div class="absolute top-4 right-4"><button onclick="del(this,${r.id})" class="action-btn btn-del">✕</button></div>`:''}<div class="flex items-center gap-3 mb-2"><div class="w-10 h-10 rounded-full bg-[#404040] flex items-center justify-center font-bold text-[#fca5a5] border border-[#7f1d1d]">${r.employee_name[0]}</div><div><div class="font-bold text-[#fca5a5]">${r.employee_name}</div><div class="text-xs text-[#7f1d1d]">${new Date(r.timestamp).toLocaleString('zh-TW',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}</div></div></div><div class="font-bold text-xl text-[#ef4444] mb-1">${r.project_name}</div><div class="bg-[#262626] p-3 rounded-lg border border-[#7f1d1d] font-bold text-[#fca5a5]">${r.notes}</div>${imgs}${downloadBtn}</div>`;
             }).join('');
 
-            // -- 員工紀錄 (套用 isAdmin 隱藏加班) --
+            // -- 員工個人打卡歷史 (修正地圖連結) --
             const myRecs = allData.filter(r => r.type==='clock' && r.employee_name===currentUser.employee_name).slice(0,20);
-            document.getElementById('my-records-list').innerHTML = myRecs.map(r => `<div class="flex justify-between items-center p-4 bg-[#171717] rounded-xl border-l-8 ${r.check_type==='上班'?'border-l-green-600':'border-l-orange-600'} border-2 border-[#262626] mb-2"><div><span class="font-black text-lg text-[#fca5a5] mr-2">${r.check_type}</span>${getOvertimeDisplay(r, false)}<div class="text-xs text-[#7f1d1d] mt-1 font-bold">📍 <a href="https://www.google.com/maps/search/?api=1&query=${r.location || ''}" target="_blank" class="underline">${r.location || '未定位'}</a></div></div><span class="font-bold text-[#7f1d1d] font-mono">${new Date(r.timestamp).toLocaleString('zh-TW',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}</span></div>`).join('');
+            document.getElementById('my-records-list').innerHTML = myRecs.map(r => `<div class="flex justify-between items-center p-4 bg-[#171717] rounded-xl border-l-8 ${r.check_type==='上班'?'border-l-green-600':'border-l-orange-600'} border-2 border-[#262626] mb-2"><div><span class="font-black text-lg text-[#fca5a5] mr-2">${r.check_type}</span>${getOvertimeDisplay(r, false)}<div class="text-xs text-gray-500 mt-1 font-bold">📍 <a href="https://www.google.com/maps/search/?api=1&query=${r.location || ''}" target="_blank" class="underline text-blue-400">${r.location || '未定位'}</a></div></div><span class="font-bold text-[#7f1d1d] font-mono">${new Date(r.timestamp).toLocaleString('zh-TW',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}</span></div>`).join('');
 
             // -- 後台邏輯 --
             if(isAdmin) {
@@ -505,7 +532,6 @@
                 const weeklyCalc={}; const workDaysCount={}; const dailyGroups={};
                 const driverCounts={};
 
-                // 統計司機次數
                 allData.filter(r => r.type === 'dispatch').forEach(d => {
                     const dt = new Date(d.timestamp);
                     if(dt >= weekRange.monday && dt < weekRange.nextMonday) {
@@ -584,20 +610,19 @@
                 const historyList = allData.filter(r=>r.type==='payout_history');
                 document.getElementById('payout-history-list').innerHTML = historyList.length ? historyList.map(h => `<div class="bg-[#262626] border border-green-900 rounded-lg p-3 relative group"><div class="flex justify-between items-start"><div><div class="text-green-500 font-bold text-lg">💰 已發放: $${parseInt(h.total_amount).toLocaleString()}</div><div class="text-[#7f1d1d] text-xs font-bold">結算日: ${new Date(h.timestamp).toLocaleDateString()}</div><div class="text-xs text-yellow-500">週期: ${h.start_date}~${h.end_date}</div></div><div class="flex flex-col items-end gap-2"><button onclick="exportToCSV('${h.id}')" class="bg-white text-black text-xs font-bold px-3 py-1 rounded">📊 CSV</button><div class="flex gap-2"><button onclick="openEdit(${h.id})" class="action-btn btn-edit">✏️</button><button onclick="del(this,${h.id})" class="action-btn btn-del">✕</button></div></div></div></div>`).join('') : '<div class="text-center text-[#7f1d1d]">無記錄</div>';
                 
-                // --- 核心修改：後台打卡列表依員工分組 (使用 details 手風琴) ---
+                // 後台打卡列表依員工分組 (修正地圖連結)
                 const clockRecords = allData.filter(r => r.type === 'clock');
                 const clockHTML = emps.map(emp => {
                     const empName = emp.employee_name;
-                    // 取該名員工最新 30 筆，避免畫面無限長拉死瀏覽器
                     const empRecords = clockRecords.filter(r => r.employee_name === empName).slice(0, 30);
                     
-                    if (empRecords.length === 0) return ''; // 沒紀錄就先跳過
+                    if (empRecords.length === 0) return ''; 
 
                     const recordItems = empRecords.map(r => `
                         <div class="flex justify-between items-center p-2 bg-[#000000] rounded-lg border border-[#262626]">
                             <div>
                                 <div class="text-[#fca5a5] text-sm font-bold">${new Date(r.timestamp).toLocaleString('zh-TW',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}</div>
-                                <div class="text-xs text-gray-500 mt-1">📍 <a href="https://www.google.com/maps/search/?api=1&query=$${r.location || ''}" target="_blank" class="underline">${r.location || '未定位'}</a></div>
+                                <div class="text-xs text-gray-500 mt-1">📍 <a href="https://www.google.com/maps/search/?api=1&query=${r.location || ''}" target="_blank" class="underline text-blue-400">${r.location || '未定位'}</a></div>
                             </div>
                             <div class="flex items-center gap-2">
                                 ${getOvertimeDisplay(r, true)}
