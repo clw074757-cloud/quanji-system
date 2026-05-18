@@ -235,8 +235,14 @@
                 <h2 class="font-black text-[#dc2626] text-xl mb-4">＋ 新增案件</h2>
                 <div><label class="text-label">案件名稱</label><input id="new-proj-name" class="input-box" placeholder="例：信義路水電工程"></div>
                 <div><label class="text-label">業主名稱</label><input id="new-proj-client" class="input-box" placeholder="業主姓名或公司"></div>
+                <div><label class="text-label">案件類型</label>
+                    <select id="new-proj-type" class="input-box" onchange="toggleProjTypeFields()">
+                        <option value="contract">合約工程</option>
+                        <option value="labor">點工（無固定合約）</option>
+                    </select>
+                </div>
                 <div class="grid grid-cols-2 gap-3">
-                    <div><label class="text-label">合約金額</label><input id="new-proj-amount" type="number" class="input-box" placeholder="0"></div>
+                    <div id="new-proj-amount-group"><label class="text-label">合約金額</label><input id="new-proj-amount" type="number" class="input-box" placeholder="0"></div>
                     <div><label class="text-label">開工日期</label><input id="new-proj-date" type="date" class="input-box" style="color-scheme:dark;"></div>
                 </div>
                 <div><label class="text-label">備註</label><textarea id="new-proj-note" class="input-box" rows="2" placeholder="案件說明..."></textarea></div>
@@ -269,6 +275,20 @@
                 <label class="text-label">金額</label><input id="proj-expense-amount" type="number" class="input-box" placeholder="0">
                 <label class="text-label">日期</label><input id="proj-expense-date" type="date" class="input-box" style="color-scheme:dark;">
                 <label class="text-label">備註</label><input id="proj-expense-note" class="input-box" placeholder="選填">
+            </div>
+            <div id="proj-labor-fields" class="hidden">
+                <label class="text-label">日期</label>
+                <input id="proj-labor-date" type="date" class="input-box" style="color-scheme:dark;">
+                <div class="grid grid-cols-2 gap-3">
+                    <div><label class="text-label">出工人數</label><input id="proj-labor-count" type="number" class="input-box" placeholder="1" min="1" oninput="calcLaborSubtotal()"></div>
+                    <div><label class="text-label">每工價格（元）</label><input id="proj-labor-rate" type="number" class="input-box" placeholder="0" oninput="calcLaborSubtotal()"></div>
+                </div>
+                <div class="bg-[#262626] p-3 rounded-lg mb-3 flex justify-between items-center border border-yellow-900">
+                    <span class="text-sm text-gray-400 font-bold">本筆應收小計</span>
+                    <span id="proj-labor-subtotal" class="text-yellow-400 font-black font-mono text-lg">$0</span>
+                </div>
+                <label class="text-label">備註</label>
+                <input id="proj-labor-note" class="input-box" placeholder="選填（例：吳師傅+陳師傅）">
             </div>
             <div class="flex gap-3 mt-4">
                 <button onclick="closeProjModal()" class="btn btn-secondary">取消</button>
@@ -683,18 +703,25 @@
             const projects = allData.filter(r => r.type === 'project').sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
             const incomes = allData.filter(r => r.type === 'proj_income');
             const expenses = allData.filter(r => r.type === 'proj_expense');
+            const laborRecs = allData.filter(r => r.type === 'proj_labor');
 
-            const totalContract = projects.reduce((s,p) => s + (parseInt(p.contract_amount)||0), 0);
+            // 合約案：用 contract_amount；點工案：用出工記錄總和
+            const totalPayable = projects.reduce((s,p) => {
+                if(p.project_type === 'labor') {
+                    return s + laborRecs.filter(l => l.project_id == p.id).reduce((ss,l) => ss + (parseInt(l.amount)||0), 0);
+                }
+                return s + (parseInt(p.contract_amount)||0);
+            }, 0);
             const totalReceived = incomes.reduce((s,i) => s + (parseInt(i.amount)||0), 0);
             const totalExpense = expenses.reduce((s,e) => s + (parseInt(e.amount)||0), 0);
             const totalProfit = totalReceived - totalExpense;
-            const totalOutstanding = totalContract - totalReceived;
+            const totalOutstanding = totalPayable - totalReceived;
 
             const sumEl = document.getElementById('project-overall-summary');
             if(sumEl) sumEl.innerHTML = `
                 <div class="bg-[#262626] p-3 rounded-xl border border-blue-900 col-span-2">
-                    <div class="text-xs text-blue-400 font-bold">合約總金額 (${projects.length} 個案件)</div>
-                    <div class="text-2xl font-black text-blue-400 font-mono">$${totalContract.toLocaleString()}</div>
+                    <div class="text-xs text-blue-400 font-bold">應收總金額 (${projects.length} 個案件)</div>
+                    <div class="text-2xl font-black text-blue-400 font-mono">$${totalPayable.toLocaleString()}</div>
                 </div>
                 <div class="bg-[#262626] p-3 rounded-xl border border-green-900">
                     <div class="text-xs text-green-400 font-bold">已收款</div>
@@ -719,11 +746,14 @@
             if(projects.length === 0) { listEl.innerHTML = '<div class="text-center text-[#7f1d1d] font-bold py-10">尚無案件，請新增</div>'; return; }
 
             listEl.innerHTML = projects.map(p => {
+                const isLabor = p.project_type === 'labor';
                 const projIncomes = incomes.filter(i => i.project_id == p.id);
                 const projExpenses = expenses.filter(e => e.project_id == p.id);
+                const projLabors = laborRecs.filter(l => l.project_id == p.id).sort((a,b) => (a.date||'') > (b.date||'') ? 1 : -1);
                 const received = projIncomes.reduce((s,i) => s + (parseInt(i.amount)||0), 0);
                 const spent = projExpenses.reduce((s,e) => s + (parseInt(e.amount)||0), 0);
-                const contract = parseInt(p.contract_amount) || 0;
+                const laborTotal = projLabors.reduce((s,l) => s + (parseInt(l.amount)||0), 0);
+                const contract = isLabor ? laborTotal : (parseInt(p.contract_amount) || 0);
                 const outstanding = contract - received;
                 const profit = received - spent;
                 const pct = contract > 0 ? Math.min(100, Math.round(received/contract*100)) : 0;
@@ -758,6 +788,44 @@
                         </div>
                     </div>`).join('');
 
+                const laborRows = projLabors.map(l => `
+                    <div class="flex justify-between items-center p-2 bg-[#000] rounded border border-yellow-900 mb-1">
+                        <div>
+                            <span class="text-yellow-400 font-bold text-sm">${esc(l.date||'')}</span>
+                            <span class="text-xs text-gray-300 ml-2">${esc(l.worker_count)} 工 × $${(parseInt(l.daily_rate)||0).toLocaleString()}</span>
+                            ${l.notes?`<div class="text-xs text-gray-500">${esc(l.notes)}</div>`:''}
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-yellow-400 font-black font-mono text-sm">$${(parseInt(l.amount)||0).toLocaleString()}</span>
+                            <button onclick="del(this,${l.id})" class="action-btn btn-del w-7 h-7 text-xs">✕</button>
+                        </div>
+                    </div>`).join('');
+
+                const topRightBlock = isLabor
+                    ? `<div class="text-right">
+                            <div class="text-xs text-yellow-500 font-bold">點工</div>
+                            <div class="text-xs text-gray-400 mt-0.5">應收（出工累計）</div>
+                            <div class="text-lg font-black text-yellow-400 font-mono">$${laborTotal.toLocaleString()}</div>
+                            <button onclick="del(this,${p.id})" class="text-xs text-red-500 border border-red-900 px-2 py-1 rounded mt-1">刪除</button>
+                        </div>`
+                    : `<div class="text-right">
+                            <div class="text-xs text-gray-400">合約金額</div>
+                            <div class="text-lg font-black text-[#fca5a5] font-mono">$${contract.toLocaleString()}</div>
+                            <button onclick="del(this,${p.id})" class="text-xs text-red-500 border border-red-900 px-2 py-1 rounded mt-1">刪除</button>
+                        </div>`;
+
+                const laborSection = isLabor ? `
+                    <details class="mb-2" open>
+                        <summary class="flex justify-between items-center p-3 bg-[#1a1500] rounded-lg cursor-pointer border border-yellow-900">
+                            <span class="font-bold text-yellow-400">👷 出工記錄（${projLabors.length} 筆）　累計 $${laborTotal.toLocaleString()}</span>
+                            <span class="text-yellow-400 text-xs">▼ 展開</span>
+                        </summary>
+                        <div class="pt-2">
+                            ${laborRows || '<div class="text-center text-gray-500 text-sm py-2">尚無出工記錄</div>'}
+                            <button onclick="openProjModal('labor',${p.id})" class="btn btn-warning text-sm py-3 mt-2">＋ 記錄出工</button>
+                        </div>
+                    </details>` : '';
+
                 return `<div class="card" style="border-color:${borderCol}">
                     <div class="flex justify-between items-start mb-3">
                         <div>
@@ -772,16 +840,12 @@
                                 </select>
                             </div>
                         </div>
-                        <div class="text-right">
-                            <div class="text-xs text-gray-400">合約金額</div>
-                            <div class="text-lg font-black text-[#fca5a5] font-mono">$${contract.toLocaleString()}</div>
-                            <button onclick="del(this,${p.id})" class="text-xs text-red-500 border border-red-900 px-2 py-1 rounded mt-1">刪除</button>
-                        </div>
+                        ${topRightBlock}
                     </div>
                     <div class="mb-3">
                         <div class="flex justify-between text-xs mb-1">
                             <span class="text-green-400 font-bold">已收 ${pct}%　$${received.toLocaleString()}</span>
-                            <span class="text-gray-400">待收 $${outstanding.toLocaleString()}</span>
+                            <span class="text-orange-400">未收 $${outstanding.toLocaleString()}</span>
                         </div>
                         <div class="w-full bg-[#262626] rounded-full h-3">
                             <div class="bg-green-600 h-3 rounded-full" style="width:${pct}%"></div>
@@ -801,6 +865,7 @@
                             <div class="font-black ${profit>=0?'text-yellow-400':'text-red-400'} font-mono text-sm">$${profit.toLocaleString()}</div>
                         </div>
                     </div>
+                    ${laborSection}
                     <details class="mb-2">
                         <summary class="flex justify-between items-center p-3 bg-[#0a1f0a] rounded-lg cursor-pointer border border-green-900">
                             <span class="font-bold text-green-400">💰 收款記錄（${projIncomes.length} 筆）</span>
@@ -825,17 +890,31 @@
             }).join('');
         }
 
+        function toggleProjTypeFields() {
+            const isLabor = document.getElementById('new-proj-type').value === 'labor';
+            document.getElementById('new-proj-amount-group').classList.toggle('hidden', isLabor);
+        }
+
+        function calcLaborSubtotal() {
+            const count = parseInt(document.getElementById('proj-labor-count').value) || 0;
+            const rate = parseInt(document.getElementById('proj-labor-rate').value) || 0;
+            document.getElementById('proj-labor-subtotal').textContent = '$' + (count * rate).toLocaleString();
+        }
+
         async function addProject() {
             const name = document.getElementById('new-proj-name').value.trim();
             const client = document.getElementById('new-proj-client').value.trim();
+            const projType = document.getElementById('new-proj-type').value;
             const amount = document.getElementById('new-proj-amount').value;
             const date = document.getElementById('new-proj-date').value;
             const note = document.getElementById('new-proj-note').value;
             if(!name) return alert("請輸入案件名稱");
-            if(!amount) return alert("請輸入合約金額");
-            if(await insertData('project', { project_name:name, client_name:client, contract_amount:parseInt(amount), start_date:date, status:'進行中', notes:note, timestamp:new Date().toISOString() })) {
+            if(projType === 'contract' && !amount) return alert("請輸入合約金額");
+            if(await insertData('project', { project_name:name, client_name:client, project_type:projType, contract_amount:projType==='contract'?parseInt(amount):0, start_date:date, status:'進行中', notes:note, timestamp:new Date().toISOString() })) {
                 alert("案件建立成功");
                 ['new-proj-name','new-proj-client','new-proj-amount','new-proj-note'].forEach(id => document.getElementById(id).value='');
+                document.getElementById('new-proj-type').value = 'contract';
+                toggleProjTypeFields();
                 await loadData();
             } else { alert("建立失敗"); }
         }
@@ -854,16 +933,25 @@
             const projName = proj ? proj.project_name : '';
             document.getElementById('proj-modal-type').value = type;
             document.getElementById('proj-modal-proj-id').value = projId;
+            document.getElementById('proj-income-fields').classList.add('hidden');
+            document.getElementById('proj-expense-fields').classList.add('hidden');
+            document.getElementById('proj-labor-fields').classList.add('hidden');
             if(type === 'income') {
                 document.getElementById('proj-modal-title').innerText = `💰 新增收款 — ${projName}`;
                 document.getElementById('proj-income-fields').classList.remove('hidden');
-                document.getElementById('proj-expense-fields').classList.add('hidden');
                 document.getElementById('proj-income-date').valueAsDate = new Date();
                 document.getElementById('proj-income-amount').value = '';
                 document.getElementById('proj-income-note').value = '';
+            } else if(type === 'labor') {
+                document.getElementById('proj-modal-title').innerText = `👷 記錄出工 — ${projName}`;
+                document.getElementById('proj-labor-fields').classList.remove('hidden');
+                document.getElementById('proj-labor-date').valueAsDate = new Date();
+                document.getElementById('proj-labor-count').value = '';
+                document.getElementById('proj-labor-rate').value = '';
+                document.getElementById('proj-labor-note').value = '';
+                document.getElementById('proj-labor-subtotal').textContent = '$0';
             } else {
                 document.getElementById('proj-modal-title').innerText = `📋 新增支出 — ${projName}`;
-                document.getElementById('proj-income-fields').classList.add('hidden');
                 document.getElementById('proj-expense-fields').classList.remove('hidden');
                 document.getElementById('proj-expense-date').valueAsDate = new Date();
                 document.getElementById('proj-expense-amount').value = '';
@@ -887,6 +975,18 @@
                 const notes = document.getElementById('proj-income-note').value;
                 if(!amount) return alert("請輸入金額");
                 if(await insertData('proj_income', { project_id:projId, project_name:projName, stage, amount:parseInt(amount), date, notes, timestamp:new Date().toISOString() })) {
+                    closeProjModal(); await loadData();
+                } else { alert("新增失敗"); }
+            } else if(type === 'labor') {
+                const date = document.getElementById('proj-labor-date').value;
+                const count = parseInt(document.getElementById('proj-labor-count').value);
+                const rate = parseInt(document.getElementById('proj-labor-rate').value);
+                const notes = document.getElementById('proj-labor-note').value;
+                if(!date) return alert("請選擇日期");
+                if(!count || count < 1) return alert("請輸入出工人數");
+                if(!rate || rate < 1) return alert("請輸入每工價格");
+                const amount = count * rate;
+                if(await insertData('proj_labor', { project_id:projId, project_name:projName, date, worker_count:count, daily_rate:rate, amount, notes, timestamp:new Date().toISOString() })) {
                     closeProjModal(); await loadData();
                 } else { alert("新增失敗"); }
             } else {
