@@ -3,14 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>全技工程行 - 管理系統 v4.7 (穩定修復版)</title>
+    <title>全技工程行 - 管理系統 v4.8</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@500;700;900&display=swap" rel="stylesheet">
     <style>
-        /* --- 樣式設定 --- */
         body { font-family: 'Noto Sans TC', sans-serif; background-color: #000000; color: #fca5a5; font-size: 16px; -webkit-tap-highlight-color: transparent; }
         .hidden { display: none !important; }
         .card { background: #171717; padding: 20px; border-radius: 16px; box-shadow: 0 4px 15px rgba(220, 38, 38, 0.1); margin-bottom: 20px; border: 2px solid #7f1d1d; }
@@ -25,6 +24,7 @@
         .custom-checkbox input { width: 24px; height: 24px; accent-color: #dc2626; }
         .btn { width: 100%; padding: 16px; border-radius: 12px; font-weight: 900; font-size: 18px; color: #000000; transition: 0.2s; text-align: center; display: flex; justify-content: center; align-items: center; gap: 10px; box-shadow: 0 4px 0 rgba(50, 0, 0, 0.5); cursor: pointer; border: none; }
         .btn:active { transform: translateY(4px); box-shadow: none; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
         .btn-primary { background-color: #dc2626; } .btn-secondary { background-color: #404040; color: #fca5a5; } .btn-warning { background-color: #f59e0b; color: #000000; } .btn-success { background-color: #10b981; color: #000000; }
         .btn-disabled { background-color: #262626; color: #555; cursor: not-allowed; box-shadow: none; border: 1px solid #444; }
         .action-btn { width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: bold; cursor: pointer; transition: 0.2s; background-color: #262626; }
@@ -34,14 +34,13 @@
         .nav-bar { background-color: #0f0f0f; border-top: 2px solid #7f1d1d; }
         .nav-btn { flex: 1; text-align: center; padding: 12px; color: #7f1d1d; font-size: 14px; font-weight: 900; background: #0f0f0f; border: none; min-width: 0; }
         .nav-btn.active { color: #ef4444; background: #1a0505; border-top: 4px solid #dc2626; }
-        .nav-icon { width: 28px; height: 28px; margin: 0 auto 4px; display: block; fill: currentColor; } 
+        .nav-icon { width: 28px; height: 28px; margin: 0 auto 4px; display: block; fill: currentColor; }
         .img-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; }
         .img-grid img { width: 100%; height: 120px; object-fit: contain; background-color: #000; border-radius: 8px; border: 1px solid #7f1d1d; cursor: pointer; }
         .text-label { color: #b91c1c; font-weight: bold; margin-bottom: 4px; display: block; font-size: 14px; }
         .map-link { color: #ef4444; text-decoration: underline; font-size: 0.9rem; font-weight: bold; }
         .loader { border: 8px solid #262626; border-top: 8px solid #dc2626; border-radius: 50%; width: 60px; height: 60px; animation: spin 1s linear infinite; margin-bottom: 20px; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        /* 隱藏折疊面板預設的箭頭 */
         details > summary { list-style: none; }
         details > summary::-webkit-details-marker { display: none; }
     </style>
@@ -113,7 +112,7 @@
     </header>
 
     <main class="flex-1 overflow-y-auto p-4 pb-32 bg-black">
-        
+
         <div id="page-clock" class="hidden">
             <div class="card">
                 <h2 class="text-center font-black text-[#fca5a5] text-2xl mb-1">👋 <span id="greeting-text">您好</span>，<span id="welcome-name" class="text-[#dc2626]">員工</span></h2>
@@ -122,7 +121,6 @@
                     <button onclick="executeClockIn('上班', this)" class="btn btn-primary text-2xl py-8 shadow-xl hover:bg-red-500">上班</button>
                     <button onclick="executeClockIn('下班', this)" class="btn btn-secondary text-2xl py-8 shadow-xl border border-[#7f1d1d]">下班</button>
                 </div>
-                
                 <div id="my-salary-container" class="mt-4 mb-4 pt-4 border-t border-[#404040]">
                     <div class="flex justify-between items-center bg-[#262626] p-4 rounded-xl border border-[#404040]">
                         <div class="font-bold text-[#fca5a5]">💰 本週預估薪資</div>
@@ -130,7 +128,6 @@
                     </div>
                     <div class="text-right text-xs text-[#7f1d1d] mt-1 pr-2">* 包含駕駛津貼，依最終結算為準</div>
                 </div>
-
                 <div id="upcoming-missions-container"></div>
                 <div class="mt-4 text-center"><span id="gps-status" class="text-sm font-bold text-[#ef4444] bg-[#262626] px-3 py-1 rounded-full border border-[#7f1d1d]">📍 點擊打卡以獲取定位</span></div>
             </div>
@@ -214,13 +211,11 @@
                     </div>
                     <span id="total-wage" class="font-black text-[#dc2626] text-3xl font-mono">$0</span>
                 </div>
-                
                 <div class="flex justify-between mb-4 bg-[#262626] rounded-lg p-1 border border-[#404040]">
                     <button onclick="changeWeek(-1)" class="flex-1 text-[#fca5a5] font-bold py-2 hover:bg-[#404040] rounded">⬅️ 上週</button>
-                    <button onclick="changeWeek(0)" class="flex-1 text-white font-bold py-2 hover:bg-[#404040] rounded border-x border-[#404040]">本週</button>
+                    <button onclick="resetToThisWeek()" class="flex-1 text-white font-bold py-2 hover:bg-[#404040] rounded border-x border-[#404040]">本週</button>
                     <button onclick="changeWeek(1)" class="flex-1 text-[#fca5a5] font-bold py-2 hover:bg-[#404040] rounded">下週 ➡️</button>
                 </div>
-
                 <div id="salary-calc-list" class="space-y-3 mb-6"></div>
                 <button id="btn-settle" onclick="settleSalary()" class="btn btn-success text-xl shadow-lg border-2 border-green-800">💰 結算本週薪資 (歸檔)</button>
             </div>
@@ -234,7 +229,7 @@
     </main>
 
     <nav id="bottom-nav" class="nav-bar fixed bottom-0 w-full flex pb-safe z-50 shadow-2xl"></nav>
-    
+
     <script>
         const PROJECT_URL = 'https://vegqsdqxnvqupmzsgbpt.supabase.co';
         const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZlZ3FzZHF4bnZxdXBtenNnYnB0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk3OTI0MDAsImV4cCI6MjA4NTM2ODQwMH0.ZHluSDbAD_ih4GH25ZBXZGogorfNUfBOcICb5pvhIq0';
@@ -243,18 +238,30 @@
         const STORAGE_URL = `${PROJECT_URL}/storage/v1/object/site_photos`;
         const HEADERS = { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=representation' };
 
-        // 津貼設定
         const DRIVER_ALLOWANCE = 200;
 
+        // [FIX] 宣告編輯用全域變數，避免隱式全域
+        let currentEditId = null, currentEditData = null;
         let allData = [], currentUser = null, currentLocation = null, currentWeeklyData = {};
         let currentViewDate = new Date();
         let lbImages = [], lbIndex = 0;
+
+        // [FIX] XSS 防護：所有使用者資料插入 innerHTML 前必須過此函式
+        function esc(str) {
+            return String(str == null ? '' : str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
 
         window.onload = async function() {
             if(window.supabase && !supabaseClient) supabaseClient = window.supabase.createClient(PROJECT_URL, ANON_KEY);
             setInterval(() => {
                 const n = new Date();
-                if(document.getElementById('current-time-display')) document.getElementById('current-time-display').innerText = `${n.toLocaleString('zh-TW', {weekday:'long', month:'long', day:'numeric'})} ${n.toLocaleTimeString('zh-TW', {hour:'2-digit', minute:'2-digit'})}`;
+                const el = document.getElementById('current-time-display');
+                if(el) el.innerText = `${n.toLocaleString('zh-TW', {weekday:'long', month:'long', day:'numeric'})} ${n.toLocaleTimeString('zh-TW', {hour:'2-digit', minute:'2-digit'})}`;
                 const h = n.getHours();
                 let greet = "早安";
                 if(h >= 12 && h < 18) greet = "午安";
@@ -268,94 +275,82 @@
 
             try {
                 await loadData();
+                // [FIX] 自動登入需同時驗證密碼，防止偽造 localStorage 繞過登入
                 const savedId = localStorage.getItem('last_user_id');
-                if (savedId) {
-                    if(savedId === 'admin') { currentUser = { employee_name: '超級管理員', is_admin: true, employee_id: 'admin' }; performLogin(currentUser); }
-                    else { const user = allData.find(r => r.type === 'employee' && r.employee_id === savedId); if(user) { currentUser = user; performLogin(user); } }
+                const savedPwd = localStorage.getItem('last_user_pwd');
+                if (savedId && savedPwd) {
+                    const user = allData.find(r => r.type === 'employee' && r.employee_id === savedId && r.password === savedPwd);
+                    if (user) { currentUser = user; performLogin(user); }
                 }
             } catch (err) {
                 document.getElementById('system-status').innerText = "❌ 連線異常: 請檢查網路";
                 document.getElementById('system-status').className = "text-center text-red-500 text-xs mt-2";
             }
-            
+
             document.getElementById('dispatch-date').valueAsDate = new Date();
         };
 
-        // --- 防呆登入邏輯 ---
         async function doLogin() {
             const id = document.getElementById('login-id').value.trim(), pwd = document.getElementById('login-pwd').value.trim();
             if(!id || !pwd) return alert("請輸入帳號密碼");
-            
+
             document.getElementById('login-msg').innerText = "登入驗證中...";
-            
-            // 如果剛好網路慢，這裡強制等待資料庫回來
+
             if(allData.length === 0) {
-                try {
-                    await loadData();
-                } catch(e) {
-                    return document.getElementById('login-msg').innerText = "伺服器無回應，請重新整理";
-                }
+                try { await loadData(); } catch(e) { return document.getElementById('login-msg').innerText = "伺服器無回應，請重新整理"; }
             }
 
-            if(id==='admin' && pwd==='admin') { 
-                currentUser = { employee_name: '超級管理員', is_admin: true, employee_id: 'admin' }; 
-                localStorage.setItem('last_user_id', 'admin'); 
-                performLogin(currentUser); 
-                return; 
-            }
-            
+            // [FIX] 已移除寫死的 admin/admin 後門，管理員帳號請於資料庫員工資料中設定 is_admin=true
             const u = allData.find(r => r.type==='employee' && (r.employee_name===id || r.employee_id===id || r.employee_code===id));
-            if(u && u.password===pwd) { 
-                localStorage.setItem('last_user_id', u.employee_id); 
-                currentUser = u; 
-                performLogin(u); 
-            } else { 
-                document.getElementById('login-msg').innerText = "帳號或密碼錯誤"; 
+            if(u && u.password===pwd) {
+                localStorage.setItem('last_user_id', u.employee_id);
+                // [FIX] 同時儲存密碼供自動登入驗證使用
+                localStorage.setItem('last_user_pwd', pwd);
+                currentUser = u;
+                performLogin(u);
+            } else {
+                document.getElementById('login-msg').innerText = "帳號或密碼錯誤";
             }
         }
 
         async function executeClockIn(type, btnElement) {
+            // [FIX] 打卡期間停用所有打卡按鈕，防止重複打卡
+            const allClockBtns = document.querySelectorAll('#page-clock .btn');
+            allClockBtns.forEach(b => { b.disabled = true; });
             const originalText = btnElement.innerText;
             btnElement.innerText = "定位中...";
             document.getElementById('gps-status').innerText = "📍 正在獲取精準定位...";
-            
+
+            const restoreBtns = () => { allClockBtns.forEach(b => { b.disabled = false; }); btnElement.innerText = originalText; };
+
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(async p => {
                     const exactLocation = `${p.coords.latitude.toFixed(5)}, ${p.coords.longitude.toFixed(5)}`;
                     document.getElementById('gps-status').innerText = `📍 定位成功`;
                     document.getElementById('gps-status').className = "text-sm font-bold text-[#fca5a5] bg-[#1a0505] px-3 py-1 rounded-full border border-[#dc2626]";
-                    
-                    const payload = { 
-                        employee_name: currentUser.employee_name, 
-                        check_type: type, 
-                        timestamp: new Date().toISOString(), 
-                        location: exactLocation 
-                    };
-                    
-                    if(await insertData('clock', payload)) { 
-                        alert(`【${type}】打卡成功\n時間與精準定位已紀錄`); 
-                        await loadData(); 
-                    } else { 
-                        alert("打卡失敗，請檢查網路"); 
+
+                    const payload = { employee_name: currentUser.employee_name, check_type: type, timestamp: new Date().toISOString(), location: exactLocation };
+
+                    if(await insertData('clock', payload)) {
+                        alert(`【${type}】打卡成功\n時間與精準定位已紀錄`);
+                        await loadData();
+                    } else {
+                        alert("打卡失敗，請檢查網路");
                     }
-                    btnElement.innerText = originalText;
-                }, () => { 
-                    alert("⚠️ 無法獲取定位，打卡失敗。請開啟手機的 GPS 權限！"); 
+                    restoreBtns();
+                }, () => {
+                    alert("⚠️ 無法獲取定位，打卡失敗。請開啟手機的 GPS 權限！");
                     document.getElementById('gps-status').innerText = "⚠️ 定位失敗";
-                    btnElement.innerText = originalText;
+                    restoreBtns();
                 }, { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 });
             } else {
                 alert("裝置不支援定位");
-                btnElement.innerText = originalText;
+                restoreBtns();
             }
         }
 
         async function downloadSingle(url, name) {
-            try {
-                const res = await fetch(url);
-                const blob = await res.blob();
-                saveAs(blob, name + ".jpg");
-            } catch(e) { window.open(url, '_blank'); }
+            try { const res = await fetch(url); const blob = await res.blob(); saveAs(blob, name + ".jpg"); } catch(e) { window.open(url, '_blank'); }
         }
 
         async function downloadAll(urls, prefix) {
@@ -364,55 +359,47 @@
             document.getElementById('loading-text').innerText = "打包照片中...";
             try {
                 const zip = new JSZip();
-                for(let i=0; i<urls.length; i++) {
-                    const res = await fetch(urls[i]);
-                    const blob = await res.blob();
-                    zip.file(`${prefix}_${i+1}.jpg`, blob);
-                }
+                for(let i=0; i<urls.length; i++) { const res = await fetch(urls[i]); const blob = await res.blob(); zip.file(`${prefix}_${i+1}.jpg`, blob); }
                 const content = await zip.generateAsync({type:"blob"});
                 saveAs(content, `${prefix}_照片打包.zip`);
-            } catch(e) { 
-                alert("打包失敗，請嘗試點擊單張照片下載"); 
-            }
+            } catch(e) { alert("打包失敗，請嘗試點擊單張照片下載"); }
             document.getElementById('loading-overlay').classList.add('hidden');
             document.getElementById('loading-text').innerText = "處理中...";
         }
 
-        function downloadCurrentLightboxImage() {
-            if(lbImages.length > 0) {
-                downloadSingle(lbImages[lbIndex], `全技工程_照片_${lbIndex+1}`);
-            }
-        }
+        function downloadCurrentLightboxImage() { if(lbImages.length > 0) downloadSingle(lbImages[lbIndex], `全技工程_照片_${lbIndex+1}`); }
 
         function openLightbox(urlOrArray, index = 0) {
-            if (Array.isArray(urlOrArray)) { lbImages = urlOrArray; lbIndex = index; } 
-            else { lbImages = [urlOrArray]; lbIndex = 0; }
+            if (Array.isArray(urlOrArray)) { lbImages = urlOrArray; lbIndex = index; } else { lbImages = [urlOrArray]; lbIndex = 0; }
             updateLightbox(); document.getElementById('lightbox-modal').classList.remove('hidden');
         }
         function closeLightbox() { document.getElementById('lightbox-modal').classList.add('hidden'); lbImages = []; }
         function updateLightbox() {
             const img = document.getElementById('lightbox-img'), prev = document.getElementById('lb-prev'), next = document.getElementById('lb-next');
             img.src = lbImages[lbIndex];
-            if (lbImages.length > 1) { prev.classList.remove('hidden'); next.classList.remove('hidden'); } 
-            else { prev.classList.add('hidden'); next.classList.add('hidden'); }
+            if (lbImages.length > 1) { prev.classList.remove('hidden'); next.classList.remove('hidden'); } else { prev.classList.add('hidden'); next.classList.add('hidden'); }
         }
-        function changeLightboxImage(dir) {
-            lbIndex += dir;
-            if (lbIndex < 0) lbIndex = lbImages.length - 1;
-            if (lbIndex >= lbImages.length) lbIndex = 0;
-            updateLightbox();
-        }
+        function changeLightboxImage(dir) { lbIndex = (lbIndex + dir + lbImages.length) % lbImages.length; updateLightbox(); }
 
+        // [FIX] changeWeek(0) 改為 resetToThisWeek()，正確回到當週
         function changeWeek(offset) { currentViewDate.setDate(currentViewDate.getDate() + (offset * 7)); render(); }
+        function resetToThisWeek() { currentViewDate = new Date(); render(); }
+
         function getWeekRange(baseDate) {
-            const d = new Date(baseDate); d.setHours(0,0,0,0); const day = d.getDay(); const diff = d.getDate() - day + (day == 0 ? -6 : 1); 
+            const d = new Date(baseDate); d.setHours(0,0,0,0); const day = d.getDay(); const diff = d.getDate() - day + (day == 0 ? -6 : 1);
             const monday = new Date(d.setDate(diff)); const nextMonday = new Date(monday); nextMonday.setDate(monday.getDate() + 7);
             const sunday = new Date(monday); sunday.setDate(monday.getDate() + 6);
-            return { monday: monday, nextMonday: nextMonday, startStr: monday.toLocaleDateString('zh-TW'), endStr: sunday.toLocaleDateString('zh-TW') };
+            return { monday, nextMonday, startStr: monday.toLocaleDateString('zh-TW'), endStr: sunday.toLocaleDateString('zh-TW') };
         }
 
         async function loadData() {
-            try { const res = await fetch(`${DB_URL}?select=*&order=created_at.desc&limit=1000`, { headers: HEADERS }); if(!res.ok) throw new Error("Err"); const data = await res.json(); allData = data.map(r => ({ id: r.id, type: r.type, created_at: r.created_at, ...r.data })); if(currentUser) render(); } catch(e){ console.error(e); throw e; }
+            try {
+                const res = await fetch(`${DB_URL}?select=*&order=created_at.desc&limit=1000`, { headers: HEADERS });
+                if(!res.ok) throw new Error("Err");
+                const data = await res.json();
+                allData = data.map(r => ({ id: r.id, type: r.type, created_at: r.created_at, ...r.data }));
+                if(currentUser) render();
+            } catch(e){ console.error(e); throw e; }
         }
 
         function performLogin(u) {
@@ -438,11 +425,10 @@
 
             // -- 員工端預估薪資計算 --
             const myWage = parseInt(currentUser.wage) || 0;
-            let myTotalPay = 0;
-            let myDriverCount = 0;
+            let myTotalPay = 0, myDriverCount = 0;
             const thisWeek = getWeekRange(new Date());
             const myDailyGroups = {};
-            
+
             allData.filter(r => r.type === 'clock' && r.employee_name === currentUser.employee_name).forEach(r => {
                 const t = new Date(r.timestamp);
                 if(t >= thisWeek.monday && t < thisWeek.nextMonday) {
@@ -465,7 +451,7 @@
             Object.values(myDailyGroups).forEach(v => {
                 if(v.start && v.end) {
                     const hrs = (v.end - v.start) / 36e5;
-                    const workHrs = hrs > 5 ? hrs - 1 : hrs; 
+                    const workHrs = hrs > 5 ? hrs - 1 : hrs;
                     let pay = 0;
                     if (workHrs >= 7) pay = myWage;
                     else if (workHrs >= 1) pay = Math.floor(myWage / 2);
@@ -474,54 +460,56 @@
                 }
             });
             myTotalPay += (myDriverCount * DRIVER_ALLOWANCE);
-            
+
             const salaryEl = document.getElementById('my-salary-text');
             if(salaryEl) salaryEl.innerText = `$${myTotalPay.toLocaleString()}`;
 
-            // -- 派工總覽 --
+            // -- 派工總覽 (我的任務) --
             const myMissions = allData.filter(r => r.type==='dispatch' && new Date(r.timestamp)>=today && (r.employee_name===currentUser.employee_name || (r.partners||'').includes(currentUser.employee_name) || (r.drivers||'').includes(currentUser.employee_name))).sort((a,b)=>new Date(a.timestamp)-new Date(b.timestamp));
             document.getElementById('upcoming-missions-container').innerHTML = myMissions.map(m => {
                 const isToday = new Date(m.timestamp).toDateString() === today.toDateString();
-                const drvText = m.drivers ? `<div class="text-sm text-blue-400 mt-1">🚗 駕駛：${m.drivers}</div>` : '';
-                const partnerText = m.partners ? `<div class="text-sm text-[#fca5a5] mt-1">👥 陪同：${m.partners}</div>` : '';
-                return `<div class="card ${isToday?'card-today border-l-yellow-500':'card-future border-l-gray-500'} border-l-8 mb-4 relative"><div class="absolute -top-3 -right-2 ${isToday?'bg-yellow-500 text-black':'bg-gray-600 text-white'} font-black px-3 py-1 rounded-full text-sm">${isToday?'今日派工':new Date(m.timestamp).toLocaleDateString('zh-TW')}</div><h3 class="text-xl font-black mb-2">🚀 派工</h3><div class="mb-1">負責：${m.employee_name}</div><div class="mb-1">地點：${m.project_name}</div>${drvText}${partnerText}<div class="bg-[#262626] p-3 rounded mt-2">${m.notes}</div></div>`;
+                const drvText = m.drivers ? `<div class="text-sm text-blue-400 mt-1">🚗 駕駛：${esc(m.drivers)}</div>` : '';
+                const partnerText = m.partners ? `<div class="text-sm text-[#fca5a5] mt-1">👥 陪同：${esc(m.partners)}</div>` : '';
+                return `<div class="card ${isToday?'card-today border-l-yellow-500':'card-future border-l-gray-500'} border-l-8 mb-4 relative"><div class="absolute -top-3 -right-2 ${isToday?'bg-yellow-500 text-black':'bg-gray-600 text-white'} font-black px-3 py-1 rounded-full text-sm">${isToday?'今日派工':new Date(m.timestamp).toLocaleDateString('zh-TW')}</div><h3 class="text-xl font-black mb-2">🚀 派工</h3><div class="mb-1">負責：${esc(m.employee_name)}</div><div class="mb-1">地點：${esc(m.project_name)}</div>${drvText}${partnerText}<div class="bg-[#262626] p-3 rounded mt-2">${esc(m.notes)}</div></div>`;
             }).join('');
 
+            // -- 全體派工總覽 --
             const allTasks = allData.filter(r => r.type==='dispatch').sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp));
             document.getElementById('public-task-list').innerHTML = allTasks.map(t => {
-                const drvBadge = t.drivers ? `<div class="text-sm text-blue-400 mt-1">🚗 駕駛：${t.drivers}</div>` : '';
-                const partnerBadge = t.partners ? `<div class="text-sm text-yellow-600 mt-1">👥 陪同：${t.partners}</div>` : '';
-                return `<div class="bg-[#171717] border border-yellow-900/50 rounded-xl p-4 shadow-sm mb-2"><div class="flex justify-between mb-1"><span class="text-lg font-black text-yellow-500">${t.employee_name}</span><span class="text-xs text-[#7f1d1d] border border-[#7f1d1d] px-2 rounded">${new Date(t.timestamp).toLocaleDateString('zh-TW')}</span></div><div class="text-[#fca5a5]">${t.project_name}</div>${drvBadge}${partnerBadge}<div class="text-sm bg-[#262626] p-2 rounded mt-2 text-[#fca5a5]">${t.notes}</div></div>`
+                const drvBadge = t.drivers ? `<div class="text-sm text-blue-400 mt-1">🚗 駕駛：${esc(t.drivers)}</div>` : '';
+                const partnerBadge = t.partners ? `<div class="text-sm text-yellow-600 mt-1">👥 陪同：${esc(t.partners)}</div>` : '';
+                return `<div class="bg-[#171717] border border-yellow-900/50 rounded-xl p-4 shadow-sm mb-2"><div class="flex justify-between mb-1"><span class="text-lg font-black text-yellow-500">${esc(t.employee_name)}</span><span class="text-xs text-[#7f1d1d] border border-[#7f1d1d] px-2 rounded">${new Date(t.timestamp).toLocaleDateString('zh-TW')}</span></div><div class="text-[#fca5a5]">${esc(t.project_name)}</div>${drvBadge}${partnerBadge}<div class="text-sm bg-[#262626] p-2 rounded mt-2 text-[#fca5a5]">${esc(t.notes)}</div></div>`;
             }).join('');
-            
-            // -- 派工回報 (修正引號語法錯誤) --
+
+            // -- 派工回報列表 --
             const bulletins = allData.filter(r => r.type==='progress');
             document.getElementById('bulletin-list').innerHTML = bulletins.map(r => {
-                let imgs = '';
-                let downloadBtn = '';
+                let imgs = '', downloadBtn = '';
                 if (r.image_url) {
                     const urls = Array.isArray(r.image_url) ? r.image_url : [r.image_url];
                     if (urls.length > 0) {
-                        // 修正這裡的引號逃脫問題，確保不會搞崩 JS 引擎
                         const safeUrls = JSON.stringify(urls).replace(/"/g, '&quot;');
-                        imgs = `<div class="img-grid">${urls.map((u, idx) => `<img src="${u}" onclick="openLightbox(${safeUrls}, ${idx})">`).join('')}</div>`;
-                        downloadBtn = `<button onclick="downloadAll(${safeUrls}, '${r.project_name || '工程照片'}')" class="mt-3 w-full bg-[#262626] hover:bg-[#404040] text-blue-400 font-bold py-2 px-4 rounded-lg border border-blue-900 flex justify-center items-center gap-2 transition-colors">📦 一鍵打包下載全部照片</button>`;
+                        // [FIX] project_name 用 JSON.stringify 確保特殊字元不破壞 onclick
+                        const safeProjName = JSON.stringify(r.project_name || '工程照片');
+                        imgs = `<div class="img-grid">${urls.map((u, idx) => `<img src="${u}" alt="工程照片" onclick="openLightbox(${safeUrls}, ${idx})">`).join('')}</div>`;
+                        downloadBtn = `<button onclick="downloadAll(${safeUrls}, ${safeProjName})" class="mt-3 w-full bg-[#262626] hover:bg-[#404040] text-blue-400 font-bold py-2 px-4 rounded-lg border border-blue-900 flex justify-center items-center gap-2 transition-colors">📦 一鍵打包下載全部照片</button>`;
                     }
                 }
-                return `<div class="card relative">${isAdmin?`<div class="absolute top-4 right-4"><button onclick="del(this,${r.id})" class="action-btn btn-del">✕</button></div>`:''}<div class="flex items-center gap-3 mb-2"><div class="w-10 h-10 rounded-full bg-[#404040] flex items-center justify-center font-bold text-[#fca5a5] border border-[#7f1d1d]">${r.employee_name[0]}</div><div><div class="font-bold text-[#fca5a5]">${r.employee_name}</div><div class="text-xs text-[#7f1d1d]">${new Date(r.timestamp).toLocaleString('zh-TW',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}</div></div></div><div class="font-bold text-xl text-[#ef4444] mb-1">${r.project_name}</div><div class="bg-[#262626] p-3 rounded-lg border border-[#7f1d1d] font-bold text-[#fca5a5]">${r.notes}</div>${imgs}${downloadBtn}</div>`;
+                return `<div class="card relative">${isAdmin?`<div class="absolute top-4 right-4"><button onclick="del(this,${r.id})" class="action-btn btn-del">✕</button></div>`:''}<div class="flex items-center gap-3 mb-2"><div class="w-10 h-10 rounded-full bg-[#404040] flex items-center justify-center font-bold text-[#fca5a5] border border-[#7f1d1d]">${esc((r.employee_name||'?')[0])}</div><div><div class="font-bold text-[#fca5a5]">${esc(r.employee_name)}</div><div class="text-xs text-[#7f1d1d]">${new Date(r.timestamp).toLocaleString('zh-TW',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}</div></div></div><div class="font-bold text-xl text-[#ef4444] mb-1">${esc(r.project_name)}</div><div class="bg-[#262626] p-3 rounded-lg border border-[#7f1d1d] font-bold text-[#fca5a5]">${esc(r.notes)}</div>${imgs}${downloadBtn}</div>`;
             }).join('');
 
-            // -- 員工個人打卡歷史 (修正地圖連結) --
+            // -- 員工個人打卡歷史 --
             const myRecs = allData.filter(r => r.type==='clock' && r.employee_name===currentUser.employee_name).slice(0,20);
-            document.getElementById('my-records-list').innerHTML = myRecs.map(r => `<div class="flex justify-between items-center p-4 bg-[#171717] rounded-xl border-l-8 ${r.check_type==='上班'?'border-l-green-600':'border-l-orange-600'} border-2 border-[#262626] mb-2"><div><span class="font-black text-lg text-[#fca5a5] mr-2">${r.check_type}</span>${getOvertimeDisplay(r, false)}<div class="text-xs text-gray-500 mt-1 font-bold">📍 <a href="https://www.google.com/maps/search/?api=1&query=${r.location || ''}" target="_blank" class="underline text-blue-400">${r.location || '未定位'}</a></div></div><span class="font-bold text-[#7f1d1d] font-mono">${new Date(r.timestamp).toLocaleString('zh-TW',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}</span></div>`).join('');
+            // [FIX] Maps URL 使用 encodeURIComponent 避免特殊字元造成連結失效
+            document.getElementById('my-records-list').innerHTML = myRecs.map(r => `<div class="flex justify-between items-center p-4 bg-[#171717] rounded-xl border-l-8 ${r.check_type==='上班'?'border-l-green-600':'border-l-orange-600'} border-2 border-[#262626] mb-2"><div><span class="font-black text-lg text-[#fca5a5] mr-2">${esc(r.check_type)}</span>${getOvertimeDisplay(r, false)}<div class="text-xs text-gray-500 mt-1 font-bold">📍 <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(r.location || '')}" target="_blank" class="underline text-blue-400">${esc(r.location || '未定位')}</a></div></div><span class="font-bold text-[#7f1d1d] font-mono">${new Date(r.timestamp).toLocaleString('zh-TW',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}</span></div>`).join('');
 
             // -- 後台邏輯 --
             if(isAdmin) {
-                document.getElementById('dispatch-emp-select').innerHTML = emps.map(e => `<option value="${e.employee_name}">${e.employee_name}</option>`).join('');
-                document.getElementById('dispatch-partners-list').innerHTML = emps.map(e => `<label class="custom-checkbox"><input type="checkbox" value="${e.employee_name}"><span class="text-[#fca5a5] font-bold">${e.employee_name}</span></label>`).join('');
-                document.getElementById('dispatch-drivers-list').innerHTML = emps.map(e => `<label class="custom-checkbox border-blue-900"><input type="checkbox" value="${e.employee_name}"><span class="text-blue-400 font-bold">${e.employee_name}</span></label>`).join('');
-                
-                document.getElementById('dispatch-list').innerHTML = allData.filter(r=>r.type==='dispatch').map(d=>`<div class="bg-[#262626] p-3 rounded border border-yellow-900 flex justify-between"><div><div class="font-bold text-yellow-500">${new Date(d.timestamp).toLocaleDateString('zh-TW')} ➤ ${d.employee_name}</div><div class="text-[#fca5a5]">${d.project_name}</div>${d.drivers?`<div class="text-xs text-blue-400 font-bold">🚗 ${d.drivers}</div>`:''}${d.partners?`<div class="text-xs text-gray-400">👥 ${d.partners}</div>`:''}<div class="text-sm text-[#7f1d1d] mt-1">${d.notes}</div></div><div class="flex gap-2"><button onclick="openEdit(${d.id})" class="action-btn btn-edit">✏️</button><button onclick="del(this,${d.id})" class="action-btn btn-del">✕</button></div></div>`).join('');
+                document.getElementById('dispatch-emp-select').innerHTML = emps.map(e => `<option value="${esc(e.employee_name)}">${esc(e.employee_name)}</option>`).join('');
+                document.getElementById('dispatch-partners-list').innerHTML = emps.map(e => `<label class="custom-checkbox"><input type="checkbox" value="${esc(e.employee_name)}"><span class="text-[#fca5a5] font-bold">${esc(e.employee_name)}</span></label>`).join('');
+                document.getElementById('dispatch-drivers-list').innerHTML = emps.map(e => `<label class="custom-checkbox border-blue-900"><input type="checkbox" value="${esc(e.employee_name)}"><span class="text-blue-400 font-bold">${esc(e.employee_name)}</span></label>`).join('');
+
+                document.getElementById('dispatch-list').innerHTML = allData.filter(r=>r.type==='dispatch').map(d=>`<div class="bg-[#262626] p-3 rounded border border-yellow-900 flex justify-between"><div><div class="font-bold text-yellow-500">${new Date(d.timestamp).toLocaleDateString('zh-TW')} ➤ ${esc(d.employee_name)}</div><div class="text-[#fca5a5]">${esc(d.project_name)}</div>${d.drivers?`<div class="text-xs text-blue-400 font-bold">🚗 ${esc(d.drivers)}</div>`:''}${d.partners?`<div class="text-xs text-gray-400">👥 ${esc(d.partners)}</div>`:''}<div class="text-sm text-[#7f1d1d] mt-1">${esc(d.notes)}</div></div><div class="flex gap-2"><button onclick="openEdit(${d.id})" class="action-btn btn-edit">✏️</button><button onclick="del(this,${d.id})" class="action-btn btn-del">✕</button></div></div>`).join('');
 
                 const empMap={}; emps.forEach(e => empMap[e.employee_name]=parseInt(e.wage)||0);
                 const weekRange = getWeekRange(currentViewDate);
@@ -529,8 +517,7 @@
                 const hasSettledThisWeek = allData.some(r => r.type === 'payout_history' && r.start_date === weekRange.startStr);
 
                 currentWeeklyData = { startDate: weekRange.startStr, endDate: weekRange.endStr, details: [] };
-                const weeklyCalc={}; const workDaysCount={}; const dailyGroups={};
-                const driverCounts={};
+                const weeklyCalc={}, workDaysCount={}, dailyGroups={}, driverCounts={};
 
                 allData.filter(r => r.type === 'dispatch').forEach(d => {
                     const dt = new Date(d.timestamp);
@@ -554,47 +541,40 @@
                 Object.entries(dailyGroups).forEach(([k,v]) => {
                     const name = k.split('|')[0];
                     if(v.start && v.end) {
-                        const hrs = (v.end - v.start)/36e5; 
+                        const hrs = (v.end - v.start)/36e5;
                         const wage = empMap[name]||0;
-                        const workHrs = hrs > 5 ? hrs - 1 : hrs; 
-                        
-                        let pay = 0;
-                        let dayCount = 0; 
-
-                        if (workHrs >= 7) { pay = wage; dayCount = 1.0; } 
-                        else if (workHrs >= 1) { pay = Math.floor(wage / 2); dayCount = 0.5; } 
+                        const workHrs = hrs > 5 ? hrs - 1 : hrs;
+                        let pay = 0, dayCount = 0;
+                        if (workHrs >= 7) { pay = wage; dayCount = 1.0; }
+                        else if (workHrs >= 1) { pay = Math.floor(wage / 2); dayCount = 0.5; }
                         else { pay = Math.floor(workHrs * (wage/8)); dayCount = parseFloat((workHrs/8).toFixed(1)); }
-
                         weeklyCalc[name] = (weeklyCalc[name]||0) + pay;
                         workDaysCount[name] = (workDaysCount[name]||0) + dayCount;
                     }
                 });
 
-                document.getElementById('emp-directory-list').innerHTML = emps.map(e => `<div class="flex justify-between items-center p-3 bg-[#171717] rounded-xl border border-[#7f1d1d] shadow-sm"><div><div class="font-black text-[#fca5a5]">${e.employee_code?`[${e.employee_code}]`:''} ${e.employee_name} ${e.is_admin?'(Admin)':''}</div><div class="text-xs text-[#7f1d1d]">日薪: $${e.wage}</div></div><div class="flex gap-2"><button onclick="openEdit(${e.id})" class="action-btn btn-edit">✏️</button><button onclick="del(this,${e.id})" class="action-btn btn-del">✕</button></div></div>`).join('');
+                document.getElementById('emp-directory-list').innerHTML = emps.map(e => `<div class="flex justify-between items-center p-3 bg-[#171717] rounded-xl border border-[#7f1d1d] shadow-sm"><div><div class="font-black text-[#fca5a5]">${e.employee_code?`[${esc(e.employee_code)}]`:''} ${esc(e.employee_name)} ${e.is_admin?'(Admin)':''}</div><div class="text-xs text-[#7f1d1d]">日薪: $${esc(e.wage)}</div></div><div class="flex gap-2"><button onclick="openEdit(${e.id})" class="action-btn btn-edit">✏️</button><button onclick="del(this,${e.id})" class="action-btn btn-del">✕</button></div></div>`).join('');
 
                 let totalSalary = 0;
                 document.getElementById('salary-calc-list').innerHTML = emps.map(e => {
-                    let basePay = weeklyCalc[e.employee_name] || 0;
+                    const basePay = weeklyCalc[e.employee_name] || 0;
                     const days = workDaysCount[e.employee_name] || 0;
                     const dCount = driverCounts[e.employee_name] || 0;
                     const driverBonus = dCount * DRIVER_ALLOWANCE;
                     const finalPay = basePay + driverBonus;
-
-                    if(finalPay > 0) currentWeeklyData.details.push({name:e.employee_name, code:e.employee_code, pay:finalPay, days:days});
+                    if(finalPay > 0) currentWeeklyData.details.push({name:e.employee_name, code:e.employee_code, pay:finalPay, days});
                     totalSalary += finalPay;
-                    
-                    let settledText = hasSettledThisWeek ? '<span class="text-xs text-green-500 font-bold ml-2">(已結算)</span>' : '';
-                    let drvHtml = dCount > 0 ? `<div class="text-xs text-blue-400 mt-1 font-bold">🚗 津貼 +$${driverBonus} (${dCount}次)</div>` : '';
-                    
-                    return `<div class="flex justify-between items-center p-4 bg-[#262626] rounded-xl border border-[#404040]"><div class="font-bold text-[#fca5a5]">${e.employee_name}${drvHtml}</div><div class="text-right"><div class="text-xs text-[#7f1d1d]">本週出勤 ${days} 天</div><div class="font-black text-[#dc2626] text-xl">$${finalPay.toLocaleString()}${settledText}</div></div></div>`;
+                    const settledText = hasSettledThisWeek ? '<span class="text-xs text-green-500 font-bold ml-2">(已結算)</span>' : '';
+                    const drvHtml = dCount > 0 ? `<div class="text-xs text-blue-400 mt-1 font-bold">🚗 津貼 +$${driverBonus} (${dCount}次)</div>` : '';
+                    return `<div class="flex justify-between items-center p-4 bg-[#262626] rounded-xl border border-[#404040]"><div class="font-bold text-[#fca5a5]">${esc(e.employee_name)}${drvHtml}</div><div class="text-right"><div class="text-xs text-[#7f1d1d]">本週出勤 ${days} 天</div><div class="font-black text-[#dc2626] text-xl">$${finalPay.toLocaleString()}${settledText}</div></div></div>`;
                 }).join('');
 
                 const btnSettle = document.getElementById('btn-settle');
                 const statusDiv = document.getElementById('settled-status');
                 currentWeeklyData.total = totalSalary;
-                
+
                 if(hasSettledThisWeek) {
-                    document.getElementById('total-wage').innerText = "$0"; 
+                    document.getElementById('total-wage').innerText = "$0";
                     btnSettle.innerText = "已完成結算";
                     btnSettle.classList.add('btn-disabled');
                     btnSettle.onclick = null;
@@ -608,25 +588,24 @@
                 }
 
                 const historyList = allData.filter(r=>r.type==='payout_history');
-                document.getElementById('payout-history-list').innerHTML = historyList.length ? historyList.map(h => `<div class="bg-[#262626] border border-green-900 rounded-lg p-3 relative group"><div class="flex justify-between items-start"><div><div class="text-green-500 font-bold text-lg">💰 已發放: $${parseInt(h.total_amount).toLocaleString()}</div><div class="text-[#7f1d1d] text-xs font-bold">結算日: ${new Date(h.timestamp).toLocaleDateString()}</div><div class="text-xs text-yellow-500">週期: ${h.start_date}~${h.end_date}</div></div><div class="flex flex-col items-end gap-2"><button onclick="exportToCSV('${h.id}')" class="bg-white text-black text-xs font-bold px-3 py-1 rounded">📊 CSV</button><div class="flex gap-2"><button onclick="openEdit(${h.id})" class="action-btn btn-edit">✏️</button><button onclick="del(this,${h.id})" class="action-btn btn-del">✕</button></div></div></div></div>`).join('') : '<div class="text-center text-[#7f1d1d]">無記錄</div>';
-                
-                // 後台打卡列表依員工分組 (修正地圖連結)
+                document.getElementById('payout-history-list').innerHTML = historyList.length ? historyList.map(h => `<div class="bg-[#262626] border border-green-900 rounded-lg p-3 relative group"><div class="flex justify-between items-start"><div><div class="text-green-500 font-bold text-lg">💰 已發放: $${parseInt(h.total_amount).toLocaleString()}</div><div class="text-[#7f1d1d] text-xs font-bold">結算日: ${new Date(h.timestamp).toLocaleDateString()}</div><div class="text-xs text-yellow-500">週期: ${esc(h.start_date)}~${esc(h.end_date)}</div></div><div class="flex flex-col items-end gap-2"><button onclick="exportToCSV(${h.id})" class="bg-white text-black text-xs font-bold px-3 py-1 rounded">📊 CSV</button><div class="flex gap-2"><button onclick="openEdit(${h.id})" class="action-btn btn-edit">✏️</button><button onclick="del(this,${h.id})" class="action-btn btn-del">✕</button></div></div></div></div>`).join('') : '<div class="text-center text-[#7f1d1d]">無記錄</div>';
+
+                // -- 後台打卡列表依員工分組 --
                 const clockRecords = allData.filter(r => r.type === 'clock');
                 const clockHTML = emps.map(emp => {
                     const empName = emp.employee_name;
                     const empRecords = clockRecords.filter(r => r.employee_name === empName).slice(0, 30);
-                    
-                    if (empRecords.length === 0) return ''; 
+                    if (empRecords.length === 0) return '';
 
                     const recordItems = empRecords.map(r => `
                         <div class="flex justify-between items-center p-2 bg-[#000000] rounded-lg border border-[#262626]">
                             <div>
                                 <div class="text-[#fca5a5] text-sm font-bold">${new Date(r.timestamp).toLocaleString('zh-TW',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}</div>
-                                <div class="text-xs text-gray-500 mt-1">📍 <a href="https://www.google.com/maps/search/?api=1&query=${r.location || ''}" target="_blank" class="underline text-blue-400">${r.location || '未定位'}</a></div>
+                                <div class="text-xs text-gray-500 mt-1">📍 <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(r.location || '')}" target="_blank" class="underline text-blue-400">${esc(r.location || '未定位')}</a></div>
                             </div>
                             <div class="flex items-center gap-2">
                                 ${getOvertimeDisplay(r, true)}
-                                <span class="${r.check_type==='上班'?'text-green-600':'text-orange-600'} font-bold text-sm">${r.check_type}</span>
+                                <span class="${r.check_type==='上班'?'text-green-600':'text-orange-600'} font-bold text-sm">${esc(r.check_type)}</span>
                                 <button onclick="openEdit(${r.id})" class="action-btn btn-edit w-8 h-8 text-sm">✏️</button>
                                 <button onclick="del(this,${r.id})" class="action-btn btn-del w-8 h-8 text-sm">✕</button>
                             </div>
@@ -636,7 +615,7 @@
                     return `
                         <details class="bg-[#171717] rounded-xl border border-[#7f1d1d] mb-3 group">
                             <summary class="p-4 bg-[#262626] font-black text-[#fca5a5] cursor-pointer outline-none flex justify-between items-center rounded-xl group-open:rounded-b-none group-open:border-b border-[#7f1d1d]">
-                                <span>👷 ${empName} <span class="text-xs text-gray-400 font-normal ml-2">(${empRecords.length} 筆近期紀錄)</span></span>
+                                <span>👷 ${esc(empName)} <span class="text-xs text-gray-400 font-normal ml-2">(${empRecords.length} 筆近期紀錄)</span></span>
                                 <span class="text-[#dc2626] group-open:rotate-180 transition-transform duration-200">▼</span>
                             </summary>
                             <div class="p-3 space-y-2 max-h-[60vh] overflow-y-auto">
@@ -653,7 +632,7 @@
         function exportToCSV(id) {
             const record = allData.find(r => r.id == id);
             if (!record) return alert("找不到記錄");
-            let csvContent = "\uFEFF"; 
+            let csvContent = "﻿";
             csvContent += "編號,姓名,出勤天數,實發金額(含津貼),備註\n";
             record.details.forEach(d => { csvContent += `${d.code || '-'},${d.name},${d.days},${d.pay}\n`; });
             csvContent += `,,總計,${record.total_amount},\n`;
@@ -669,31 +648,29 @@
             document.body.removeChild(link);
         }
 
-        function logout() { localStorage.removeItem('last_user_id'); currentUser = null; location.reload(); }
+        // [FIX] 登出時一併清除密碼 session
+        function logout() { localStorage.removeItem('last_user_id'); localStorage.removeItem('last_user_pwd'); currentUser = null; location.reload(); }
 
         function getOvertimeDisplay(r, isAdmin) {
             if (!isAdmin || r.check_type !== '下班') return '';
-            const cStr = new Date(r.timestamp).toDateString(); 
+            const cStr = new Date(r.timestamp).toDateString();
             const sRecs = allData.filter(x => x.type === 'clock' && x.employee_name === r.employee_name && x.check_type === '上班' && new Date(x.timestamp).toDateString() === cStr);
             if (sRecs.length === 0) return '';
             const startTime = Math.min(...sRecs.map(x => new Date(x.timestamp)));
             const endTime = new Date(r.timestamp);
-            const totalMs = endTime - startTime;
-            const totalMinutes = Math.floor(totalMs / 60000); 
-            const standardMinutes = 540; 
+            const totalMinutes = Math.floor((endTime - startTime) / 60000);
+            const standardMinutes = 540;
             if (totalMinutes <= standardMinutes) return '';
-            const overtimeTotalMinutes = totalMinutes - standardMinutes;
-            const otHours = Math.floor(overtimeTotalMinutes / 60);
-            const otMins = overtimeTotalMinutes % 60;
-            return `<span class="text-[#dc2626] font-black text-sm ml-2 bg-[#262626] px-2 py-1 rounded-full border border-[#7f1d1d]">超時 ${otHours}h${otMins}m</span>`;
+            const overtimeMin = totalMinutes - standardMinutes;
+            return `<span class="text-[#dc2626] font-black text-sm ml-2 bg-[#262626] px-2 py-1 rounded-full border border-[#7f1d1d]">超時 ${Math.floor(overtimeMin/60)}h${overtimeMin%60}m</span>`;
         }
 
-        async function insertData(t, d) { try{const r=await fetch(DB_URL,{method:'POST',headers:HEADERS,body:JSON.stringify({type:t,data:d})});return r.ok;}catch(e){return false;} }
-        async function updateDataAPI(i, d) { try{const r=await fetch(`${DB_URL}?id=eq.${i}`,{method:'PATCH',headers:HEADERS,body:JSON.stringify({data:d})});return r.ok;}catch(e){return false;} }
+        async function insertData(t, d) { try{ const r=await fetch(DB_URL,{method:'POST',headers:HEADERS,body:JSON.stringify({type:t,data:d})}); return r.ok; }catch(e){ return false; } }
+        async function updateDataAPI(i, d) { try{ const r=await fetch(`${DB_URL}?id=eq.${i}`,{method:'PATCH',headers:HEADERS,body:JSON.stringify({data:d})}); return r.ok; }catch(e){ return false; } }
         async function deleteDataAPI(i) { await fetch(`${DB_URL}?id=eq.${i}`,{method:'DELETE',headers:HEADERS}); return true; }
         async function del(b,i) { if(confirm("確定刪除？")) if(await deleteDataAPI(i)) await loadData(); }
-        async function uploadFileAPI(f) { const n=`img_${Date.now()}_${Math.random().toString(36).substr(2, 5)}.jpg`; try{const r=await fetch(`${STORAGE_URL}/${n}`,{method:'POST',headers:{'apikey':ANON_KEY,'Authorization':`Bearer ${ANON_KEY}`,'Content-Type':f.type,'x-upsert':'true'},body:f}); if(!r.ok)return null; return `${PROJECT_URL}/storage/v1/object/public/site_photos/${n}`; }catch(e){return null;} }
-        
+        async function uploadFileAPI(f) { const n=`img_${Date.now()}_${Math.random().toString(36).substr(2,5)}.jpg`; try{ const r=await fetch(`${STORAGE_URL}/${n}`,{method:'POST',headers:{'apikey':ANON_KEY,'Authorization':`Bearer ${ANON_KEY}`,'Content-Type':f.type,'x-upsert':'true'},body:f}); if(!r.ok) return null; return `${PROJECT_URL}/storage/v1/object/public/site_photos/${n}`; }catch(e){ return null; } }
+
         function setupNav() {
             const nav = document.getElementById('bottom-nav');
             if(!nav) return;
@@ -709,43 +686,111 @@
             ];
             nav.innerHTML = btns.map(b => `<button onclick="nav('${b.id}')" class="nav-btn ${b.id==='clock'?'active':''}" id="btn-${b.id}"><svg class="nav-icon" viewBox="0 0 24 24"><path d="${b.icon}"/></svg>${b.txt}</button>`).join('');
         }
-        
-        function nav(p) { ['clock', 'bulletin', 'admin', 'task'].forEach(v => { document.getElementById('page-'+v).classList.add('hidden'); const b = document.getElementById('btn-'+v); if(b) b.classList.remove('active'); }); document.getElementById('page-'+p).classList.remove('hidden'); const b = document.getElementById('btn-'+p); if(b) b.classList.add('active'); }
-        async function submitProgress() { const name = currentUser.employee_name, proj = document.getElementById('prog-project').value, note = document.getElementById('prog-note').value, fileInput = document.getElementById('file-upload'); if(!proj) return alert("請輸入工程名稱"); document.getElementById('loading-overlay').classList.remove('hidden'); let imgUrls = []; for(let i=0; i<fileInput.files.length; i++) { const url = await uploadFileAPI(fileInput.files[i]); if(url) imgUrls.push(url); } if(await insertData('progress', { employee_name: name, project_name: proj, progress: "", notes: note, image_url: imgUrls, timestamp: new Date().toISOString(), location: document.getElementById('gps-status').innerText })) { alert("發佈成功"); document.getElementById('prog-project').value=''; document.getElementById('prog-note').value=''; clearImages(); await loadData(); } else { alert("失敗"); } document.getElementById('loading-overlay').classList.add('hidden'); }
-        function previewImages(input) { const c = document.getElementById('preview-container'); c.innerHTML = ''; if(input.files.length) { document.getElementById('upload-placeholder').classList.add('hidden'); c.classList.remove('hidden'); document.getElementById('clear-btn').classList.remove('hidden'); Array.from(input.files).forEach(f => { const r = new FileReader(); r.onload = e => { const img = document.createElement('img'); img.src = e.target.result; img.className = 'w-full h-20 object-contain rounded-lg border border-[#7f1d1d] bg-[#000]'; c.appendChild(img); }; r.readAsDataURL(f); }); } }
-        function clearImages() { document.getElementById('file-upload').value = ''; document.getElementById('preview-container').innerHTML = ''; document.getElementById('preview-container').classList.add('hidden'); document.getElementById('upload-placeholder').classList.remove('hidden'); document.getElementById('clear-btn').classList.add('hidden'); }
-        
-        function openEdit(id) { const r = allData.find(d => d.id === id); if(!r) return; currentEditId = id; currentEditData = r; document.getElementById('edit-id').value = id; document.getElementById('edit-type').value = r.type; ['edit-time-group', 'edit-clock-area', 'edit-prog-area', 'edit-emp-area', 'edit-dispatch-area', 'edit-payout-area', 'edit-name-group'].forEach(a => document.getElementById(a).classList.add('hidden')); if(r.employee_name) { document.getElementById('edit-name-group').classList.remove('hidden'); document.getElementById('edit-name').value = r.employee_name; } if(r.type === 'employee') { document.getElementById('edit-emp-area').classList.remove('hidden'); document.getElementById('edit-wage').value = r.wage || ''; document.getElementById('edit-pwd').value = r.password || ''; document.getElementById('edit-code').value = r.employee_code || ''; document.getElementById('edit-is-admin').checked = !!r.is_admin; } else if (r.type === 'payout_history') { document.getElementById('edit-payout-area').classList.remove('hidden'); document.getElementById('edit-name-group').classList.add('hidden'); document.getElementById('edit-pay-start').value = (r.start_date||'').replace(/\//g, '-'); document.getElementById('edit-pay-end').value = (r.end_date||'').replace(/\//g, '-'); document.getElementById('edit-pay-amount').value = r.total_amount; } else if (r.type === 'dispatch') { document.getElementById('edit-dispatch-area').classList.remove('hidden'); document.getElementById('edit-time-group').classList.remove('hidden'); const dt = new Date(r.timestamp); dt.setMinutes(dt.getMinutes() - dt.getTimezoneOffset()); document.getElementById('edit-time').value = dt.toISOString().slice(0,16); document.getElementById('edit-dispatch-emp').value = r.employee_name; document.getElementById('edit-dispatch-loc').value = r.project_name || ''; document.getElementById('edit-dispatch-note').value = r.notes || ''; const emps = allData.filter(x => x.type === 'employee'); const ps = (r.partners || '').split(', ').filter(x=>x); const ds = (r.drivers || '').split(', ').filter(x=>x); document.getElementById('edit-dispatch-partners-list').innerHTML = emps.map(e => `<label class="custom-checkbox"><input type="checkbox" value="${e.employee_name}" ${ps.includes(e.employee_name) ? 'checked' : ''}><span class="text-[#fca5a5] font-bold">${e.employee_name}</span></label>`).join(''); document.getElementById('edit-dispatch-drivers-list').innerHTML = emps.map(e => `<label class="custom-checkbox border-blue-900"><input type="checkbox" value="${e.employee_name}" ${ds.includes(e.employee_name) ? 'checked' : ''}><span class="text-blue-400 font-bold">${e.employee_name}</span></label>`).join(''); } else { const dt = new Date(r.timestamp || r.created_at); dt.setMinutes(dt.getMinutes() - dt.getTimezoneOffset()); document.getElementById('edit-time').value = dt.toISOString().slice(0,16); document.getElementById('edit-time-group').classList.remove('hidden'); if(r.type === 'clock') { document.getElementById('edit-clock-area').classList.remove('hidden'); document.getElementById('edit-check-type').value = r.check_type; } else { document.getElementById('edit-prog-area').classList.remove('hidden'); document.getElementById('edit-proj').value = r.project_name||''; document.getElementById('edit-prog').value = r.progress||''; document.getElementById('edit-note').value = r.notes||''; } } document.getElementById('edit-modal').classList.remove('hidden'); }
+
+        function nav(p) { ['clock','bulletin','admin','task'].forEach(v => { document.getElementById('page-'+v).classList.add('hidden'); const b=document.getElementById('btn-'+v); if(b) b.classList.remove('active'); }); document.getElementById('page-'+p).classList.remove('hidden'); const b=document.getElementById('btn-'+p); if(b) b.classList.add('active'); }
+
+        async function submitProgress() {
+            const name=currentUser.employee_name, proj=document.getElementById('prog-project').value, note=document.getElementById('prog-note').value, fileInput=document.getElementById('file-upload');
+            if(!proj) return alert("請輸入工程名稱");
+            document.getElementById('loading-overlay').classList.remove('hidden');
+            let imgUrls=[];
+            for(let i=0;i<fileInput.files.length;i++) { const url=await uploadFileAPI(fileInput.files[i]); if(url) imgUrls.push(url); }
+            if(await insertData('progress',{employee_name:name,project_name:proj,progress:"",notes:note,image_url:imgUrls,timestamp:new Date().toISOString(),location:document.getElementById('gps-status').innerText})) {
+                alert("發佈成功"); document.getElementById('prog-project').value=''; document.getElementById('prog-note').value=''; clearImages(); await loadData();
+            } else { alert("失敗"); }
+            document.getElementById('loading-overlay').classList.add('hidden');
+        }
+
+        function previewImages(input) { const c=document.getElementById('preview-container'); c.innerHTML=''; if(input.files.length) { document.getElementById('upload-placeholder').classList.add('hidden'); c.classList.remove('hidden'); document.getElementById('clear-btn').classList.remove('hidden'); Array.from(input.files).forEach(f=>{ const r=new FileReader(); r.onload=e=>{ const img=document.createElement('img'); img.src=e.target.result; img.className='w-full h-20 object-contain rounded-lg border border-[#7f1d1d] bg-[#000]'; c.appendChild(img); }; r.readAsDataURL(f); }); } }
+        function clearImages() { document.getElementById('file-upload').value=''; document.getElementById('preview-container').innerHTML=''; document.getElementById('preview-container').classList.add('hidden'); document.getElementById('upload-placeholder').classList.remove('hidden'); document.getElementById('clear-btn').classList.add('hidden'); }
+
+        function openEdit(id) {
+            const r=allData.find(d=>d.id===id); if(!r) return;
+            currentEditId=id; currentEditData=r;
+            document.getElementById('edit-id').value=id; document.getElementById('edit-type').value=r.type;
+            ['edit-time-group','edit-clock-area','edit-prog-area','edit-emp-area','edit-dispatch-area','edit-payout-area','edit-name-group'].forEach(a=>document.getElementById(a).classList.add('hidden'));
+            if(r.employee_name) { document.getElementById('edit-name-group').classList.remove('hidden'); document.getElementById('edit-name').value=r.employee_name; }
+            if(r.type==='employee') {
+                document.getElementById('edit-emp-area').classList.remove('hidden');
+                document.getElementById('edit-wage').value=r.wage||''; document.getElementById('edit-pwd').value=r.password||''; document.getElementById('edit-code').value=r.employee_code||''; document.getElementById('edit-is-admin').checked=!!r.is_admin;
+            } else if(r.type==='payout_history') {
+                document.getElementById('edit-payout-area').classList.remove('hidden'); document.getElementById('edit-name-group').classList.add('hidden');
+                document.getElementById('edit-pay-start').value=(r.start_date||'').replace(/\//g,'-'); document.getElementById('edit-pay-end').value=(r.end_date||'').replace(/\//g,'-'); document.getElementById('edit-pay-amount').value=r.total_amount;
+            } else if(r.type==='dispatch') {
+                document.getElementById('edit-dispatch-area').classList.remove('hidden'); document.getElementById('edit-time-group').classList.remove('hidden');
+                const dt=new Date(r.timestamp); dt.setMinutes(dt.getMinutes()-dt.getTimezoneOffset()); document.getElementById('edit-time').value=dt.toISOString().slice(0,16);
+                document.getElementById('edit-dispatch-emp').value=r.employee_name; document.getElementById('edit-dispatch-loc').value=r.project_name||''; document.getElementById('edit-dispatch-note').value=r.notes||'';
+                const emps=allData.filter(x=>x.type==='employee');
+                const ps=(r.partners||'').split(', ').filter(x=>x);
+                const ds=(r.drivers||'').split(', ').filter(x=>x);
+                // [FIX] employee_name 用 esc() 防止 XSS
+                document.getElementById('edit-dispatch-partners-list').innerHTML=emps.map(e=>`<label class="custom-checkbox"><input type="checkbox" value="${esc(e.employee_name)}" ${ps.includes(e.employee_name)?'checked':''}><span class="text-[#fca5a5] font-bold">${esc(e.employee_name)}</span></label>`).join('');
+                document.getElementById('edit-dispatch-drivers-list').innerHTML=emps.map(e=>`<label class="custom-checkbox border-blue-900"><input type="checkbox" value="${esc(e.employee_name)}" ${ds.includes(e.employee_name)?'checked':''}><span class="text-blue-400 font-bold">${esc(e.employee_name)}</span></label>`).join('');
+            } else {
+                const dt=new Date(r.timestamp||r.created_at); dt.setMinutes(dt.getMinutes()-dt.getTimezoneOffset()); document.getElementById('edit-time').value=dt.toISOString().slice(0,16); document.getElementById('edit-time-group').classList.remove('hidden');
+                if(r.type==='clock') { document.getElementById('edit-clock-area').classList.remove('hidden'); document.getElementById('edit-check-type').value=r.check_type; }
+                else { document.getElementById('edit-prog-area').classList.remove('hidden'); document.getElementById('edit-proj').value=r.project_name||''; document.getElementById('edit-prog').value=r.progress||''; document.getElementById('edit-note').value=r.notes||''; }
+            }
+            document.getElementById('edit-modal').classList.remove('hidden');
+        }
+
         function closeEdit() { document.getElementById('edit-modal').classList.add('hidden'); }
-        async function saveEdit() { const type = document.getElementById('edit-type').value, payload = { ...currentEditData }; delete payload.id; delete payload.type; delete payload.created_at; if(type === 'employee') { payload.employee_name = document.getElementById('edit-name').value; payload.wage = document.getElementById('edit-wage').value; payload.password = document.getElementById('edit-pwd').value; payload.employee_code = document.getElementById('edit-code').value; payload.is_admin = document.getElementById('edit-is-admin').checked; } else if (type === 'payout_history') { payload.start_date = document.getElementById('edit-pay-start').value.replace(/-/g, '/'); payload.end_date = document.getElementById('edit-pay-end').value.replace(/-/g, '/'); payload.total_amount = parseInt(document.getElementById('edit-pay-amount').value) || 0; } else if (type === 'dispatch') { payload.timestamp = new Date(document.getElementById('edit-time').value).toISOString(); payload.project_name = document.getElementById('edit-dispatch-loc').value; payload.notes = document.getElementById('edit-dispatch-note').value; payload.partners = Array.from(document.querySelectorAll('#edit-dispatch-partners-list input:checked')).map(c => c.value).join(', '); payload.drivers = Array.from(document.querySelectorAll('#edit-dispatch-drivers-list input:checked')).map(c => c.value).join(', '); } else { payload.timestamp = new Date(document.getElementById('edit-time').value).toISOString(); if(type === 'clock') payload.check_type = document.getElementById('edit-check-type').value; else { payload.project_name = document.getElementById('edit-proj').value; payload.notes = document.getElementById('edit-note').value; } } if(await updateDataAPI(currentEditId, payload)) { alert("修改成功"); closeEdit(); await loadData(); } }
-        async function addEmployee() { const name = document.getElementById('new-name').value, id = document.getElementById('new-id').value, code = document.getElementById('new-code').value, wage = document.getElementById('new-wage').value, pwd = document.getElementById('new-pwd').value || "1234", isAdmin = document.getElementById('new-is-admin').checked; if(!name) return alert("請輸入姓名"); if(await insertData('employee', { employee_name: name, employee_id: id || name, employee_code: code, wage: wage, password: pwd, is_admin: isAdmin })) { alert("新增成功"); document.getElementById('new-name').value=''; document.getElementById('new-id').value=''; document.getElementById('new-code').value=''; document.getElementById('new-wage').value=''; await loadData(); } }
-        
-        async function submitDispatch() { 
-            const emp = document.getElementById('dispatch-emp-select').value, 
-                  date = document.getElementById('dispatch-date').value, 
-                  loc = document.getElementById('dispatch-loc').value, 
-                  note = document.getElementById('dispatch-note').value, 
-                  partners = Array.from(document.querySelectorAll('#dispatch-partners-list input:checked')).map(c => c.value).join(', '),
-                  drivers = Array.from(document.querySelectorAll('#dispatch-drivers-list input:checked')).map(c => c.value).join(', '); 
-            if (!emp || !date) return alert("請選擇負責人與日期"); 
-            if (await insertData('dispatch', { employee_name: emp, project_name: loc, notes: note, partners: partners, drivers: drivers, timestamp: new Date(date).toISOString() })) { 
-                alert("指派成功"); 
-                document.getElementById('dispatch-loc').value = ''; 
-                document.getElementById('dispatch-note').value = ''; 
-                document.querySelectorAll('#dispatch-partners-list input').forEach(cb => cb.checked = false); 
-                document.querySelectorAll('#dispatch-drivers-list input').forEach(cb => cb.checked = false); 
-                await loadData(); 
-            } else { 
-                alert("指派失敗"); 
-            } 
+
+        async function saveEdit() {
+            const type=document.getElementById('edit-type').value, payload={...currentEditData};
+            delete payload.id; delete payload.type; delete payload.created_at;
+            if(type==='employee') { payload.employee_name=document.getElementById('edit-name').value; payload.wage=document.getElementById('edit-wage').value; payload.password=document.getElementById('edit-pwd').value; payload.employee_code=document.getElementById('edit-code').value; payload.is_admin=document.getElementById('edit-is-admin').checked; }
+            else if(type==='payout_history') { payload.start_date=document.getElementById('edit-pay-start').value.replace(/-/g,'/'); payload.end_date=document.getElementById('edit-pay-end').value.replace(/-/g,'/'); payload.total_amount=parseInt(document.getElementById('edit-pay-amount').value)||0; }
+            else if(type==='dispatch') { payload.timestamp=new Date(document.getElementById('edit-time').value).toISOString(); payload.project_name=document.getElementById('edit-dispatch-loc').value; payload.notes=document.getElementById('edit-dispatch-note').value; payload.partners=Array.from(document.querySelectorAll('#edit-dispatch-partners-list input:checked')).map(c=>c.value).join(', '); payload.drivers=Array.from(document.querySelectorAll('#edit-dispatch-drivers-list input:checked')).map(c=>c.value).join(', '); }
+            else { payload.timestamp=new Date(document.getElementById('edit-time').value).toISOString(); if(type==='clock') payload.check_type=document.getElementById('edit-check-type').value; else { payload.project_name=document.getElementById('edit-proj').value; payload.notes=document.getElementById('edit-note').value; } }
+            if(await updateDataAPI(currentEditId,payload)) { alert("修改成功"); closeEdit(); await loadData(); }
+        }
+
+        async function addEmployee() {
+            const name=document.getElementById('new-name').value, id=document.getElementById('new-id').value, code=document.getElementById('new-code').value, wage=document.getElementById('new-wage').value, pwd=document.getElementById('new-pwd').value||"1234", isAdmin=document.getElementById('new-is-admin').checked;
+            if(!name) return alert("請輸入姓名");
+            if(await insertData('employee',{employee_name:name,employee_id:id||name,employee_code:code,wage,password:pwd,is_admin:isAdmin})) {
+                alert("新增成功"); document.getElementById('new-name').value=''; document.getElementById('new-id').value=''; document.getElementById('new-code').value=''; document.getElementById('new-wage').value=''; await loadData();
+            }
+        }
+
+        async function submitDispatch() {
+            const emp=document.getElementById('dispatch-emp-select').value,
+                  date=document.getElementById('dispatch-date').value,
+                  loc=document.getElementById('dispatch-loc').value,
+                  note=document.getElementById('dispatch-note').value,
+                  partners=Array.from(document.querySelectorAll('#dispatch-partners-list input:checked')).map(c=>c.value).join(', '),
+                  drivers=Array.from(document.querySelectorAll('#dispatch-drivers-list input:checked')).map(c=>c.value).join(', ');
+            if(!emp||!date) return alert("請選擇負責人與日期");
+            // [FIX] 用本地時間建立日期，避免 UTC 轉換造成日期少一天
+            const parts=date.split('-').map(Number);
+            const localTimestamp=new Date(parts[0],parts[1]-1,parts[2]).toISOString();
+            if(await insertData('dispatch',{employee_name:emp,project_name:loc,notes:note,partners,drivers,timestamp:localTimestamp})) {
+                alert("指派成功");
+                document.getElementById('dispatch-loc').value=''; document.getElementById('dispatch-note').value='';
+                document.querySelectorAll('#dispatch-partners-list input').forEach(cb=>cb.checked=false);
+                document.querySelectorAll('#dispatch-drivers-list input').forEach(cb=>cb.checked=false);
+                await loadData();
+            } else { alert("指派失敗"); }
         }
 
         async function manualRefresh() { await loadData(); alert("數據已更新"); }
-        async function settleSalary() { if (!currentWeeklyData || currentWeeklyData.total === 0) return alert("目前沒有可結算的金額"); if (!confirm(`確定要結算本週薪資嗎？\n總金額: $${currentWeeklyData.total}\n這將會儲存一份歷史記錄。`)) return; if (await insertData('payout_history', { timestamp: new Date().toISOString(), start_date: currentWeeklyData.startDate, end_date: currentWeeklyData.endDate, total_amount: currentWeeklyData.total, details: currentWeeklyData.details, settled_by: currentUser.employee_name })) { alert("薪資已結算並歸檔！"); await loadData(); } else { alert("結算失敗"); } }
-        function requestNotificationPermission() { if ("Notification" in window) Notification.requestPermission(); }
-        function setupRealtimeListener() { supabaseClient.channel('room1').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'construction_records' }, p => { const n=p.new; if(n.type!=='employee' && n.type!=='dispatch') { showBrowserNotification(`${n.employee_name} 已提交：${n.type==='clock'?n.check_type:'回報'}`); setTimeout(()=>loadData(),1000); } }).subscribe(); }
-        function showBrowserNotification(m) { if ("Notification" in window && Notification.permission === "granted") new Notification("全技工程行", { body: m, icon: 'https://vegqsdqxnvqupmzsgbpt.supabase.co/storage/v1/object/public/site_photos/F21060CB-BAB1-4E07-91AC-1E3F35796914.png' }); }
-        
+
+        async function settleSalary() {
+            if(!currentWeeklyData||currentWeeklyData.total===0) return alert("目前沒有可結算的金額");
+            if(!confirm(`確定要結算本週薪資嗎？\n總金額: $${currentWeeklyData.total}\n這將會儲存一份歷史記錄。`)) return;
+            if(await insertData('payout_history',{timestamp:new Date().toISOString(),start_date:currentWeeklyData.startDate,end_date:currentWeeklyData.endDate,total_amount:currentWeeklyData.total,details:currentWeeklyData.details,settled_by:currentUser.employee_name})) {
+                alert("薪資已結算並歸檔！"); await loadData();
+            } else { alert("結算失敗"); }
+        }
+
+        function setupRealtimeListener() {
+            supabaseClient.channel('room1').on('postgres_changes',{event:'INSERT',schema:'public',table:'construction_records'},p=>{
+                const n=p.new;
+                if(n.type!=='employee'&&n.type!=='dispatch') { showBrowserNotification(`${n.data?.employee_name} 已提交：${n.type==='clock'?n.data?.check_type:'回報'}`); setTimeout(()=>loadData(),1000); }
+            }).subscribe();
+        }
+        function showBrowserNotification(m) { if("Notification" in window&&Notification.permission==="granted") new Notification("全技工程行",{body:m,icon:'https://vegqsdqxnvqupmzsgbpt.supabase.co/storage/v1/object/public/site_photos/F21060CB-BAB1-4E07-91AC-1E3F35796914.png'}); }
     </script>
 </body>
 </html>
