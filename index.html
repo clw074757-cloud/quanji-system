@@ -760,13 +760,16 @@
             const laborRecs = allData.filter(r => r.type === 'proj_labor');
 
             // 合約案：用 contract_amount（含稅總額）；點工案：用出工記錄總和
-            const totalPayable = projects.reduce((s,p) => {
+            let totalPayable = 0, totalTax = 0;
+            projects.forEach(p => {
                 if(p.project_type === 'labor') {
-                    return s + laborRecs.filter(l => l.project_id == p.id).reduce((ss,l) => ss + (parseInt(l.amount)||0), 0);
+                    totalPayable += laborRecs.filter(l => l.project_id == p.id).reduce((ss,l) => ss + (parseInt(l.amount)||0), 0);
+                } else {
+                    const { taxAmount, taxTotal } = calcTax(parseInt(p.contract_amount)||0, p.tax_type, p.tax_rate);
+                    totalPayable += taxTotal;
+                    totalTax += taxAmount;
                 }
-                const { taxTotal } = calcTax(parseInt(p.contract_amount)||0, p.tax_type, p.tax_rate);
-                return s + taxTotal;
-            }, 0);
+            });
             const totalReceived = incomes.reduce((s,i) => s + (parseInt(i.amount)||0), 0);
             const totalExpense = expenses.reduce((s,e) => s + (parseInt(e.amount)||0), 0);
             const totalProfit = totalReceived - totalExpense;
@@ -790,7 +793,11 @@
                     <div class="text-xs text-[#fca5a5] font-bold">總支出</div>
                     <div class="text-xl font-black text-[#dc2626] font-mono">$${totalExpense.toLocaleString()}</div>
                 </div>
-                <div class="bg-[#262626] p-3 rounded-xl border border-yellow-900">
+                <div class="bg-[#262626] p-3 rounded-xl border border-purple-900">
+                    <div class="text-xs text-purple-400 font-bold">稅金總額</div>
+                    <div class="text-xl font-black text-purple-400 font-mono">$${totalTax.toLocaleString()}</div>
+                </div>
+                <div class="bg-[#262626] p-3 rounded-xl border border-yellow-900 col-span-2">
                     <div class="text-xs text-yellow-400 font-bold">毛利（已收 - 支出）</div>
                     <div class="text-xl font-black ${totalProfit >= 0 ? 'text-yellow-400' : 'text-red-400'} font-mono">$${totalProfit.toLocaleString()}</div>
                 </div>
