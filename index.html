@@ -310,6 +310,47 @@
         </div>
     </div>
 
+    <div id="proj-edit-modal" class="fixed inset-0 bg-black/90 z-[80] hidden flex items-center justify-center p-4">
+        <div class="bg-[#171717] w-full max-w-md p-6 rounded-2xl border-2 border-blue-700 max-h-[90vh] overflow-y-auto">
+            <h3 class="text-2xl font-black mb-4 text-blue-400">✏️ 編輯案件</h3>
+            <input type="hidden" id="proj-edit-id">
+            <label class="text-label">案件名稱</label><input id="proj-edit-name" class="input-box">
+            <label class="text-label">業主名稱</label><input id="proj-edit-client" class="input-box" placeholder="選填">
+            <label class="text-label">案件類型</label>
+            <select id="proj-edit-type" class="input-box" onchange="toggleProjEditAmountGroup()">
+                <option value="contract">合約工程</option>
+                <option value="labor">點工（無固定合約）</option>
+            </select>
+            <div id="proj-edit-amount-group">
+                <label class="text-label">合約金額</label><input id="proj-edit-amount" type="number" class="input-box" placeholder="0">
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div><label class="text-label">稅別</label>
+                    <select id="proj-edit-tax-type" class="input-box" onchange="toggleProjEditTaxRate()">
+                        <option value="none">免稅</option>
+                        <option value="inclusive">含稅（金額已含稅）</option>
+                        <option value="exclusive">未稅外加</option>
+                    </select>
+                </div>
+                <div id="proj-edit-taxrate-group"><label class="text-label">稅率 (%)</label>
+                    <input id="proj-edit-tax-rate" type="number" class="input-box" placeholder="5" min="0" max="100">
+                </div>
+            </div>
+            <label class="text-label">開工日期</label><input id="proj-edit-date" type="date" class="input-box" style="color-scheme:dark;">
+            <label class="text-label">狀態</label>
+            <select id="proj-edit-status" class="input-box">
+                <option value="進行中">進行中</option>
+                <option value="完工">完工</option>
+                <option value="結案">結案</option>
+            </select>
+            <label class="text-label">備註</label><textarea id="proj-edit-note" class="input-box" rows="2"></textarea>
+            <div class="flex gap-3 mt-4">
+                <button onclick="closeProjEdit()" class="btn btn-secondary">取消</button>
+                <button onclick="saveProjEdit()" class="btn btn-primary">儲存</button>
+            </div>
+        </div>
+    </div>
+
     <nav id="bottom-nav" class="nav-bar fixed bottom-0 w-full flex pb-safe z-50 shadow-2xl"></nav>
 
     <script>
@@ -818,18 +859,22 @@
                         </div>
                     </div>`).join('');
 
+                const actionBtns = `<div class="flex gap-1 mt-1 justify-end">
+                    <button onclick="openProjEdit(${p.id})" class="text-xs text-blue-400 border border-blue-800 px-2 py-1 rounded">編輯</button>
+                    <button onclick="del(this,${p.id})" class="text-xs text-red-500 border border-red-900 px-2 py-1 rounded">刪除</button>
+                </div>`;
                 const topRightBlock = isLabor
                     ? `<div class="text-right">
                             <div class="text-xs text-yellow-500 font-bold">點工</div>
                             <div class="text-xs text-gray-400 mt-0.5">應收（出工累計）</div>
                             <div class="text-lg font-black text-yellow-400 font-mono">$${laborTotal.toLocaleString()}</div>
-                            <button onclick="del(this,${p.id})" class="text-xs text-red-500 border border-red-900 px-2 py-1 rounded mt-1">刪除</button>
+                            ${actionBtns}
                         </div>`
                     : `<div class="text-right">
                             ${p.tax_type==='inclusive'?`<div class="text-xs text-gray-400">含稅總額</div><div class="text-lg font-black text-[#fca5a5] font-mono">$${contract.toLocaleString()}</div><div class="text-xs text-gray-500">稅金 $${taxAmount.toLocaleString()}｜未稅 $${preTotal.toLocaleString()}</div>`
                             :p.tax_type==='exclusive'?`<div class="text-xs text-gray-400">未稅 $${preTotal.toLocaleString()}</div><div class="text-lg font-black text-[#fca5a5] font-mono">含稅 $${contract.toLocaleString()}</div><div class="text-xs text-gray-500">稅金 $${taxAmount.toLocaleString()}</div>`
                             :`<div class="text-xs text-gray-400">合約金額</div><div class="text-lg font-black text-[#fca5a5] font-mono">$${contract.toLocaleString()}</div>`}
-                            <button onclick="del(this,${p.id})" class="text-xs text-red-500 border border-red-900 px-2 py-1 rounded mt-1">刪除</button>
+                            ${actionBtns}
                         </div>`;
 
                 const laborSection = isLabor ? `
@@ -957,6 +1002,63 @@
                 toggleProjTaxRate();
                 await loadData();
             } else { alert("建立失敗"); }
+        }
+
+        function openProjEdit(projId) {
+            const p = allData.find(r => r.id === projId);
+            if(!p) return;
+            document.getElementById('proj-edit-id').value = projId;
+            document.getElementById('proj-edit-name').value = p.project_name || '';
+            document.getElementById('proj-edit-client').value = p.client_name || '';
+            document.getElementById('proj-edit-type').value = p.project_type || 'contract';
+            document.getElementById('proj-edit-amount').value = p.contract_amount || '';
+            document.getElementById('proj-edit-tax-type').value = p.tax_type || 'none';
+            document.getElementById('proj-edit-tax-rate').value = p.tax_rate || 5;
+            document.getElementById('proj-edit-date').value = p.start_date || '';
+            document.getElementById('proj-edit-status').value = p.status || '進行中';
+            document.getElementById('proj-edit-note').value = p.notes || '';
+            toggleProjEditAmountGroup();
+            toggleProjEditTaxRate();
+            document.getElementById('proj-edit-modal').classList.remove('hidden');
+        }
+
+        function closeProjEdit() { document.getElementById('proj-edit-modal').classList.add('hidden'); }
+
+        function toggleProjEditAmountGroup() {
+            const isLabor = document.getElementById('proj-edit-type').value === 'labor';
+            document.getElementById('proj-edit-amount-group').classList.toggle('hidden', isLabor);
+        }
+
+        function toggleProjEditTaxRate() {
+            const taxType = document.getElementById('proj-edit-tax-type').value;
+            document.getElementById('proj-edit-taxrate-group').classList.toggle('hidden', taxType === 'none');
+        }
+
+        async function saveProjEdit() {
+            const id = parseInt(document.getElementById('proj-edit-id').value);
+            const r = allData.find(d => d.id === id);
+            if(!r) return;
+            const name = document.getElementById('proj-edit-name').value.trim();
+            if(!name) return alert("請輸入案件名稱");
+            const projType = document.getElementById('proj-edit-type').value;
+            const amount = document.getElementById('proj-edit-amount').value;
+            if(projType === 'contract' && !amount) return alert("請輸入合約金額");
+            const payload = {
+                ...r,
+                project_name: name,
+                client_name: document.getElementById('proj-edit-client').value.trim(),
+                project_type: projType,
+                contract_amount: projType === 'contract' ? parseInt(amount) : 0,
+                tax_type: document.getElementById('proj-edit-tax-type').value,
+                tax_rate: parseFloat(document.getElementById('proj-edit-tax-rate').value) || 5,
+                start_date: document.getElementById('proj-edit-date').value,
+                status: document.getElementById('proj-edit-status').value,
+                notes: document.getElementById('proj-edit-note').value,
+            };
+            delete payload.id; delete payload.created_at;
+            if(await updateDataAPI(id, payload)) {
+                closeProjEdit(); await loadData();
+            } else { alert("儲存失敗"); }
         }
 
         async function updateProjStatus(id, status) {
