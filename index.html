@@ -283,6 +283,7 @@
                     <div><label class="text-label">出工人數</label><input id="proj-labor-count" type="number" class="input-box" placeholder="1" min="1" oninput="calcLaborSubtotal()"></div>
                     <div><label class="text-label">每工價格（元）</label><input id="proj-labor-rate" type="number" class="input-box" placeholder="0" oninput="calcLaborSubtotal()"></div>
                 </div>
+                <div><label class="text-label">車資（請款給業主，選填）</label><input id="proj-labor-transport" type="number" class="input-box" placeholder="0" oninput="calcLaborSubtotal()"></div>
                 <div class="bg-[#262626] p-3 rounded-lg mb-3 flex justify-between items-center border border-yellow-900">
                     <span class="text-sm text-gray-400 font-bold">本筆應收小計</span>
                     <span id="proj-labor-subtotal" class="text-yellow-400 font-black font-mono text-lg">$0</span>
@@ -793,6 +794,7 @@
                         <div>
                             <span class="text-yellow-400 font-bold text-sm">${esc(l.date||'')}</span>
                             <span class="text-xs text-gray-300 ml-2">${esc(l.worker_count)} 工 × $${(parseInt(l.daily_rate)||0).toLocaleString()}</span>
+                            ${l.transport_fee?`<span class="text-xs text-blue-400 ml-2">＋車資 $${(parseInt(l.transport_fee)||0).toLocaleString()}</span>`:''}
                             ${l.notes?`<div class="text-xs text-gray-500">${esc(l.notes)}</div>`:''}
                         </div>
                         <div class="flex items-center gap-2">
@@ -898,7 +900,8 @@
         function calcLaborSubtotal() {
             const count = parseInt(document.getElementById('proj-labor-count').value) || 0;
             const rate = parseInt(document.getElementById('proj-labor-rate').value) || 0;
-            document.getElementById('proj-labor-subtotal').textContent = '$' + (count * rate).toLocaleString();
+            const transport = parseInt(document.getElementById('proj-labor-transport').value) || 0;
+            document.getElementById('proj-labor-subtotal').textContent = '$' + (count * rate + transport).toLocaleString();
         }
 
         async function addProject() {
@@ -948,6 +951,7 @@
                 document.getElementById('proj-labor-date').valueAsDate = new Date();
                 document.getElementById('proj-labor-count').value = '';
                 document.getElementById('proj-labor-rate').value = '';
+                document.getElementById('proj-labor-transport').value = '';
                 document.getElementById('proj-labor-note').value = '';
                 document.getElementById('proj-labor-subtotal').textContent = '$0';
             } else {
@@ -981,12 +985,13 @@
                 const date = document.getElementById('proj-labor-date').value;
                 const count = parseInt(document.getElementById('proj-labor-count').value);
                 const rate = parseInt(document.getElementById('proj-labor-rate').value);
+                const transport = parseInt(document.getElementById('proj-labor-transport').value) || 0;
                 const notes = document.getElementById('proj-labor-note').value;
                 if(!date) return alert("請選擇日期");
                 if(!count || count < 1) return alert("請輸入出工人數");
                 if(!rate || rate < 1) return alert("請輸入每工價格");
-                const amount = count * rate;
-                if(await insertData('proj_labor', { project_id:projId, project_name:projName, date, worker_count:count, daily_rate:rate, amount, notes, timestamp:new Date().toISOString() })) {
+                const amount = count * rate + transport;
+                if(await insertData('proj_labor', { project_id:projId, project_name:projName, date, worker_count:count, daily_rate:rate, transport_fee:transport, amount, notes, timestamp:new Date().toISOString() })) {
                     closeProjModal(); await loadData();
                 } else { alert("新增失敗"); }
             } else {
