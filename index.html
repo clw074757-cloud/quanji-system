@@ -269,7 +269,7 @@
             <div id="proj-expense-fields" class="hidden">
                 <label class="text-label">分類</label>
                 <select id="proj-expense-cat" class="input-box">
-                    <option value="材料費">材料費</option><option value="薪資">薪資</option><option value="雜費">雜費</option><option value="其他">其他</option>
+                    <option value="材料費">材料費</option><option value="材料墊付">材料墊付（代墊）</option><option value="伙食費">伙食費</option><option value="薪資">薪資</option><option value="雜費">雜費</option><option value="其他">其他</option>
                 </select>
                 <label class="text-label">項目說明</label><input id="proj-expense-desc" class="input-box" placeholder="材料名稱或說明">
                 <label class="text-label">金額</label><input id="proj-expense-amount" type="number" class="input-box" placeholder="0">
@@ -876,7 +876,7 @@
                             <button onclick="openProjModal('income',${p.id})" class="btn btn-success text-sm py-3 mt-2">＋ 新增收款</button>
                         </div>
                     </details>
-                    <details>
+                    <details ${isLabor ? 'open' : ''}>
                         <summary class="flex justify-between items-center p-3 bg-[#1f0a0a] rounded-lg cursor-pointer border border-red-900">
                             <span class="font-bold text-[#fca5a5]">📋 支出記錄（${projExpenses.length} 筆）</span>
                             <span class="text-[#fca5a5] text-xs">▼ 展開</span>
