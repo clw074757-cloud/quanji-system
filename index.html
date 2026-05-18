@@ -688,6 +688,7 @@
             const totalReceived = incomes.reduce((s,i) => s + (parseInt(i.amount)||0), 0);
             const totalExpense = expenses.reduce((s,e) => s + (parseInt(e.amount)||0), 0);
             const totalProfit = totalReceived - totalExpense;
+            const totalOutstanding = totalContract - totalReceived;
 
             const sumEl = document.getElementById('project-overall-summary');
             if(sumEl) sumEl.innerHTML = `
@@ -699,13 +700,17 @@
                     <div class="text-xs text-green-400 font-bold">已收款</div>
                     <div class="text-xl font-black text-green-400 font-mono">$${totalReceived.toLocaleString()}</div>
                 </div>
+                <div class="bg-[#262626] p-3 rounded-xl border border-orange-900">
+                    <div class="text-xs text-orange-400 font-bold">未收金額</div>
+                    <div class="text-xl font-black text-orange-400 font-mono">$${totalOutstanding.toLocaleString()}</div>
+                </div>
                 <div class="bg-[#262626] p-3 rounded-xl border border-red-900">
                     <div class="text-xs text-[#fca5a5] font-bold">總支出</div>
                     <div class="text-xl font-black text-[#dc2626] font-mono">$${totalExpense.toLocaleString()}</div>
                 </div>
-                <div class="bg-[#262626] p-3 rounded-xl border border-yellow-900 col-span-2">
+                <div class="bg-[#262626] p-3 rounded-xl border border-yellow-900">
                     <div class="text-xs text-yellow-400 font-bold">毛利（已收 - 支出）</div>
-                    <div class="text-2xl font-black ${totalProfit >= 0 ? 'text-yellow-400' : 'text-red-400'} font-mono">$${totalProfit.toLocaleString()}</div>
+                    <div class="text-xl font-black ${totalProfit >= 0 ? 'text-yellow-400' : 'text-red-400'} font-mono">$${totalProfit.toLocaleString()}</div>
                 </div>
             `;
 
