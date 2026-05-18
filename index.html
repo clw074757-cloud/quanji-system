@@ -245,6 +245,18 @@
                     <div id="new-proj-amount-group"><label class="text-label">合約金額</label><input id="new-proj-amount" type="number" class="input-box" placeholder="0"></div>
                     <div><label class="text-label">開工日期</label><input id="new-proj-date" type="date" class="input-box" style="color-scheme:dark;"></div>
                 </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div><label class="text-label">稅別</label>
+                        <select id="new-proj-tax-type" class="input-box" onchange="toggleProjTaxRate()">
+                            <option value="none">免稅</option>
+                            <option value="inclusive">含稅（金額已含稅）</option>
+                            <option value="exclusive">未稅外加</option>
+                        </select>
+                    </div>
+                    <div id="new-proj-taxrate-group" class="hidden"><label class="text-label">稅率 (%)</label>
+                        <input id="new-proj-tax-rate" type="number" class="input-box" placeholder="5" value="5" min="0" max="100">
+                    </div>
+                </div>
                 <div><label class="text-label">備註</label><textarea id="new-proj-note" class="input-box" rows="2" placeholder="案件說明..."></textarea></div>
                 <button onclick="addProject()" class="btn btn-primary mt-2">建立案件</button>
             </div>
@@ -706,12 +718,13 @@
             const expenses = allData.filter(r => r.type === 'proj_expense');
             const laborRecs = allData.filter(r => r.type === 'proj_labor');
 
-            // 合約案：用 contract_amount；點工案：用出工記錄總和
+            // 合約案：用 contract_amount（含稅總額）；點工案：用出工記錄總和
             const totalPayable = projects.reduce((s,p) => {
                 if(p.project_type === 'labor') {
                     return s + laborRecs.filter(l => l.project_id == p.id).reduce((ss,l) => ss + (parseInt(l.amount)||0), 0);
                 }
-                return s + (parseInt(p.contract_amount)||0);
+                const { taxTotal } = calcTax(parseInt(p.contract_amount)||0, p.tax_type, p.tax_rate);
+                return s + taxTotal;
             }, 0);
             const totalReceived = incomes.reduce((s,i) => s + (parseInt(i.amount)||0), 0);
             const totalExpense = expenses.reduce((s,e) => s + (parseInt(e.amount)||0), 0);
@@ -754,7 +767,9 @@
                 const received = projIncomes.reduce((s,i) => s + (parseInt(i.amount)||0), 0);
                 const spent = projExpenses.reduce((s,e) => s + (parseInt(e.amount)||0), 0);
                 const laborTotal = projLabors.reduce((s,l) => s + (parseInt(l.amount)||0), 0);
-                const contract = isLabor ? laborTotal : (parseInt(p.contract_amount) || 0);
+                const baseContract = isLabor ? laborTotal : (parseInt(p.contract_amount) || 0);
+                const { taxAmount, taxTotal, preTotal } = calcTax(baseContract, p.tax_type, p.tax_rate);
+                const contract = taxTotal;
                 const outstanding = contract - received;
                 const profit = received - spent;
                 const pct = contract > 0 ? Math.min(100, Math.round(received/contract*100)) : 0;
@@ -811,8 +826,9 @@
                             <button onclick="del(this,${p.id})" class="text-xs text-red-500 border border-red-900 px-2 py-1 rounded mt-1">刪除</button>
                         </div>`
                     : `<div class="text-right">
-                            <div class="text-xs text-gray-400">合約金額</div>
-                            <div class="text-lg font-black text-[#fca5a5] font-mono">$${contract.toLocaleString()}</div>
+                            ${p.tax_type==='inclusive'?`<div class="text-xs text-gray-400">含稅總額</div><div class="text-lg font-black text-[#fca5a5] font-mono">$${contract.toLocaleString()}</div><div class="text-xs text-gray-500">稅金 $${taxAmount.toLocaleString()}｜未稅 $${preTotal.toLocaleString()}</div>`
+                            :p.tax_type==='exclusive'?`<div class="text-xs text-gray-400">未稅 $${preTotal.toLocaleString()}</div><div class="text-lg font-black text-[#fca5a5] font-mono">含稅 $${contract.toLocaleString()}</div><div class="text-xs text-gray-500">稅金 $${taxAmount.toLocaleString()}</div>`
+                            :`<div class="text-xs text-gray-400">合約金額</div><div class="text-lg font-black text-[#fca5a5] font-mono">$${contract.toLocaleString()}</div>`}
                             <button onclick="del(this,${p.id})" class="text-xs text-red-500 border border-red-900 px-2 py-1 rounded mt-1">刪除</button>
                         </div>`;
 
@@ -897,6 +913,23 @@
             document.getElementById('new-proj-amount-group').classList.toggle('hidden', isLabor);
         }
 
+        function toggleProjTaxRate() {
+            const taxType = document.getElementById('new-proj-tax-type').value;
+            document.getElementById('new-proj-taxrate-group').classList.toggle('hidden', taxType === 'none');
+        }
+
+        function calcTax(contract, taxType, taxRate) {
+            const rate = (parseFloat(taxRate) || 5) / 100;
+            if (taxType === 'inclusive') {
+                const taxAmount = Math.round(contract * rate / (1 + rate));
+                return { taxAmount, taxTotal: contract, preTotal: contract - taxAmount };
+            } else if (taxType === 'exclusive') {
+                const taxAmount = Math.round(contract * rate);
+                return { taxAmount, taxTotal: contract + taxAmount, preTotal: contract };
+            }
+            return { taxAmount: 0, taxTotal: contract, preTotal: contract };
+        }
+
         function calcLaborSubtotal() {
             const count = parseInt(document.getElementById('proj-labor-count').value) || 0;
             const rate = parseInt(document.getElementById('proj-labor-rate').value) || 0;
@@ -912,12 +945,16 @@
             const date = document.getElementById('new-proj-date').value;
             const note = document.getElementById('new-proj-note').value;
             if(!name) return alert("請輸入案件名稱");
+            const taxType = document.getElementById('new-proj-tax-type').value;
+            const taxRate = document.getElementById('new-proj-tax-rate').value || 5;
             if(projType === 'contract' && !amount) return alert("請輸入合約金額");
-            if(await insertData('project', { project_name:name, client_name:client, project_type:projType, contract_amount:projType==='contract'?parseInt(amount):0, start_date:date, status:'進行中', notes:note, timestamp:new Date().toISOString() })) {
+            if(await insertData('project', { project_name:name, client_name:client, project_type:projType, contract_amount:projType==='contract'?parseInt(amount):0, tax_type:taxType, tax_rate:parseFloat(taxRate), start_date:date, status:'進行中', notes:note, timestamp:new Date().toISOString() })) {
                 alert("案件建立成功");
                 ['new-proj-name','new-proj-client','new-proj-amount','new-proj-note'].forEach(id => document.getElementById(id).value='');
                 document.getElementById('new-proj-type').value = 'contract';
+                document.getElementById('new-proj-tax-type').value = 'none';
                 toggleProjTypeFields();
+                toggleProjTaxRate();
                 await loadData();
             } else { alert("建立失敗"); }
         }
