@@ -754,7 +754,11 @@
         }
 
         function renderProjectPage() {
-            const projects = allData.filter(r => r.type === 'project').sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
+            const statusOrder = {'進行中':0,'完工':1,'結案':2};
+            const projects = allData.filter(r => r.type === 'project').sort((a,b) => {
+                const sd = (statusOrder[a.status]??0) - (statusOrder[b.status]??0);
+                return sd !== 0 ? sd : new Date(b.timestamp) - new Date(a.timestamp);
+            });
             const incomes = allData.filter(r => r.type === 'proj_income');
             const expenses = allData.filter(r => r.type === 'proj_expense');
             const laborRecs = allData.filter(r => r.type === 'proj_labor');
