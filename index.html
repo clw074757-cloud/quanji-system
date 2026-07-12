@@ -774,8 +774,10 @@
                     totalTax += taxAmount;
                 }
             });
-            const totalReceived = incomes.reduce((s,i) => s + (parseInt(i.amount)||0), 0);
-            const totalExpense = expenses.reduce((s,e) => s + (parseInt(e.amount)||0), 0);
+            const totalReceived = projects.reduce((s,p) =>
+                s + incomes.filter(i => i.project_id == p.id).reduce((ss,i) => ss + (parseInt(i.amount)||0), 0), 0);
+            const totalExpense = projects.reduce((s,p) =>
+                s + expenses.filter(e => e.project_id == p.id).reduce((ss,e) => ss + (parseInt(e.amount)||0), 0), 0);
             const totalProfit = totalReceived - totalExpense;
             const totalOutstanding = totalPayable - totalReceived;
 
