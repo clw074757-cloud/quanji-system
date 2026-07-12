@@ -763,21 +763,19 @@
             const expenses = allData.filter(r => r.type === 'proj_expense');
             const laborRecs = allData.filter(r => r.type === 'proj_labor');
 
-            // 合約案：用 contract_amount（含稅總額）；點工案：用出工記錄總和
-            let totalPayable = 0, totalTax = 0;
+            // 先算每個案件的 payable/received/expense，再加總 → 總覽數字 = 卡片加總，不可能對不上
+            let totalPayable = 0, totalTax = 0, totalReceived = 0, totalExpense = 0;
             projects.forEach(p => {
-                if(p.project_type === 'labor') {
-                    totalPayable += laborRecs.filter(l => l.project_id == p.id).reduce((ss,l) => ss + (parseInt(l.amount)||0), 0);
-                } else {
-                    const { taxAmount, taxTotal } = calcTax(parseInt(p.contract_amount)||0, p.tax_type, p.tax_rate);
-                    totalPayable += taxTotal;
-                    totalTax += taxAmount;
-                }
+                const isL = p.project_type === 'labor';
+                const base = isL
+                    ? laborRecs.filter(l => l.project_id == p.id).reduce((ss,l) => ss + (parseInt(l.amount)||0), 0)
+                    : (parseInt(p.contract_amount) || 0);
+                const { taxAmount, taxTotal } = calcTax(base, p.tax_type, p.tax_rate);
+                totalPayable += taxTotal;
+                totalTax += taxAmount;
+                totalReceived += incomes.filter(i => i.project_id == p.id).reduce((ss,i) => ss + (parseInt(i.amount)||0), 0);
+                totalExpense += expenses.filter(e => e.project_id == p.id).reduce((ss,e) => ss + (parseInt(e.amount)||0), 0);
             });
-            const totalReceived = projects.reduce((s,p) =>
-                s + incomes.filter(i => i.project_id == p.id).reduce((ss,i) => ss + (parseInt(i.amount)||0), 0), 0);
-            const totalExpense = projects.reduce((s,p) =>
-                s + expenses.filter(e => e.project_id == p.id).reduce((ss,e) => ss + (parseInt(e.amount)||0), 0), 0);
             const totalProfit = totalReceived - totalExpense;
             const totalOutstanding = totalPayable - totalReceived;
 
