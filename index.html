@@ -9,6 +9,12 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@500;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        #leaflet-map { height: 100%; min-height: 300px; }
+        .leaflet-container { background: #1a1a1a; }
+    </style>
     <style>
         body { font-family: 'Noto Sans TC', sans-serif; background-color: #000000; color: #fca5a5; font-size: 16px; -webkit-tap-highlight-color: transparent; }
         .hidden { display: none !important; }
@@ -126,6 +132,7 @@
                         <div class="font-bold text-[#fca5a5]">💰 本週預估薪資</div>
                         <div id="my-salary-text" class="text-2xl font-black text-[#dc2626] font-mono">$0</div>
                     </div>
+                    <div class="text-right text-xs text-[#7f1d1d] mt-1 pr-2">* 包含駕駛津貼，依最終結算為準</div>
                 </div>
                 <div id="upcoming-missions-container"></div>
                 <div class="mt-4 text-center"><span id="gps-status" class="text-sm font-bold text-[#ef4444] bg-[#262626] px-3 py-1 rounded-full border border-[#7f1d1d]">📍 點擊打卡以獲取定位</span></div>
@@ -174,7 +181,14 @@
                     </div>
                     <div><label class="text-label">駕駛人 (勾選)</label><div id="dispatch-drivers-list" class="grid grid-cols-2 gap-2 bg-[#1a0505] p-3 rounded border border-[#dc2626]"></div></div>
                     <div><label class="text-label">陪同人員 (勾選)</label><div id="dispatch-partners-list" class="grid grid-cols-2 gap-2 bg-[#262626] p-3 rounded border border-[#7f1d1d]"></div></div>
-                    <div><label class="text-label">施工地點</label><input id="dispatch-loc" placeholder="輸入地點" class="input-box"></div>
+                    <div>
+                        <label class="text-label">施工地點</label>
+                        <input id="dispatch-loc" placeholder="例：台北市信義區信義路五段7號" class="input-box">
+                        <button onclick="openMapModal()" class="btn btn-secondary border border-yellow-700 text-yellow-400 text-sm py-2 mb-2">🗺 在地圖上標記工地位置</button>
+                        <div id="dispatch-coords-display" class="hidden text-xs bg-[#0a1f0a] px-3 py-2 rounded border border-green-900 mb-2"></div>
+                        <input type="hidden" id="dispatch-site-lat">
+                        <input type="hidden" id="dispatch-site-lng">
+                    </div>
                     <div><label class="text-label">派工內容</label><textarea id="dispatch-note" placeholder="輸入詳細工作內容..." rows="2" class="input-box"></textarea></div>
                     <button onclick="submitDispatch()" class="btn btn-warning text-lg">指派任務</button>
                 </div>
@@ -309,7 +323,23 @@
         </div>
     </div>
 
-<div id="proj-edit-modal" class="fixed inset-0 bg-black/90 z-[80] hidden flex items-center justify-center p-4">
+    <div id="map-modal" class="fixed inset-0 z-[150] hidden flex flex-col" style="background:#000;">
+        <div class="flex items-center justify-between px-4 py-3 bg-[#171717] border-b border-[#7f1d1d] flex-shrink-0">
+            <h3 class="text-lg font-black text-[#fca5a5]">📍 選擇工地位置</h3>
+            <button onclick="closeMapModal()" class="text-gray-400 text-3xl leading-none">✕</button>
+        </div>
+        <div class="flex gap-2 px-3 py-2 bg-[#0f0f0f] flex-shrink-0">
+            <input id="map-search-input" class="input-box mb-0 flex-1" style="margin-bottom:0;" placeholder="輸入地址搜尋（可選）">
+            <button onclick="searchMapAddress()" class="btn btn-secondary px-4 py-2 text-sm" style="width:auto;">搜尋</button>
+        </div>
+        <div id="leaflet-map" class="flex-1"></div>
+        <div class="px-4 py-3 bg-[#171717] border-t border-[#7f1d1d] flex-shrink-0">
+            <div id="map-selected-coords" class="text-sm text-gray-400 mb-3 font-bold">👆 點擊地圖選擇工地位置</div>
+            <button onclick="confirmMapLocation()" id="map-confirm-btn" class="btn btn-primary" disabled>確認此位置</button>
+        </div>
+    </div>
+
+    <div id="proj-edit-modal" class="fixed inset-0 bg-black/90 z-[80] hidden flex items-center justify-center p-4">
         <div class="bg-[#171717] w-full max-w-md p-6 rounded-2xl border-2 border-blue-700 max-h-[90vh] overflow-y-auto">
             <h3 class="text-2xl font-black mb-4 text-blue-400">✏️ 編輯案件</h3>
             <input type="hidden" id="proj-edit-id">
@@ -435,37 +465,90 @@
             }
         }
 
+        function calcDistance(lat1, lng1, lat2, lng2) {
+            const R = 6371;
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLng = (lng2 - lng1) * Math.PI / 180;
+            const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) * Math.sin(dLng/2)**2;
+            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        }
+
+        async function geocodeAddress(addr) {
+            try {
+                const r = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(addr)}&format=json&limit=1`, { headers: {'User-Agent':'QuanjiSystem/1.0'} });
+                const d = await r.json();
+                if (d && d.length > 0) return { lat: parseFloat(d[0].lat), lng: parseFloat(d[0].lon) };
+            } catch(e) {}
+            return null;
+        }
+
         async function executeClockIn(type, btnElement) {
             // [FIX] 打卡期間停用所有打卡按鈕，防止重複打卡
             const allClockBtns = document.querySelectorAll('#page-clock .btn');
             allClockBtns.forEach(b => { b.disabled = true; });
             const originalText = btnElement.innerText;
-            btnElement.innerText = "定位中...";
-            document.getElementById('gps-status').innerText = "📍 正在獲取精準定位...";
             const restoreBtns = () => { allClockBtns.forEach(b => { b.disabled = false; }); btnElement.innerText = originalText; };
 
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(async p => {
-                    const exactLocation = `${p.coords.latitude.toFixed(5)}, ${p.coords.longitude.toFixed(5)}`;
-                    document.getElementById('gps-status').innerText = `📍 定位成功`;
-                    document.getElementById('gps-status').className = "text-sm font-bold text-[#fca5a5] bg-[#1a0505] px-3 py-1 rounded-full border border-[#dc2626]";
-                    const payload = { employee_name: currentUser.employee_name, check_type: type, timestamp: new Date().toISOString(), location: exactLocation };
-                    if(await insertData('clock', payload)) {
-                        alert(`【${type}】打卡成功\n時間與精準定位已紀錄`);
-                        await loadData();
-                    } else {
-                        alert("打卡失敗，請檢查網路");
-                    }
-                    restoreBtns();
-                }, () => {
-                    alert("⚠️ 無法獲取定位，打卡失敗。請開啟手機的 GPS 權限！");
-                    document.getElementById('gps-status').innerText = "⚠️ 定位失敗";
-                    restoreBtns();
-                }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
-            } else {
-                alert("裝置不支援定位");
+            // 找今日派工
+            const todayStr = new Date().toDateString();
+            const myDispatch = allData.filter(r => r.type === 'dispatch' &&
+                new Date(r.timestamp).toDateString() === todayStr &&
+                (r.employee_name === currentUser.employee_name ||
+                 (r.partners||'').includes(currentUser.employee_name) ||
+                 (r.drivers||'').includes(currentUser.employee_name)))
+                .sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp))[0];
+
+            if (!myDispatch) {
+                alert("⚠️ 今日無派工記錄，無法打卡\n請聯絡管理員確認派工");
                 restoreBtns();
+                return;
             }
+
+            btnElement.innerText = "定位中...";
+            document.getElementById('gps-status').innerText = "📍 正在獲取精準定位...";
+
+            if (!navigator.geolocation) { alert("裝置不支援定位"); restoreBtns(); return; }
+
+            navigator.geolocation.getCurrentPosition(async pos => {
+                const myLat = pos.coords.latitude, myLng = pos.coords.longitude;
+                const exactLocation = `${myLat.toFixed(5)}, ${myLng.toFixed(5)}`;
+
+                // 驗證距離
+                const siteName = myDispatch.project_name || '';
+                const siteLat = myDispatch.site_lat, siteLng = myDispatch.site_lng;
+
+                if (!siteLat || !siteLng) {
+                    alert("⚠️ 此派工記錄未設定工地座標，無法驗證位置\n請管理員重新建立派工並取得現場座標");
+                    document.getElementById('gps-status').innerText = "⚠️ 派工無座標資料";
+                    restoreBtns();
+                    return;
+                }
+
+                const dist = calcDistance(myLat, myLng, siteLat, siteLng);
+                if (dist > 3) {
+                    alert(`⚠️ 距離施工地點「${siteName}」約 ${dist.toFixed(1)} 公里\n超過允許範圍（3公里），無法打卡`);
+                    document.getElementById('gps-status').innerText = `⚠️ 距工地 ${dist.toFixed(1)} km，超出範圍`;
+                    document.getElementById('gps-status').className = "text-sm font-bold text-yellow-400 bg-[#262626] px-3 py-1 rounded-full border border-yellow-700";
+                    restoreBtns();
+                    return;
+                }
+
+                document.getElementById('gps-status').innerText = `📍 定位成功`;
+                document.getElementById('gps-status').className = "text-sm font-bold text-[#fca5a5] bg-[#1a0505] px-3 py-1 rounded-full border border-[#dc2626]";
+
+                const payload = { employee_name: currentUser.employee_name, check_type: type, timestamp: new Date().toISOString(), location: exactLocation };
+                if(await insertData('clock', payload)) {
+                    alert(`【${type}】打卡成功\n時間與精準定位已紀錄\n距工地約 ${dist.toFixed(2)} 公里`);
+                    await loadData();
+                } else {
+                    alert("打卡失敗，請檢查網路");
+                }
+                restoreBtns();
+            }, () => {
+                alert("⚠️ 無法獲取定位，打卡失敗。請開啟手機的 GPS 權限！");
+                document.getElementById('gps-status').innerText = "⚠️ 定位失敗";
+                restoreBtns();
+            }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
         }
 
         async function downloadSingle(url, name) {
@@ -1279,20 +1362,89 @@
             }
         }
 
+        // ── 地圖 Modal ──
+        let _map = null, _mapMarker = null, _mapSelectedLat = null, _mapSelectedLng = null;
+
+        function openMapModal() {
+            document.getElementById('map-modal').classList.remove('hidden');
+            // 初始化地圖（只建一次）
+            if (!_map) {
+                _map = L.map('leaflet-map').setView([25.05, 121.55], 12);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '© OpenStreetMap', maxZoom: 19
+                }).addTo(_map);
+                _map.on('click', function(e) {
+                    _mapSelectedLat = e.latlng.lat;
+                    _mapSelectedLng = e.latlng.lng;
+                    if (_mapMarker) _mapMarker.setLatLng(e.latlng);
+                    else _mapMarker = L.marker(e.latlng).addTo(_map);
+                    document.getElementById('map-selected-coords').innerText =
+                        `📍 已選擇：${_mapSelectedLat.toFixed(5)}, ${_mapSelectedLng.toFixed(5)}`;
+                    document.getElementById('map-confirm-btn').disabled = false;
+                });
+            }
+            // 已有舊座標則移至該位置
+            const lat = parseFloat(document.getElementById('dispatch-site-lat').value);
+            const lng = parseFloat(document.getElementById('dispatch-site-lng').value);
+            if (lat && lng) {
+                _map.setView([lat, lng], 16);
+                if (_mapMarker) _mapMarker.setLatLng([lat, lng]);
+                else _mapMarker = L.marker([lat, lng]).addTo(_map);
+                _mapSelectedLat = lat; _mapSelectedLng = lng;
+                document.getElementById('map-selected-coords').innerText =
+                    `📍 已選擇：${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+                document.getElementById('map-confirm-btn').disabled = false;
+            }
+            setTimeout(() => _map.invalidateSize(), 100);
+        }
+
+        function closeMapModal() {
+            document.getElementById('map-modal').classList.add('hidden');
+        }
+
+        async function searchMapAddress() {
+            const q = document.getElementById('map-search-input').value.trim();
+            if (!q) return;
+            const coords = await geocodeAddress(q);
+            if (!coords) return alert("找不到該地址，請嘗試更完整的地址");
+            _map.setView([coords.lat, coords.lng], 16);
+        }
+
+        function confirmMapLocation() {
+            if (_mapSelectedLat === null) return;
+            document.getElementById('dispatch-site-lat').value = _mapSelectedLat;
+            document.getElementById('dispatch-site-lng').value = _mapSelectedLng;
+            const d = document.getElementById('dispatch-coords-display');
+            d.classList.remove('hidden');
+            d.className = "text-xs text-green-400 bg-[#0a1f0a] px-3 py-2 rounded border border-green-900 mb-2";
+            d.innerHTML = `✅ 工地位置已標記　<a href="https://www.google.com/maps?q=${_mapSelectedLat},${_mapSelectedLng}" target="_blank" class="underline text-blue-400">Google Maps 確認</a>`;
+            closeMapModal();
+        }
+
         async function submitDispatch() {
             const emp=document.getElementById('dispatch-emp-select').value,
                   date=document.getElementById('dispatch-date').value,
-                  loc=document.getElementById('dispatch-loc').value,
+                  loc=document.getElementById('dispatch-loc').value.trim(),
                   note=document.getElementById('dispatch-note').value,
                   partners=Array.from(document.querySelectorAll('#dispatch-partners-list input:checked')).map(c=>c.value).join(', '),
                   drivers=Array.from(document.querySelectorAll('#dispatch-drivers-list input:checked')).map(c=>c.value).join(', ');
             if(!emp||!date) return alert("請選擇負責人與日期");
+            if(!loc) return alert("請輸入施工地點");
+            const siteLat = document.getElementById('dispatch-site-lat').value;
+            const siteLng = document.getElementById('dispatch-site-lng').value;
+            if(!siteLat || !siteLng) return alert("請按「🗺 在地圖上標記工地位置」設定工地座標");
             // [FIX] 用本地時間建立日期，避免 UTC 轉換造成日期少一天
             const parts=date.split('-').map(Number);
             const localTimestamp=new Date(parts[0],parts[1]-1,parts[2]).toISOString();
-            if(await insertData('dispatch',{employee_name:emp,project_name:loc,notes:note,partners,drivers,timestamp:localTimestamp})) {
+            if(await insertData('dispatch',{employee_name:emp,project_name:loc,notes:note,partners,drivers,site_lat:parseFloat(siteLat),site_lng:parseFloat(siteLng),timestamp:localTimestamp})) {
                 alert("指派成功");
-                document.getElementById('dispatch-loc').value=''; document.getElementById('dispatch-note').value='';
+                document.getElementById('dispatch-loc').value='';
+                document.getElementById('dispatch-note').value='';
+                document.getElementById('dispatch-site-lat').value='';
+                document.getElementById('dispatch-site-lng').value='';
+                document.getElementById('dispatch-coords-display').classList.add('hidden');
+                _mapSelectedLat = null; _mapSelectedLng = null;
+                if (_mapMarker) { _mapMarker.remove(); _mapMarker = null; }
                 document.querySelectorAll('#dispatch-partners-list input').forEach(cb=>cb.checked=false);
                 document.querySelectorAll('#dispatch-drivers-list input').forEach(cb=>cb.checked=false);
                 await loadData();
