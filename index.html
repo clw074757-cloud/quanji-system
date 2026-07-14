@@ -436,40 +436,89 @@
             }
         }
 
+        function calcDistance(lat1, lng1, lat2, lng2) {
+            const R = 6371;
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLng = (lng2 - lng1) * Math.PI / 180;
+            const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) * Math.sin(dLng/2)**2;
+            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        }
+
+        async function geocodeAddress(addr) {
+            try {
+                const r = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(addr)}&format=json&limit=1`, { headers: {'User-Agent':'QuanjiSystem/1.0'} });
+                const d = await r.json();
+                if (d && d.length > 0) return { lat: parseFloat(d[0].lat), lng: parseFloat(d[0].lon) };
+            } catch(e) {}
+            return null;
+        }
+
         async function executeClockIn(type, btnElement) {
             // [FIX] 打卡期間停用所有打卡按鈕，防止重複打卡
             const allClockBtns = document.querySelectorAll('#page-clock .btn');
             allClockBtns.forEach(b => { b.disabled = true; });
             const originalText = btnElement.innerText;
+            const restoreBtns = () => { allClockBtns.forEach(b => { b.disabled = false; }); btnElement.innerText = originalText; };
+
+            // 找今日派工
+            const todayStr = new Date().toDateString();
+            const myDispatch = allData.filter(r => r.type === 'dispatch' &&
+                new Date(r.timestamp).toDateString() === todayStr &&
+                (r.employee_name === currentUser.employee_name ||
+                 (r.partners||'').includes(currentUser.employee_name) ||
+                 (r.drivers||'').includes(currentUser.employee_name)))
+                .sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp))[0];
+
+            if (!myDispatch) {
+                alert("⚠️ 今日無派工記錄，無法打卡\n請聯絡管理員確認派工");
+                restoreBtns();
+                return;
+            }
+
             btnElement.innerText = "定位中...";
             document.getElementById('gps-status').innerText = "📍 正在獲取精準定位...";
 
-            const restoreBtns = () => { allClockBtns.forEach(b => { b.disabled = false; }); btnElement.innerText = originalText; };
+            if (!navigator.geolocation) { alert("裝置不支援定位"); restoreBtns(); return; }
 
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(async p => {
-                    const exactLocation = `${p.coords.latitude.toFixed(5)}, ${p.coords.longitude.toFixed(5)}`;
-                    document.getElementById('gps-status').innerText = `📍 定位成功`;
-                    document.getElementById('gps-status').className = "text-sm font-bold text-[#fca5a5] bg-[#1a0505] px-3 py-1 rounded-full border border-[#dc2626]";
+            navigator.geolocation.getCurrentPosition(async pos => {
+                const myLat = pos.coords.latitude, myLng = pos.coords.longitude;
+                const exactLocation = `${myLat.toFixed(5)}, ${myLng.toFixed(5)}`;
 
-                    const payload = { employee_name: currentUser.employee_name, check_type: type, timestamp: new Date().toISOString(), location: exactLocation };
+                // 驗證距離
+                const siteName = myDispatch.project_name || '';
+                btnElement.innerText = "驗證位置...";
+                document.getElementById('gps-status').innerText = "📍 驗證施工地點中...";
 
-                    if(await insertData('clock', payload)) {
-                        alert(`【${type}】打卡成功\n時間與精準定位已紀錄`);
-                        await loadData();
-                    } else {
-                        alert("打卡失敗，請檢查網路");
+                const siteCoords = siteName ? await geocodeAddress(siteName) : null;
+
+                if (siteCoords) {
+                    const dist = calcDistance(myLat, myLng, siteCoords.lat, siteCoords.lng);
+                    if (dist > 3) {
+                        alert(`⚠️ 距離施工地點「${siteName}」約 ${dist.toFixed(1)} 公里\n超過允許範圍（3公里），無法打卡`);
+                        document.getElementById('gps-status').innerText = `⚠️ 距工地 ${dist.toFixed(1)} km，超出範圍`;
+                        document.getElementById('gps-status').className = "text-sm font-bold text-yellow-400 bg-[#262626] px-3 py-1 rounded-full border border-yellow-700";
+                        restoreBtns();
+                        return;
                     }
-                    restoreBtns();
-                }, () => {
-                    alert("⚠️ 無法獲取定位，打卡失敗。請開啟手機的 GPS 權限！");
-                    document.getElementById('gps-status').innerText = "⚠️ 定位失敗";
-                    restoreBtns();
-                }, { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 });
-            } else {
-                alert("裝置不支援定位");
+                }
+                // 在範圍內（或無法定位工地時允許打卡）
+                document.getElementById('gps-status').innerText = `📍 定位成功`;
+                document.getElementById('gps-status').className = "text-sm font-bold text-[#fca5a5] bg-[#1a0505] px-3 py-1 rounded-full border border-[#dc2626]";
+
+                const payload = { employee_name: currentUser.employee_name, check_type: type, timestamp: new Date().toISOString(), location: exactLocation };
+                if(await insertData('clock', payload)) {
+                    const distMsg = siteCoords ? `\n距工地約 ${calcDistance(myLat, myLng, siteCoords.lat, siteCoords.lng).toFixed(2)} 公里` : '';
+                    alert(`【${type}】打卡成功\n時間與精準定位已紀錄${distMsg}`);
+                    await loadData();
+                } else {
+                    alert("打卡失敗，請檢查網路");
+                }
                 restoreBtns();
-            }
+            }, () => {
+                alert("⚠️ 無法獲取定位，打卡失敗。請開啟手機的 GPS 權限！");
+                document.getElementById('gps-status').innerText = "⚠️ 定位失敗";
+                restoreBtns();
+            }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
         }
 
         async function downloadSingle(url, name) {
