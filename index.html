@@ -175,7 +175,14 @@
                     </div>
                     <div><label class="text-label">駕駛人 (勾選)</label><div id="dispatch-drivers-list" class="grid grid-cols-2 gap-2 bg-[#1a0505] p-3 rounded border border-[#dc2626]"></div></div>
                     <div><label class="text-label">陪同人員 (勾選)</label><div id="dispatch-partners-list" class="grid grid-cols-2 gap-2 bg-[#262626] p-3 rounded border border-[#7f1d1d]"></div></div>
-                    <div><label class="text-label">施工地點</label><input id="dispatch-loc" placeholder="輸入地點" class="input-box"></div>
+                    <div>
+                        <label class="text-label">施工地點</label>
+                        <input id="dispatch-loc" placeholder="輸入地點" class="input-box" oninput="clearDispatchCoords()">
+                        <button onclick="captureDispatchGPS()" class="btn btn-secondary border border-yellow-700 text-yellow-400 text-sm py-2 mb-2">📍 取得現場座標（在工地時按）</button>
+                        <div id="dispatch-coords-display" class="hidden text-xs text-green-400 bg-[#0a1f0a] px-3 py-2 rounded border border-green-900 mb-2">✅ 工地座標已設定</div>
+                        <input type="hidden" id="dispatch-site-lat">
+                        <input type="hidden" id="dispatch-site-lng">
+                    </div>
                     <div><label class="text-label">派工內容</label><textarea id="dispatch-note" placeholder="輸入詳細工作內容..." rows="2" class="input-box"></textarea></div>
                     <button onclick="submitDispatch()" class="btn btn-warning text-lg">指派任務</button>
                 </div>
@@ -486,29 +493,30 @@
 
                 // 驗證距離
                 const siteName = myDispatch.project_name || '';
-                btnElement.innerText = "驗證位置...";
-                document.getElementById('gps-status').innerText = "📍 驗證施工地點中...";
+                const siteLat = myDispatch.site_lat, siteLng = myDispatch.site_lng;
 
-                const siteCoords = siteName ? await geocodeAddress(siteName) : null;
-
-                if (siteCoords) {
-                    const dist = calcDistance(myLat, myLng, siteCoords.lat, siteCoords.lng);
-                    if (dist > 3) {
-                        alert(`⚠️ 距離施工地點「${siteName}」約 ${dist.toFixed(1)} 公里\n超過允許範圍（3公里），無法打卡`);
-                        document.getElementById('gps-status').innerText = `⚠️ 距工地 ${dist.toFixed(1)} km，超出範圍`;
-                        document.getElementById('gps-status').className = "text-sm font-bold text-yellow-400 bg-[#262626] px-3 py-1 rounded-full border border-yellow-700";
-                        restoreBtns();
-                        return;
-                    }
+                if (!siteLat || !siteLng) {
+                    alert("⚠️ 此派工記錄未設定工地座標，無法驗證位置\n請管理員重新建立派工並取得現場座標");
+                    document.getElementById('gps-status').innerText = "⚠️ 派工無座標資料";
+                    restoreBtns();
+                    return;
                 }
-                // 在範圍內（或無法定位工地時允許打卡）
+
+                const dist = calcDistance(myLat, myLng, siteLat, siteLng);
+                if (dist > 3) {
+                    alert(`⚠️ 距離施工地點「${siteName}」約 ${dist.toFixed(1)} 公里\n超過允許範圍（3公里），無法打卡`);
+                    document.getElementById('gps-status').innerText = `⚠️ 距工地 ${dist.toFixed(1)} km，超出範圍`;
+                    document.getElementById('gps-status').className = "text-sm font-bold text-yellow-400 bg-[#262626] px-3 py-1 rounded-full border border-yellow-700";
+                    restoreBtns();
+                    return;
+                }
+
                 document.getElementById('gps-status').innerText = `📍 定位成功`;
                 document.getElementById('gps-status').className = "text-sm font-bold text-[#fca5a5] bg-[#1a0505] px-3 py-1 rounded-full border border-[#dc2626]";
 
                 const payload = { employee_name: currentUser.employee_name, check_type: type, timestamp: new Date().toISOString(), location: exactLocation };
                 if(await insertData('clock', payload)) {
-                    const distMsg = siteCoords ? `\n距工地約 ${calcDistance(myLat, myLng, siteCoords.lat, siteCoords.lng).toFixed(2)} 公里` : '';
-                    alert(`【${type}】打卡成功\n時間與精準定位已紀錄${distMsg}`);
+                    alert(`【${type}】打卡成功\n時間與精準定位已紀錄\n距工地約 ${dist.toFixed(2)} 公里`);
                     await loadData();
                 } else {
                     alert("打卡失敗，請檢查網路");
@@ -1332,6 +1340,29 @@
             }
         }
 
+        function clearDispatchCoords() {
+            document.getElementById('dispatch-site-lat').value = '';
+            document.getElementById('dispatch-site-lng').value = '';
+            document.getElementById('dispatch-coords-display').classList.add('hidden');
+        }
+
+        function captureDispatchGPS() {
+            if (!navigator.geolocation) return alert("裝置不支援定位");
+            const btn = event.currentTarget;
+            btn.innerText = "📍 定位中..."; btn.disabled = true;
+            navigator.geolocation.getCurrentPosition(pos => {
+                document.getElementById('dispatch-site-lat').value = pos.coords.latitude;
+                document.getElementById('dispatch-site-lng').value = pos.coords.longitude;
+                const d = document.getElementById('dispatch-coords-display');
+                d.classList.remove('hidden');
+                d.innerText = `✅ 工地座標：${pos.coords.latitude.toFixed(5)}, ${pos.coords.longitude.toFixed(5)}`;
+                btn.innerText = "📍 取得現場座標（在工地時按）"; btn.disabled = false;
+            }, () => {
+                alert("⚠️ 定位失敗，請確認 GPS 權限");
+                btn.innerText = "📍 取得現場座標（在工地時按）"; btn.disabled = false;
+            }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
+        }
+
         async function submitDispatch() {
             const emp=document.getElementById('dispatch-emp-select').value,
                   date=document.getElementById('dispatch-date').value,
@@ -1340,12 +1371,18 @@
                   partners=Array.from(document.querySelectorAll('#dispatch-partners-list input:checked')).map(c=>c.value).join(', '),
                   drivers=Array.from(document.querySelectorAll('#dispatch-drivers-list input:checked')).map(c=>c.value).join(', ');
             if(!emp||!date) return alert("請選擇負責人與日期");
+            if(!loc) return alert("請輸入施工地點");
+            const siteLat = document.getElementById('dispatch-site-lat').value;
+            const siteLng = document.getElementById('dispatch-site-lng').value;
+            if(!siteLat || !siteLng) return alert("請按「取得現場座標」設定工地位置");
             // [FIX] 用本地時間建立日期，避免 UTC 轉換造成日期少一天
             const parts=date.split('-').map(Number);
             const localTimestamp=new Date(parts[0],parts[1]-1,parts[2]).toISOString();
-            if(await insertData('dispatch',{employee_name:emp,project_name:loc,notes:note,partners,drivers,timestamp:localTimestamp})) {
+            if(await insertData('dispatch',{employee_name:emp,project_name:loc,notes:note,partners,drivers,site_lat:parseFloat(siteLat),site_lng:parseFloat(siteLng),timestamp:localTimestamp})) {
                 alert("指派成功");
-                document.getElementById('dispatch-loc').value=''; document.getElementById('dispatch-note').value='';
+                document.getElementById('dispatch-loc').value='';
+                document.getElementById('dispatch-note').value='';
+                clearDispatchCoords();
                 document.querySelectorAll('#dispatch-partners-list input').forEach(cb=>cb.checked=false);
                 document.querySelectorAll('#dispatch-drivers-list input').forEach(cb=>cb.checked=false);
                 await loadData();
