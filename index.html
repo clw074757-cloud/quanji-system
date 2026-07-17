@@ -196,6 +196,17 @@
                 <div id="dispatch-list" class="space-y-2"></div>
             </div>
 
+            <div class="card" style="border-color:#1d4ed8;">
+                <h2 class="font-black text-blue-400 text-xl mb-4">⏰ 代為補打卡</h2>
+                <div class="grid grid-cols-2 gap-3">
+                    <div><label class="text-label">員工</label><select id="admin-clock-emp" class="input-box"></select></div>
+                    <div><label class="text-label">類型</label><select id="admin-clock-type" class="input-box"><option value="上班">上班</option><option value="下班">下班</option></select></div>
+                </div>
+                <label class="text-label">日期時間</label>
+                <input type="datetime-local" id="admin-clock-time" class="input-box" style="color-scheme:dark;">
+                <button onclick="adminClockIn()" class="btn btn-primary mt-2">✅ 代為補打卡</button>
+            </div>
+
             <div class="card">
                 <h2 class="font-black text-[#dc2626] text-xl mb-4">👤 員工資料管理</h2>
                 <div class="grid grid-cols-2 gap-3 mb-3">
@@ -708,6 +719,7 @@
             // -- 後台邏輯 --
             if(isAdmin) {
                 document.getElementById('dispatch-emp-select').innerHTML = emps.map(e => `<option value="${esc(e.employee_name)}">${esc(e.employee_name)}</option>`).join('');
+                document.getElementById('admin-clock-emp').innerHTML = emps.map(e => `<option value="${esc(e.employee_name)}">${esc(e.employee_name)}</option>`).join('');
                 document.getElementById('dispatch-partners-list').innerHTML = emps.map(e => `<label class="custom-checkbox"><input type="checkbox" value="${esc(e.employee_name)}"><span class="text-[#fca5a5] font-bold">${esc(e.employee_name)}</span></label>`).join('');
                 document.getElementById('dispatch-drivers-list').innerHTML = emps.map(e => `<label class="custom-checkbox border-blue-900"><input type="checkbox" value="${esc(e.employee_name)}"><span class="text-blue-400 font-bold">${esc(e.employee_name)}</span></label>`).join('');
 
@@ -1449,6 +1461,19 @@
                 document.querySelectorAll('#dispatch-drivers-list input').forEach(cb=>cb.checked=false);
                 await loadData();
             } else { alert("指派失敗"); }
+        }
+
+        async function adminClockIn() {
+            const emp = document.getElementById('admin-clock-emp').value;
+            const type = document.getElementById('admin-clock-type').value;
+            const time = document.getElementById('admin-clock-time').value;
+            if (!emp || !time) return alert("請選擇員工與時間");
+            if (!confirm(`確定為「${emp}」補打【${type}】卡？\n時間：${time}`)) return;
+            if (await insertData('clock', { employee_name: emp, check_type: type, timestamp: new Date(time).toISOString(), location: '管理員補打' })) {
+                alert("補打卡成功");
+                document.getElementById('admin-clock-time').value = '';
+                await loadData();
+            } else { alert("補打卡失敗"); }
         }
 
         async function manualRefresh() { await loadData(); alert("數據已更新"); }
