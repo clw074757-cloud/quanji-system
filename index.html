@@ -666,7 +666,7 @@
                     const hrs = (v.end - v.start) / 36e5;
                     const workHrs = hrs > 5 ? hrs - 1 : hrs;
                     let pay = 0;
-                    if (workHrs >= 7) pay = myWage;
+                    if (workHrs >= 6) pay = myWage;
                     else if (workHrs >= 1) pay = Math.floor(myWage / 2);
                     else pay = Math.floor(workHrs * (myWage / 8));
                     myTotalPay += pay;
@@ -759,7 +759,7 @@
                         const wage = empMap[name]||0;
                         const workHrs = hrs > 5 ? hrs - 1 : hrs;
                         let pay = 0, dayCount = 0;
-                        if (workHrs >= 7) { pay = wage; dayCount = 1.0; }
+                        if (workHrs >= 6) { pay = wage; dayCount = 1.0; }
                         else if (workHrs >= 1) { pay = Math.floor(wage / 2); dayCount = 0.5; }
                         else { pay = Math.floor(workHrs * (wage/8)); dayCount = parseFloat((workHrs/8).toFixed(1)); }
                         weeklyCalc[name] = (weeklyCalc[name]||0) + pay;
