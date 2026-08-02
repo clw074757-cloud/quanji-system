@@ -105,6 +105,19 @@
             </div>
             <div id="edit-emp-area" class="hidden"><label class="text-label">員工編號</label><input id="edit-code" class="input-box" placeholder="例如：A01"><label class="text-label">薪資職級</label><select id="edit-level" class="input-box" onchange="showGradeRange('edit')"></select><div id="edit-level-hint" class="text-xs text-yellow-500 -mt-2 mb-3"></div><label class="text-label">日薪 (元)</label><input id="edit-wage" type="number" class="input-box"><div class="grid grid-cols-2 gap-3"><div><label class="text-label">到職日</label><input id="edit-hire-date" type="date" class="input-box" style="color-scheme:dark;"></div><div><label class="text-label">試用天數</label><select id="edit-probation-days" class="input-box"><option value="30">30 天</option><option value="60">60 天</option><option value="90">90 天</option></select></div></div><label class="text-label">登入密碼</label><input id="edit-pwd" type="text" class="input-box"><div class="mt-4 p-3 bg-[#262626] rounded border border-[#7f1d1d]"><label class="custom-checkbox"><input type="checkbox" id="edit-is-admin"><span class="text-[#ef4444] font-bold text-lg">⚠️ 設為管理員</span></label></div></div>
             <div id="edit-payout-area" class="hidden"><label class="text-label">計薪開始日期</label><input id="edit-pay-start" type="date" class="input-box" style="color-scheme: dark;"><label class="text-label">計薪結束日期</label><input id="edit-pay-end" type="date" class="input-box" style="color-scheme: dark;"><label class="text-label">總發放金額</label><input id="edit-pay-amount" type="number" class="input-box"></div>
+            <div id="edit-labor-area" class="hidden">
+                <label class="text-label">日期</label><input id="edit-labor-date" type="date" class="input-box" style="color-scheme:dark;">
+                <div class="grid grid-cols-2 gap-3">
+                    <div><label class="text-label">出工人數</label><input id="edit-labor-count" type="number" class="input-box" min="1" oninput="calcEditLaborAmount()"></div>
+                    <div><label class="text-label">每工價格（元）</label><input id="edit-labor-rate" type="number" class="input-box" min="0" oninput="calcEditLaborAmount()"></div>
+                </div>
+                <label class="text-label">車資（選填）</label><input id="edit-labor-transport" type="number" class="input-box" min="0" oninput="calcEditLaborAmount()">
+                <div class="bg-[#262626] p-3 rounded-lg mb-3 flex justify-between items-center border border-yellow-900">
+                    <span class="text-sm text-gray-400 font-bold">應收小計</span>
+                    <span id="edit-labor-subtotal" class="text-yellow-400 font-black font-mono text-lg">$0</span>
+                </div>
+                <label class="text-label">備註</label><textarea id="edit-labor-note" class="input-box" rows="2"></textarea>
+            </div>
             <div class="flex gap-3 mt-4"><button onclick="closeEdit()" class="btn btn-secondary">取消</button><button onclick="saveEdit()" class="btn btn-primary">儲存</button></div>
         </div>
     </div>
@@ -1070,7 +1083,7 @@
                     const dailyRows = week.records.sort((a,b)=>(b.date||b.timestamp||'').localeCompare(a.date||a.timestamp||'')).map(l => `
                         <div class="flex justify-between items-center p-2 bg-[#000] rounded border border-yellow-900 mb-1">
                             <div><span class="text-yellow-400 font-bold text-sm">${esc(l.date||'')}</span><span class="text-xs text-gray-300 ml-2">${esc(l.worker_count)} 工 × $${(parseInt(l.daily_rate)||0).toLocaleString()}</span>${l.transport_fee?`<span class="text-xs text-blue-400 ml-2">＋車資 $${(parseInt(l.transport_fee)||0).toLocaleString()}</span>`:''}${l.notes?`<div class="text-xs text-gray-500">${esc(l.notes)}</div>`:''}</div>
-                            <div class="flex items-center gap-2"><span class="text-yellow-400 font-black font-mono text-sm">$${(parseInt(l.amount)||0).toLocaleString()}</span><button onclick="del(this,${l.id})" class="action-btn btn-del w-7 h-7 text-xs">✕</button></div>
+                            <div class="flex items-center gap-2"><span class="text-yellow-400 font-black font-mono text-sm">$${(parseInt(l.amount)||0).toLocaleString()}</span><button onclick="openEdit(${l.id})" class="action-btn btn-edit w-7 h-7 text-xs">✏️</button><button onclick="del(this,${l.id})" class="action-btn btn-del w-7 h-7 text-xs">✕</button></div>
                         </div>`).join('');
                     return `<details class="mb-2 bg-[#111] rounded-lg border border-yellow-900" ${weekIndex===0?'open':''}><summary class="p-3 cursor-pointer"><div class="flex justify-between items-center gap-2"><span class="font-black text-yellow-400">📅 ${week.label}</span><span class="text-yellow-400 font-black font-mono">$${week.amount.toLocaleString()}</span></div><div class="text-xs text-gray-400 mt-1">${week.records.length} 天｜共 ${week.workers.toLocaleString()} 工${week.transport?`｜車資 $${week.transport.toLocaleString()}`:''}</div></summary><div class="px-2 pb-2 border-t border-yellow-900 pt-2">${dailyRows}</div></details>`;
                 }).join('');
@@ -1533,7 +1546,7 @@
             const r=allData.find(d=>d.id===id); if(!r) return;
             currentEditId=id; currentEditData=r;
             document.getElementById('edit-id').value=id; document.getElementById('edit-type').value=r.type;
-            ['edit-time-group','edit-clock-area','edit-prog-area','edit-emp-area','edit-dispatch-area','edit-payout-area','edit-name-group'].forEach(a=>document.getElementById(a).classList.add('hidden'));
+            ['edit-time-group','edit-clock-area','edit-prog-area','edit-emp-area','edit-dispatch-area','edit-payout-area','edit-labor-area','edit-name-group'].forEach(a=>document.getElementById(a).classList.add('hidden'));
             if(r.employee_name) { document.getElementById('edit-name-group').classList.remove('hidden'); document.getElementById('edit-name').value=r.employee_name; }
             if(r.type==='employee') {
                 document.getElementById('edit-emp-area').classList.remove('hidden');
@@ -1541,6 +1554,15 @@
             } else if(r.type==='payout_history') {
                 document.getElementById('edit-payout-area').classList.remove('hidden'); document.getElementById('edit-name-group').classList.add('hidden');
                 document.getElementById('edit-pay-start').value=(r.start_date||'').replace(/\//g,'-'); document.getElementById('edit-pay-end').value=(r.end_date||'').replace(/\//g,'-'); document.getElementById('edit-pay-amount').value=r.total_amount;
+            } else if(r.type==='proj_labor') {
+                document.getElementById('edit-labor-area').classList.remove('hidden');
+                document.getElementById('edit-name-group').classList.add('hidden');
+                document.getElementById('edit-labor-date').value = r.date || '';
+                document.getElementById('edit-labor-count').value = r.worker_count || '';
+                document.getElementById('edit-labor-rate').value = r.daily_rate || '';
+                document.getElementById('edit-labor-transport').value = r.transport_fee || '';
+                document.getElementById('edit-labor-note').value = r.notes || '';
+                calcEditLaborAmount();
             } else if(r.type==='dispatch') {
                 document.getElementById('edit-dispatch-area').classList.remove('hidden'); document.getElementById('edit-time-group').classList.remove('hidden');
                 const dt=new Date(r.timestamp); dt.setMinutes(dt.getMinutes()-dt.getTimezoneOffset()); document.getElementById('edit-time').value=dt.toISOString().slice(0,16);
@@ -1560,12 +1582,14 @@
         }
 
         function closeEdit() { document.getElementById('edit-modal').classList.add('hidden'); }
+        function calcEditLaborAmount() { const cnt=parseInt(document.getElementById('edit-labor-count').value)||0; const rate=parseInt(document.getElementById('edit-labor-rate').value)||0; const trans=parseInt(document.getElementById('edit-labor-transport').value)||0; document.getElementById('edit-labor-subtotal').textContent='$'+(cnt*rate+trans).toLocaleString(); }
 
         async function saveEdit() {
             const type=document.getElementById('edit-type').value, payload={...currentEditData};
             delete payload.id; delete payload.type; delete payload.created_at;
             if(type==='employee') { payload.employee_name=document.getElementById('edit-name').value; payload.wage=document.getElementById('edit-wage').value; payload.wage_level=document.getElementById('edit-level').value; payload.hire_date=document.getElementById('edit-hire-date').value; payload.probation_days=parseInt(document.getElementById('edit-probation-days').value)||30; payload.password=document.getElementById('edit-pwd').value; payload.employee_code=document.getElementById('edit-code').value; payload.is_admin=document.getElementById('edit-is-admin').checked; }
             else if(type==='payout_history') { payload.start_date=document.getElementById('edit-pay-start').value.replace(/-/g,'/'); payload.end_date=document.getElementById('edit-pay-end').value.replace(/-/g,'/'); payload.total_amount=parseInt(document.getElementById('edit-pay-amount').value)||0; }
+            else if(type==='proj_labor') { const cnt=parseInt(document.getElementById('edit-labor-count').value)||0; const rate=parseInt(document.getElementById('edit-labor-rate').value)||0; const trans=parseInt(document.getElementById('edit-labor-transport').value)||0; payload.date=document.getElementById('edit-labor-date').value; payload.worker_count=cnt; payload.daily_rate=rate; payload.transport_fee=trans; payload.amount=cnt*rate+trans; payload.notes=document.getElementById('edit-labor-note').value; }
             else if(type==='dispatch') { payload.timestamp=new Date(document.getElementById('edit-time').value).toISOString(); payload.project_name=document.getElementById('edit-dispatch-loc').value; payload.notes=document.getElementById('edit-dispatch-note').value; payload.partners=Array.from(document.querySelectorAll('#edit-dispatch-partners-list input:checked')).map(c=>c.value).join(', '); payload.drivers=Array.from(document.querySelectorAll('#edit-dispatch-drivers-list input:checked')).map(c=>c.value).join(', '); }
             else { payload.timestamp=new Date(document.getElementById('edit-time').value).toISOString(); if(type==='clock') payload.check_type=document.getElementById('edit-check-type').value; else { payload.project_name=document.getElementById('edit-proj').value; payload.notes=document.getElementById('edit-note').value; } }
             if(await updateDataAPI(currentEditId,payload)) { if(type==='employee'&&(String(currentEditData.wage)!==String(payload.wage)||String(currentEditData.wage_level||'')!==String(payload.wage_level||''))){ await insertData('salary_change',{employee_id:currentEditData.employee_id||currentEditData.employee_name,employee_name:payload.employee_name,old_grade:currentEditData.wage_level||'',new_grade:payload.wage_level||'',old_wage:parseInt(currentEditData.wage)||0,new_wage:parseInt(payload.wage)||0,effective_date:new Date().toISOString().slice(0,10),reason:'員工資料人工調整',approved_by:currentUser.employee_name,timestamp:new Date().toISOString()}); } alert('修改成功'); closeEdit(); await loadData(); }
