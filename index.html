@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta http-equiv="cache-control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="pragma" content="no-cache">
+    <meta http-equiv="expires" content="0">
     <title>全技工程行 - 管理系統 v6.2</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -1808,6 +1811,25 @@
             }).subscribe();
         }
         function showBrowserNotification(m) { if("Notification" in window&&Notification.permission==="granted") new Notification("全技工程行",{body:m,icon:'https://vegqsdqxnvqupmzsgbpt.supabase.co/storage/v1/object/public/site_photos/F21060CB-BAB1-4E07-91AC-1E3F35796914.png'}); }
+
+        const APP_VERSION = document.title.match(/v[\d.]+/)?.[0] || '';
+        async function checkForUpdate() {
+            try {
+                const res = await fetch(location.href + '?_=' + Date.now(), { cache: 'no-store' });
+                const text = await res.text();
+                const match = text.match(/管理系統 (v[\d.]+)/);
+                if (match && match[1] !== APP_VERSION) {
+                    const banner = document.getElementById('update-banner');
+                    if (banner) banner.classList.remove('hidden');
+                }
+            } catch(e) {}
+        }
+        setInterval(checkForUpdate, 3 * 60 * 1000);
+        document.addEventListener('visibilitychange', () => { if(document.visibilityState === 'visible') checkForUpdate(); });
     </script>
+
+    <div id="update-banner" class="hidden fixed top-0 left-0 right-0 z-[500] bg-yellow-400 text-black text-center font-black py-3 px-4 shadow-lg cursor-pointer" onclick="location.reload(true)">
+        🔄 系統有新版本，點此立即更新
+    </div>
 </body>
 </html>
