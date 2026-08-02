@@ -189,6 +189,12 @@
             <div class="card border-yellow-600" data-admin-section="dispatch">
                 <h2 class="font-black text-yellow-500 text-xl mb-4">👷 派工指派</h2>
                 <div class="space-y-3">
+                    <div>
+                        <label class="text-label">關聯案件（選填）</label>
+                        <select id="dispatch-proj-select" class="input-box" onchange="fillDispatchFromProject()">
+                            <option value="">— 不指定案件 —</option>
+                        </select>
+                    </div>
                     <div class="grid grid-cols-2 gap-3">
                         <div><label class="text-label">指派負責人</label><select id="dispatch-emp-select" class="input-box"></select></div>
                         <div><label class="text-label">日期</label><input type="date" id="dispatch-date" class="input-box" style="color-scheme: dark;"></div>
@@ -808,6 +814,8 @@
             // -- 後台邏輯 --
             if(isAdmin) {
                 document.getElementById('dispatch-emp-select').innerHTML = emps.map(e => `<option value="${esc(e.employee_name)}">${esc(e.employee_name)}</option>`).join('');
+                const activeProjects = allData.filter(r => r.type === 'project' && r.status !== '結案').sort((a,b) => (a.project_name||'').localeCompare(b.project_name||'','zh-TW'));
+                document.getElementById('dispatch-proj-select').innerHTML = '<option value="">— 不指定案件 —</option>' + activeProjects.map(p => `<option value="${p.id}">${esc(p.project_name)}${p.client_name?' ('+esc(p.client_name)+')':''}</option>`).join('');
                 document.getElementById('admin-clock-emp').innerHTML = emps.map(e => `<option value="${esc(e.employee_name)}">${esc(e.employee_name)}</option>`).join('');
                 document.getElementById('dispatch-partners-list').innerHTML = emps.map(e => `<label class="custom-checkbox"><input type="checkbox" value="${esc(e.employee_name)}"><span class="text-[#fca5a5] font-bold">${esc(e.employee_name)}</span></label>`).join('');
                 document.getElementById('dispatch-drivers-list').innerHTML = emps.map(e => `<label class="custom-checkbox border-blue-900"><input type="checkbox" value="${esc(e.employee_name)}"><span class="text-blue-400 font-bold">${esc(e.employee_name)}</span></label>`).join('');
@@ -1768,6 +1776,7 @@
             const localTimestamp=new Date(parts[0],parts[1]-1,parts[2]).toISOString();
             if(await insertData('dispatch',{employee_name:emp,project_name:loc,notes:note,partners,drivers,site_lat:parseFloat(siteLat),site_lng:parseFloat(siteLng),timestamp:localTimestamp})) {
                 alert("指派成功");
+                document.getElementById('dispatch-proj-select').value='';
                 document.getElementById('dispatch-loc').value='';
                 document.getElementById('dispatch-note').value='';
                 document.getElementById('dispatch-site-lat').value='';
@@ -1792,6 +1801,17 @@
                 document.getElementById('admin-clock-time').value = '';
                 await loadData();
             } else { alert("補打卡失敗"); }
+        }
+
+        function fillDispatchFromProject() {
+            const projId = parseInt(document.getElementById('dispatch-proj-select').value);
+            if (!projId) return;
+            const p = allData.find(r => r.id === projId && r.type === 'project');
+            if (!p) return;
+            document.getElementById('dispatch-loc').value = p.project_name || '';
+            if (!document.getElementById('dispatch-note').value.trim()) {
+                document.getElementById('dispatch-note').value = p.notes || '';
+            }
         }
 
         async function manualRefresh() { await loadData(); alert("數據已更新"); }
