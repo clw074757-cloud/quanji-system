@@ -321,6 +321,7 @@
                 <h2 class="font-black text-[#dc2626] text-xl mb-4">＋ 新增案件</h2>
                 <div><label class="text-label">案件名稱</label><input id="new-proj-name" class="input-box" placeholder="例：信義路水電工程"></div>
                 <div><label class="text-label">業主名稱</label><input id="new-proj-client" class="input-box" placeholder="業主姓名或公司"></div>
+                <div><label class="text-label">施工地址</label><input id="new-proj-address" class="input-box" placeholder="例：台北市信義區信義路五段7號"></div>
                 <div><label class="text-label">案件類型</label>
                     <select id="new-proj-type" class="input-box" onchange="toggleProjTypeFields()">
                         <option value="contract">合約工程</option>
@@ -418,6 +419,7 @@
             <input type="hidden" id="proj-edit-id">
             <label class="text-label">案件名稱</label><input id="proj-edit-name" class="input-box">
             <label class="text-label">業主名稱</label><input id="proj-edit-client" class="input-box" placeholder="選填">
+            <label class="text-label">施工地址</label><input id="proj-edit-address" class="input-box" placeholder="選填">
             <label class="text-label">案件類型</label>
             <select id="proj-edit-type" class="input-box" onchange="toggleProjEditAmountGroup()">
                 <option value="contract">合約工程</option>
@@ -1107,6 +1109,7 @@
                         <div>
                             <h3 class="text-xl font-black text-[#fca5a5]">${esc(p.project_name)}</h3>
                             ${p.client_name?`<div class="text-sm text-gray-400 mt-0.5">👤 ${esc(p.client_name)}</div>`:''}
+                            ${p.address?`<div class="text-sm text-gray-500 mt-0.5">📍 ${esc(p.address)}</div>`:''}
                             <div class="flex items-center gap-2 mt-2">
                                 <span class="text-xs font-bold border px-2 py-0.5 rounded-full ${sc}">${esc(p.status)}</span>
                                 <select onchange="updateProjStatus(${p.id}, this.value)" class="text-xs bg-[#262626] text-[#fca5a5] border border-[#7f1d1d] rounded px-1 py-0.5">
@@ -1206,9 +1209,10 @@
             const taxType = document.getElementById('new-proj-tax-type').value;
             const taxRate = document.getElementById('new-proj-tax-rate').value || 5;
             if(projType === 'contract' && !amount) return alert("請輸入合約金額");
-            if(await insertData('project', { project_name:name, client_name:client, project_type:projType, contract_amount:projType==='contract'?parseInt(amount):0, tax_type:taxType, tax_rate:parseFloat(taxRate), start_date:date, status:'進行中', notes:note, timestamp:new Date().toISOString() })) {
+            const address = document.getElementById('new-proj-address').value.trim();
+            if(await insertData('project', { project_name:name, client_name:client, address, project_type:projType, contract_amount:projType==='contract'?parseInt(amount):0, tax_type:taxType, tax_rate:parseFloat(taxRate), start_date:date, status:'進行中', notes:note, timestamp:new Date().toISOString() })) {
                 alert("案件建立成功");
-                ['new-proj-name','new-proj-client','new-proj-amount','new-proj-note'].forEach(id => document.getElementById(id).value='');
+                ['new-proj-name','new-proj-client','new-proj-address','new-proj-amount','new-proj-note'].forEach(id => document.getElementById(id).value='');
                 document.getElementById('new-proj-type').value = 'contract';
                 document.getElementById('new-proj-tax-type').value = 'none';
                 toggleProjTypeFields();
@@ -1223,6 +1227,7 @@
             document.getElementById('proj-edit-id').value = projId;
             document.getElementById('proj-edit-name').value = p.project_name || '';
             document.getElementById('proj-edit-client').value = p.client_name || '';
+            document.getElementById('proj-edit-address').value = p.address || '';
             document.getElementById('proj-edit-type').value = p.project_type || 'contract';
             document.getElementById('proj-edit-amount').value = p.contract_amount || '';
             document.getElementById('proj-edit-tax-type').value = p.tax_type || 'none';
@@ -1260,6 +1265,7 @@
                 ...r,
                 project_name: name,
                 client_name: document.getElementById('proj-edit-client').value.trim(),
+                address: document.getElementById('proj-edit-address').value.trim(),
                 project_type: projType,
                 contract_amount: projType === 'contract' ? parseInt(amount) : 0,
                 tax_type: document.getElementById('proj-edit-tax-type').value,
@@ -1774,7 +1780,16 @@
             // [FIX] 用本地時間建立日期，避免 UTC 轉換造成日期少一天
             const parts=date.split('-').map(Number);
             const localTimestamp=new Date(parts[0],parts[1]-1,parts[2]).toISOString();
-            if(await insertData('dispatch',{employee_name:emp,project_name:loc,notes:note,partners,drivers,site_lat:parseFloat(siteLat),site_lng:parseFloat(siteLng),timestamp:localTimestamp})) {
+            const linkedProjId = parseInt(document.getElementById('dispatch-proj-select').value) || null;
+            if(await insertData('dispatch',{employee_name:emp,project_name:loc,notes:note,partners,drivers,site_lat:parseFloat(siteLat),site_lng:parseFloat(siteLng),linked_project_id:linkedProjId,timestamp:localTimestamp})) {
+                if(linkedProjId) {
+                    const proj = allData.find(r => r.id === linkedProjId && r.type === 'project');
+                    if(proj) {
+                        const allWorkers = [emp, ...partners.split(',').map(x=>x.trim()), ...drivers.split(',').map(x=>x.trim())].filter(x=>x);
+                        const workerCount = allWorkers.length;
+                        await insertData('proj_labor', { project_id: linkedProjId, project_name: proj.project_name, date, worker_count: workerCount, daily_rate: 0, transport_fee: 0, amount: 0, notes: `派工自動建立｜${allWorkers.join('、')}`, timestamp: new Date().toISOString() });
+                    }
+                }
                 alert("指派成功");
                 document.getElementById('dispatch-proj-select').value='';
                 document.getElementById('dispatch-loc').value='';
@@ -1808,7 +1823,7 @@
             if (!projId) return;
             const p = allData.find(r => r.id === projId && r.type === 'project');
             if (!p) return;
-            document.getElementById('dispatch-loc').value = p.project_name || '';
+            document.getElementById('dispatch-loc').value = p.address || p.project_name || '';
             if (!document.getElementById('dispatch-note').value.trim()) {
                 document.getElementById('dispatch-note').value = p.notes || '';
             }
