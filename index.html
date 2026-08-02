@@ -865,6 +865,18 @@
             }
         }
 
+        function getLaborWeekInfo(value) {
+            const raw=String(value||'').slice(0,10), parts=raw.split('-').map(Number);
+            let d=parts.length===3&&parts.every(Number.isFinite)?new Date(parts[0],parts[1]-1,parts[2]):new Date(value);
+            if(Number.isNaN(d.getTime())) d=new Date();
+            d.setHours(0,0,0,0);
+            const monday=new Date(d), day=monday.getDay();
+            monday.setDate(monday.getDate()-(day===0?6:day-1));
+            const sunday=new Date(monday); sunday.setDate(monday.getDate()+6);
+            const iso=x=>`${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}-${String(x.getDate()).padStart(2,'0')}`;
+            const display=x=>`${x.getFullYear()}/${x.getMonth()+1}/${x.getDate()}`;
+            return {key:iso(monday),label:`${display(monday)}～${display(sunday)}`};
+        }
         function renderProjectPage() {
             const statusOrder = {'進行中':0,'完工':1,'結案':2};
             const projects = allData.filter(r => r.type === 'project').sort((a,b) => {
@@ -927,7 +939,7 @@
                 const isLabor = p.project_type === 'labor';
                 const projIncomes = incomes.filter(i => i.project_id == p.id).sort((a,b) => (b.date||b.timestamp||'') > (a.date||a.timestamp||'') ? 1 : -1);
                 const projExpenses = expenses.filter(e => e.project_id == p.id).sort((a,b) => (b.date||b.timestamp||'') > (a.date||a.timestamp||'') ? 1 : -1);
-                const projLabors = laborRecs.filter(l => l.project_id == p.id).sort((a,b) => (a.date||'') > (b.date||'') ? 1 : -1);
+                const projLabors = laborRecs.filter(l => l.project_id == p.id).sort((a,b) => (b.date||b.timestamp||'').localeCompare(a.date||a.timestamp||''));
                 const received = projIncomes.reduce((s,i) => s + (parseInt(i.amount)||0), 0);
                 const spent = projExpenses.reduce((s,e) => s + (parseInt(e.amount)||0), 0);
                 const laborTotal = projLabors.reduce((s,l) => s + (parseInt(l.amount)||0), 0);
@@ -968,20 +980,21 @@
                         </div>
                     </div>`).join('');
 
-                const laborRows = projLabors.map(l => `
-                    <div class="flex justify-between items-center p-2 bg-[#000] rounded border border-yellow-900 mb-1">
-                        <div>
-                            <span class="text-yellow-400 font-bold text-sm">${esc(l.date||'')}</span>
-                            <span class="text-xs text-gray-300 ml-2">${esc(l.worker_count)} 工 × $${(parseInt(l.daily_rate)||0).toLocaleString()}</span>
-                            ${l.transport_fee?`<span class="text-xs text-blue-400 ml-2">＋車資 $${(parseInt(l.transport_fee)||0).toLocaleString()}</span>`:''}
-                            ${l.notes?`<div class="text-xs text-gray-500">${esc(l.notes)}</div>`:''}
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <span class="text-yellow-400 font-black font-mono text-sm">$${(parseInt(l.amount)||0).toLocaleString()}</span>
-                            <button onclick="del(this,${l.id})" class="action-btn btn-del w-7 h-7 text-xs">✕</button>
-                        </div>
-                    </div>`).join('');
-
+                const laborWeekMap = {};
+                projLabors.forEach(l => {
+                    const info = getLaborWeekInfo(l.date || l.timestamp);
+                    if(!laborWeekMap[info.key]) laborWeekMap[info.key] = {...info, records:[], workers:0, transport:0, amount:0};
+                    const week = laborWeekMap[info.key];
+                    week.records.push(l); week.workers += parseFloat(l.worker_count) || 0; week.transport += parseInt(l.transport_fee) || 0; week.amount += parseInt(l.amount) || 0;
+                });
+                const laborWeekRows = Object.values(laborWeekMap).sort((a,b)=>b.key.localeCompare(a.key)).map((week,weekIndex) => {
+                    const dailyRows = week.records.sort((a,b)=>(b.date||b.timestamp||'').localeCompare(a.date||a.timestamp||'')).map(l => `
+                        <div class="flex justify-between items-center p-2 bg-[#000] rounded border border-yellow-900 mb-1">
+                            <div><span class="text-yellow-400 font-bold text-sm">${esc(l.date||'')}</span><span class="text-xs text-gray-300 ml-2">${esc(l.worker_count)} 工 × $${(parseInt(l.daily_rate)||0).toLocaleString()}</span>${l.transport_fee?`<span class="text-xs text-blue-400 ml-2">＋車資 $${(parseInt(l.transport_fee)||0).toLocaleString()}</span>`:''}${l.notes?`<div class="text-xs text-gray-500">${esc(l.notes)}</div>`:''}</div>
+                            <div class="flex items-center gap-2"><span class="text-yellow-400 font-black font-mono text-sm">$${(parseInt(l.amount)||0).toLocaleString()}</span><button onclick="del(this,${l.id})" class="action-btn btn-del w-7 h-7 text-xs">✕</button></div>
+                        </div>`).join('');
+                    return `<details class="mb-2 bg-[#111] rounded-lg border border-yellow-900" ${weekIndex===0?'open':''}><summary class="p-3 cursor-pointer"><div class="flex justify-between items-center gap-2"><span class="font-black text-yellow-400">📅 ${week.label}</span><span class="text-yellow-400 font-black font-mono">$${week.amount.toLocaleString()}</span></div><div class="text-xs text-gray-400 mt-1">${week.records.length} 天｜共 ${week.workers.toLocaleString()} 工${week.transport?`｜車資 $${week.transport.toLocaleString()}`:''}</div></summary><div class="px-2 pb-2 border-t border-yellow-900 pt-2">${dailyRows}</div></details>`;
+                }).join('');
                 const actionBtns = `<div class="flex gap-1 mt-1 justify-end">
                     <button onclick="openProjEdit(${p.id})" class="text-xs text-blue-400 border border-blue-800 px-2 py-1 rounded">編輯</button>
                     <button onclick="del(this,${p.id})" class="text-xs text-red-500 border border-red-900 px-2 py-1 rounded">刪除</button>
@@ -1007,7 +1020,7 @@
                             <span class="text-yellow-400 text-xs">▼ 展開</span>
                         </summary>
                         <div class="pt-2">
-                            ${laborRows || '<div class="text-center text-gray-500 text-sm py-2">尚無出工記錄</div>'}
+                            ${laborWeekRows || '<div class="text-center text-gray-500 text-sm py-2">尚無出工記錄</div>'}
                             <button onclick="openProjModal('labor',${p.id})" class="btn btn-warning text-sm py-3 mt-2">＋ 記錄出工</button>
                         </div>
                     </details>` : '';
