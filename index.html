@@ -1331,76 +1331,57 @@
         async function insertData(t, d) { try{ const r=await fetch(DB_URL,{method:'POST',headers:HEADERS,body:JSON.stringify({type:t,data:d})}); return r.ok; }catch(e){ return false; } }
         async function uploadFileAPI(f) { const n=`img_${Date.now()}_${Math.random().toString(36).substr(2,5)}.jpg`; try{ const r=await fetch(`${STORAGE_URL}/${n}`,{method:'POST',headers:{'apikey':ANON_KEY,'Authorization':`Bearer ${ANON_KEY}`,'Content-Type':f.type,'x-upsert':'true'},body:f}); if(!r.ok) return null; return `${PROJECT_URL}/storage/v1/object/public/site_photos/${n}`; }catch(e){ return null; } }
 
-        // 確認伺服器實際回傳受影響資料，避免操作失敗卻顯示成功。
-        async function insertDataRecord(t, d) {
-            try {
-                const r = await fetch(DB_URL, {method:'POST',headers:HEADERS,body:JSON.stringify({type:t,data:d})});
-                if(!r.ok) return null;
-                const rows = await r.json();
-                return Array.isArray(rows) && rows.length ? rows[0] : null;
-            } catch(e) { return null; }
-        }
+        // 一般單筆修改仍確認實際受影響資料；高風險操作改由資料庫交易函式處理。
         async function updateDataAPI(i, d) {
             try {
-                const r = await fetch(DB_URL+'?id=eq.'+encodeURIComponent(i), {method:'PATCH',headers:HEADERS,body:JSON.stringify({data:d})});
-                if(!r.ok) return false;
-                const rows = await r.json();
-                return Array.isArray(rows) && rows.length > 0;
-            } catch(e) { return false; }
+                const r=await fetch(DB_URL+'?id=eq.'+encodeURIComponent(i),{method:'PATCH',headers:HEADERS,body:JSON.stringify({data:d})});
+                if(!r.ok)return false;
+                const rows=await r.json();
+                return Array.isArray(rows)&&rows.length>0;
+            } catch(e){return false;}
         }
         async function deleteDataAPI(i) {
             try {
-                const r = await fetch(DB_URL+'?id=eq.'+encodeURIComponent(i), {method:'DELETE',headers:HEADERS});
-                if(!r.ok) return false;
-                const rows = await r.json();
-                return Array.isArray(rows) && rows.length > 0;
-            } catch(e) { return false; }
+                const r=await fetch(DB_URL+'?id=eq.'+encodeURIComponent(i),{method:'DELETE',headers:HEADERS});
+                if(!r.ok)return false;
+                const rows=await r.json();
+                return Array.isArray(rows)&&rows.length>0;
+            } catch(e){return false;}
         }
-        function recordPayload(record) {
-            const data = {...record};
-            delete data.id; delete data.type; delete data.created_at;
-            return {type:record.type,data};
+        function getAdminCredentials() {
+            if(!currentUser?.is_admin)throw new Error('只有管理員可以執行此操作');
+            const id=currentUser.employee_id||currentUser.employee_name||currentUser.employee_code;
+            const password=currentUser.password||localStorage.getItem('last_user_pwd');
+            if(!id||!password)throw new Error('管理員驗證資料已失效，請重新登入');
+            return {id,password};
         }
-        async function deleteProjectChildren(projectId) {
-            const params = new URLSearchParams();
-            params.set('data->>project_id','eq.'+projectId);
-            try {
-                const r = await fetch(DB_URL+'?'+params.toString(), {method:'DELETE',headers:HEADERS});
-                if(!r.ok) return null;
-                const rows = await r.json();
-                return Array.isArray(rows) ? rows : null;
-            } catch(e) { return null; }
-        }
-        async function restoreRecords(records) {
-            if(!records.length) return true;
-            try {
-                const r = await fetch(DB_URL, {method:'POST',headers:HEADERS,body:JSON.stringify(records.map(recordPayload))});
-                return r.ok;
-            } catch(e) { return false; }
+        async function callDatabaseFunction(name,payload) {
+            const r=await fetch(PROJECT_URL+'/rest/v1/rpc/'+name,{method:'POST',headers:HEADERS,body:JSON.stringify(payload)});
+            if(!r.ok){
+                let detail='';
+                try{const error=await r.json();detail=error.message||error.details||'';}catch(e){}
+                throw new Error(detail||'資料庫交易失敗');
+            }
+            return await r.json();
         }
         async function del(button,id) {
-            const record = allData.find(r => r.id == id);
-            if(!record) return alert('找不到要刪除的資料，請先更新畫面');
-            const related = record.type === 'project' ? allData.filter(r => r.project_id == id) : [];
-            const employeeWarning = record.type === 'employee' ? '\n員工的歷史出勤、薪資與考核紀錄會保留。' : '';
-            const projectWarning = related.length ? '\n此案件的 '+related.length+' 筆收款、支出與出工明細也會一起刪除。' : '';
-            if(!confirm('確定刪除？'+projectWarning+employeeWarning)) return;
-            if(button) button.disabled = true;
-            let deletedChildren = [];
-            try {
-                if(record.type === 'project') {
-                    const result = await deleteProjectChildren(id);
-                    if(result === null) throw new Error('案件明細刪除失敗');
-                    deletedChildren = related;
-                }
-                if(!await deleteDataAPI(id)) {
-                    if(deletedChildren.length && !await restoreRecords(deletedChildren)) throw new Error('主資料刪除失敗，且案件明細自動復原失敗，請立即聯絡管理員');
-                    throw new Error('伺服器未刪除主資料');
-                }
+            const record=allData.find(r=>r.id==id);
+            if(!record)return alert('找不到要刪除的資料，請先更新畫面');
+            const related=record.type==='project'?allData.filter(r=>r.project_id==id):[];
+            const employeeWarning=record.type==='employee'?'\n員工的歷史出勤、薪資與考核紀錄會保留。':'';
+            const projectWarning=related.length?'\n此案件的 '+related.length+' 筆收款、支出與出工明細也會一起刪除。':'';
+            if(!confirm('確定刪除？'+projectWarning+employeeWarning))return;
+            if(button)button.disabled=true;
+            try{
+                const admin=getAdminCredentials();
+                const result=await callDatabaseFunction('delete_construction_record_atomic',{
+                    p_admin_id:admin.id,p_admin_password:admin.password,p_record_id:id
+                });
+                if(!result?.ok)throw new Error(result?.reason==='not_found'?'資料已不存在':'資料庫未完成刪除');
                 await loadData();
-            } catch(e) {
+            }catch(e){
                 alert('刪除未完成：'+e.message);
-                if(button) button.disabled = false;
+                if(button)button.disabled=false;
             }
         }
 
@@ -1548,13 +1529,13 @@
             return {wage:parseInt(emp.wage)||0,grade:emp.wage_level||''};
         }
 
-        // 考核採逐步確認，失敗時回復本次已完成的變更；待資料庫RPC授權後可升級為單一交易。
+        // 考核、申請狀態、薪資異動與員工目前薪資由資料庫在同一交易內完成。
         async function saveAssessment(publish) {
             const req=allData.find(r=>r.id===parseInt(document.getElementById('assessment-request-id').value));
             if(!req)return alert('找不到考核申請');
             const emp=allData.find(e=>e.type==='employee'&&(employeeKey(e)===req.employee_id||e.employee_name===req.employee_name));
             if(!emp)return alert('找不到員工資料');
-            const current=getEmployeeCompensationAtDate(emp,new Date()), score=calcAssessmentScore();
+            const current=getEmployeeCompensationAtDate(emp,new Date()),score=calcAssessmentScore();
             const grade=document.getElementById('assessment-proposed-grade').value;
             const wage=parseInt(document.getElementById('assessment-proposed-wage').value)||0;
             const safety=parseInt(document.getElementById('score-safety').value)||0;
@@ -1562,39 +1543,34 @@
             const effective=document.getElementById('assessment-effective-date').value;
             if(publish&&grade>String(current.grade||'')&&(safety<6||major))return alert('安全分數低於 6 分或有重大安全違規，不得核准升級');
             if(publish&&(!grade||!wage||!effective))return alert('核准前請填寫職級、日薪與生效日');
+
             const now=new Date().toISOString();
-            const data={employee_id:employeeKey(emp),employee_name:emp.employee_name,request_id:req.id,request_type:req.request_type,current_grade:current.grade,current_wage:current.wage,total_score:score.total,recommendation:score.rec,summary:document.getElementById('assessment-summary').value,proposed_grade:grade,proposed_wage:wage,effective_date:effective,major_safety:major,status:publish?'published':'pending_approval',approved_by:publish?currentUser.employee_name:'',approved_at:publish?now:'',timestamp:now};
-            SCORE_ITEMS.forEach(([k])=>{data[k+'_score']=parseInt(document.getElementById('score-'+k).value)||0;data[k+'_note']=document.getElementById('note-'+k).value;});
-            const existing=allData.find(r=>r.type==='employee_assessment'&&r.request_id==req.id&&r.status==='pending_approval');
-            const oldAssessment=existing?recordPayload(existing).data:null, oldRequest=recordPayload(req).data, oldEmployee=recordPayload(emp).data;
-            let assessmentId=existing?existing.id:null, inserted=false, requestUpdated=false, salaryRecord=null, employeeUpdated=false;
-            try {
-                if(existing){if(!await updateDataAPI(existing.id,data))throw new Error('考核內容儲存失敗');}
-                else {const row=await insertDataRecord('employee_assessment',data);if(!row)throw new Error('考核內容儲存失敗');assessmentId=row.id;inserted=true;}
-                const requestData={...oldRequest,status:publish?'published':'pending_approval'};
-                if(!await updateDataAPI(req.id,requestData))throw new Error('考核申請狀態更新失敗');
-                requestUpdated=true;
-                if(publish){
-                    salaryRecord=await insertDataRecord('salary_change',{employee_id:employeeKey(emp),employee_name:emp.employee_name,old_grade:current.grade,new_grade:grade,old_wage:current.wage,new_wage:wage,effective_date:effective,reason:'考核核准',approved_by:currentUser.employee_name,assessment_id:assessmentId,timestamp:now});
-                    if(!salaryRecord)throw new Error('薪資異動紀錄建立失敗');
-                    if(effective<=localDateKey(new Date())){
-                        const employeeData={...oldEmployee,wage_level:grade,wage:wage,last_review_date:localDateKey(new Date())};
-                        if(!await updateDataAPI(emp.id,employeeData))throw new Error('員工目前薪資更新失敗');
-                        employeeUpdated=true;
-                    }
-                }
+            const assessment={employee_id:employeeKey(emp),employee_name:emp.employee_name,request_id:req.id,request_type:req.request_type,current_grade:current.grade,current_wage:current.wage,total_score:score.total,recommendation:score.rec,summary:document.getElementById('assessment-summary').value,proposed_grade:grade,proposed_wage:wage,effective_date:effective,major_safety:major,status:publish?'published':'pending_approval',approved_by:publish?currentUser.employee_name:'',approved_at:publish?now:'',timestamp:now};
+            SCORE_ITEMS.forEach(([k])=>{assessment[k+'_score']=parseInt(document.getElementById('score-'+k).value)||0;assessment[k+'_note']=document.getElementById('note-'+k).value;});
+            const salaryChange=publish?{employee_id:employeeKey(emp),employee_name:emp.employee_name,old_grade:current.grade,new_grade:grade,old_wage:current.wage,new_wage:wage,effective_date:effective,reason:'考核核准',approved_by:currentUser.employee_name,timestamp:now}:null;
+            let employeeUpdate=null;
+            if(publish&&effective<=localDateKey(new Date())){
+                employeeUpdate={...emp,wage_level:grade,wage:wage,last_review_date:localDateKey(new Date())};
+                delete employeeUpdate.id;delete employeeUpdate.type;delete employeeUpdate.created_at;
+            }
+
+            const buttons=document.querySelectorAll('#assessment-admin-modal button');
+            buttons.forEach(button=>button.disabled=true);
+            try{
+                const admin=getAdminCredentials();
+                const result=await callDatabaseFunction('save_employee_assessment_atomic',{
+                    p_admin_id:admin.id,p_admin_password:admin.password,p_request_id:req.id,
+                    p_employee_record_id:emp.id,p_assessment:assessment,p_publish:publish,
+                    p_salary_change:salaryChange,p_employee_update:employeeUpdate
+                });
+                if(!result?.ok)throw new Error('資料庫未完成考核交易');
                 closeAdminAssessment();
                 alert(publish?(effective>localDateKey(new Date())?'考核已核准，薪資將於 '+effective+' 生效':'考核已核准並發布'):'已儲存，等待人工核准');
                 await loadData();
-            } catch(e) {
-                const results=[];
-                if(employeeUpdated)results.push(await updateDataAPI(emp.id,oldEmployee));
-                if(salaryRecord&&salaryRecord.id)results.push(await deleteDataAPI(salaryRecord.id));
-                if(requestUpdated)results.push(await updateDataAPI(req.id,oldRequest));
-                if(inserted&&assessmentId)results.push(await deleteDataAPI(assessmentId));
-                else if(existing&&oldAssessment)results.push(await updateDataAPI(existing.id,oldAssessment));
-                alert('儲存未完成：'+e.message+(results.every(Boolean)?'，本次變更已回復':'；自動回復未完全成功，請立即檢查資料'));
-                await loadData();
+            }catch(e){
+                alert('儲存未完成：'+e.message);
+            }finally{
+                buttons.forEach(button=>button.disabled=false);
             }
         }
 
