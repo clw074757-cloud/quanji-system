@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>全技工程行 - 管理系統 v5.7</title>
+    <title>全技工程行 - 管理系統 v5.8</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -57,7 +57,7 @@
         <div class="bg-[#171717] w-full max-w-sm p-8 rounded-3xl shadow-2xl border-4 border-[#7f1d1d]">
             <img src="https://vegqsdqxnvqupmzsgbpt.supabase.co/storage/v1/object/public/site_photos/F21060CB-BAB1-4E07-91AC-1E3F35796914.png" alt="Logo" class="w-32 h-32 mx-auto mb-4 object-contain drop-shadow-[0_0_10px_rgba(220,38,38,0.3)]">
             <h1 class="text-4xl font-black text-center text-[#dc2626] mb-2">全技工程行</h1>
-            <p class="text-center text-[#fca5a5] font-bold text-lg mb-8">管理系統 v5.7</p>
+            <p class="text-center text-[#fca5a5] font-bold text-lg mb-8">管理系統 v5.8</p>
             <div class="w-full">
                 <label class="text-label">姓名 (或帳號)</label>
                 <input id="login-id" class="input-box" placeholder="請輸入帳號">
@@ -110,7 +110,7 @@
         <div class="flex items-center gap-3">
             <img src="https://vegqsdqxnvqupmzsgbpt.supabase.co/storage/v1/object/public/site_photos/F21060CB-BAB1-4E07-91AC-1E3F35796914.png" alt="Logo" class="w-10 h-10 object-contain">
             <div>
-                <h1 class="text-xl font-black tracking-widest text-[#dc2626]">全技工程行 <span class="text-xs text-[#fca5a5] tracking-normal">v5.7</span></h1>
+                <h1 class="text-xl font-black tracking-widest text-[#dc2626]">全技工程行 <span class="text-xs text-[#fca5a5] tracking-normal">v5.8</span></h1>
                 <div class="flex items-center gap-2 mt-1"><span class="w-2 h-2 rounded-full bg-[#ef4444] border border-black animate-pulse"></span><span id="user-role-display" class="text-xs font-bold text-[#fca5a5]">未登入</span></div>
             </div>
         </div>
@@ -1491,7 +1491,7 @@
             if(!currentUser.is_admin)return;const qs=examQuestions.filter(q=>q.active),ql=document.getElementById('exam-question-list');if(ql)ql.innerHTML=qs.map(q=>'<div class="bg-[#262626] p-3 rounded border border-cyan-900"><span class="text-xs text-cyan-400">'+(q.category==='skill'?'技能':'安全')+'</span><div class="font-bold">'+esc(q.prompt)+'</div><div class="text-xs text-green-400">答案：'+esc(q.options[q.correct_index])+'</div></div>').join('')||'<div class="text-gray-500">尚無題目</div>';
             const ch=document.getElementById('exam-template-question-list');if(ch)ch.innerHTML=qs.map(q=>'<label class="custom-checkbox"><input type="checkbox" value="'+q.id+'"><span>'+(q.category==='skill'?'技能':'安全')+'｜'+esc(q.prompt)+'</span></label>').join('');
             const ts=allData.filter(x=>x.type==='exam_template'&&x.active!==false).sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp));document.getElementById('exam-template-list').innerHTML=ts.map(t=>'<div class="bg-[#262626] p-3 rounded"><b>'+esc(t.title)+'</b><div class="text-xs">'+t.question_ids.length+' 題｜'+t.duration_minutes+' 分鐘</div></div>').join('')||'<div class="text-gray-500">尚無試卷</div>';document.getElementById('exam-assign-template').innerHTML='<option value="">選擇試卷</option>'+ts.map(t=>'<option value="'+t.id+'">'+esc(t.title)+'</option>').join('');document.getElementById('exam-assign-employee').innerHTML='<option value="">選擇員工</option>'+allData.filter(x=>x.type==='employee').map(e=>'<option value="'+esc(employeeKey(e))+'">'+esc(e.employee_name)+'</option>').join('');
-            const al=document.getElementById('exam-admin-result-list');al.innerHTML=allData.filter(x=>x.type==='exam_assignment').sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp)).map(a=>{const r=allData.find(x=>x.type==='exam_result'&&x.assignment_id==a.id),failed=r&&r.passed===false;return '<div class="bg-[#262626] p-3 rounded flex justify-between gap-2"><div><b>'+esc(a.employee_name)+'｜'+esc(a.title)+'</b><div class="'+(failed?'text-red-400':r?'text-green-400':'text-yellow-400')+'">'+(failed?'未通過 '+r.overall_percent+'%｜考核已取消':r?'通過｜技能 '+r.skill_percent+'%｜安全 '+r.safety_percent+'%':'待作答')+'</div></div><button onclick="deleteAssessmentData('+a.id+',&quot;筆試指派&quot;)" class="action-btn btn-del flex-shrink-0">✕</button></div>'}).join('')||'<div class="text-gray-500">尚無指派</div>';refreshCorrectOptions();
+            const al=document.getElementById('exam-admin-result-list');al.innerHTML=allData.filter(x=>x.type==='exam_assignment').sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp)).map(a=>{const r=allData.find(x=>x.type==='exam_result'&&x.assignment_id==a.id),failed=r&&r.passed===false;return '<div class="bg-[#262626] p-3 rounded flex justify-between gap-2"><div><b>'+esc(a.employee_name)+'｜'+esc(a.title)+'</b><div class="'+(failed?'text-red-400':r?'text-green-400':'text-yellow-400')+'">'+(failed?'未通過 '+r.overall_percent+'%｜考核已取消':r?'通過｜技能 '+r.skill_percent+'%｜安全 '+r.safety_percent+'%':'待作答')+'</div></div><button onclick="deleteAssessmentData('+a.id+',&quot;筆試紀錄&quot;)" class="text-xs border border-red-800 bg-[#2a0808] text-red-300 px-3 py-2 rounded flex-shrink-0">刪除筆試紀錄</button></div>'}).join('')||'<div class="text-gray-500">尚無指派</div>';refreshCorrectOptions();
         }
         async function startExam(id){try{const c=examCredentials();activeExam=await callDatabaseFunction('exam_start',{p_employee_id:c.id,p_password:c.password,p_assignment_id:id});document.getElementById('exam-taking-title').innerText=activeExam.title;document.getElementById('exam-taking-questions').innerHTML=activeExam.questions.map((q,i)=>'<div class="bg-[#262626] p-4 rounded-xl"><b>'+(i+1)+'. '+esc(q.prompt)+'</b>'+q.options.map((o,j)=>'<label class="custom-checkbox"><input type="radio" name="exam-q-'+q.id+'" value="'+j+'"><span>'+esc(o)+'</span></label>').join('')+'</div>').join('');document.getElementById('exam-taking-modal').classList.remove('hidden');startExamTimer();}catch(e){alert(e.message||'無法開始筆試');}}
         function startExamTimer(){clearInterval(examTimerHandle);const tick=()=>{const s=Math.max(0,Math.floor((new Date(activeExam.expires_at)-new Date())/1000));document.getElementById('exam-timer').innerText=String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');if(!s){clearInterval(examTimerHandle);submitExam(true);}};tick();examTimerHandle=setInterval(tick,1000);}
