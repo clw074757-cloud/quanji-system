@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>全技工程行 - 管理系統 v5.1</title>
+    <title>全技工程行 - 管理系統 v5.2</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -57,7 +57,7 @@
         <div class="bg-[#171717] w-full max-w-sm p-8 rounded-3xl shadow-2xl border-4 border-[#7f1d1d]">
             <img src="https://vegqsdqxnvqupmzsgbpt.supabase.co/storage/v1/object/public/site_photos/F21060CB-BAB1-4E07-91AC-1E3F35796914.png" alt="Logo" class="w-32 h-32 mx-auto mb-4 object-contain drop-shadow-[0_0_10px_rgba(220,38,38,0.3)]">
             <h1 class="text-4xl font-black text-center text-[#dc2626] mb-2">全技工程行</h1>
-            <p class="text-center text-[#fca5a5] font-bold text-lg mb-8">管理系統 v5.1</p>
+            <p class="text-center text-[#fca5a5] font-bold text-lg mb-8">管理系統 v5.2</p>
             <div class="w-full">
                 <label class="text-label">姓名 (或帳號)</label>
                 <input id="login-id" class="input-box" placeholder="請輸入帳號">
@@ -110,7 +110,7 @@
         <div class="flex items-center gap-3">
             <img src="https://vegqsdqxnvqupmzsgbpt.supabase.co/storage/v1/object/public/site_photos/F21060CB-BAB1-4E07-91AC-1E3F35796914.png" alt="Logo" class="w-10 h-10 object-contain">
             <div>
-                <h1 class="text-xl font-black tracking-widest text-[#dc2626]">全技工程行 <span class="text-xs text-[#fca5a5] tracking-normal">v5.1</span></h1>
+                <h1 class="text-xl font-black tracking-widest text-[#dc2626]">全技工程行 <span class="text-xs text-[#fca5a5] tracking-normal">v5.2</span></h1>
                 <div class="flex items-center gap-2 mt-1"><span class="w-2 h-2 rounded-full bg-[#ef4444] border border-black animate-pulse"></span><span id="user-role-display" class="text-xs font-bold text-[#fca5a5]">未登入</span></div>
             </div>
         </div>
@@ -241,8 +241,8 @@
                 <details class="mb-4 bg-[#111] rounded-xl border border-cyan-900">
                     <summary class="p-3 font-black text-cyan-300 cursor-pointer">👷 指派筆試</summary>
                     <div class="p-3 border-t border-cyan-900">
-                        <select id="exam-assign-template" class="input-box"></select>
-                        <select id="exam-assign-employee" class="input-box"></select>
+                        <select id="exam-assign-template" class="input-box" disabled></select>
+                        <select id="exam-assign-employee" class="input-box" onchange="updateExamTemplateForEmployee()"></select><div id="exam-level-hint" class="text-sm text-cyan-300 mb-3"></div>
                         <label class="text-label">截止日期</label><input id="exam-due-date" type="date" class="input-box" style="color-scheme:dark;">
                         <button onclick="assignExam()" class="btn btn-warning">指派筆試</button>
                     </div>
@@ -1482,7 +1482,9 @@
         function refreshCorrectOptions(){const tf=document.getElementById('exam-question-type')?.value==='true_false',n=tf?2:4,e=document.getElementById('exam-correct-index');if(!e)return;e.innerHTML=Array.from({length:n},(_,i)=>'<option value="'+i+'">'+String.fromCharCode(65+i)+'</option>').join('');}
         async function saveExamQuestion(){const type=document.getElementById('exam-question-type').value,n=type==='true_false'?2:4,opts=Array.from({length:n},(_,i)=>document.getElementById('exam-option-'+i).value.trim()),prompt=document.getElementById('exam-question-prompt').value.trim();if(!prompt||opts.some(x=>!x))return alert('請完整輸入題目與選項');const a=getAdminCredentials();await callDatabaseFunction('exam_admin_save_question',{p_admin_id:a.id,p_admin_password:a.password,p_question_id:null,p_category:document.getElementById('exam-question-category').value,p_question_type:type,p_prompt:prompt,p_options:opts,p_correct_index:parseInt(document.getElementById('exam-correct-index').value)||0,p_explanation:document.getElementById('exam-question-explanation').value,p_active:true});document.getElementById('exam-question-prompt').value='';for(let i=0;i<4;i++)document.getElementById('exam-option-'+i).value='';await loadExamQuestions();renderExamModule();alert('題目已儲存');}
         async function saveExamTemplate(){const title=document.getElementById('exam-template-title').value.trim(),ids=Array.from(document.querySelectorAll('#exam-template-question-list input:checked')).map(x=>parseInt(x.value));if(!title||!ids.length)return alert('請輸入試卷名稱並選擇題目');if(await insertData('exam_template',{title,question_ids:ids,duration_minutes:parseInt(document.getElementById('exam-duration').value)||30,pass_score:parseInt(document.getElementById('exam-pass-score').value)||70,active:true,created_by:currentUser.employee_name,timestamp:new Date().toISOString()})){await loadData();alert('試卷已建立');}}
-        async function assignExam(){const tid=parseInt(document.getElementById('exam-assign-template').value),eid=document.getElementById('exam-assign-employee').value,due=document.getElementById('exam-due-date').value,t=allData.find(x=>x.id===tid&&x.type==='exam_template'),e=allData.find(x=>x.type==='employee'&&employeeKey(x)===eid);if(!t||!e||!due)return alert('請完整選擇試卷、員工與截止日期');if(await insertData('exam_assignment',{template_id:t.id,title:t.title,employee_id:employeeKey(e),employee_name:e.employee_name,due_date:due,status:'assigned',assigned_by:currentUser.employee_name,timestamp:new Date().toISOString()})){await loadData();alert('筆試已指派');}}
+        function examLevelForEmployee(e){const n=parseInt(String(e?.wage_level||'W0').replace(/\D/g,''))||0;return n>=5?'B':'C';}
+        function updateExamTemplateForEmployee(){const eid=document.getElementById('exam-assign-employee').value,e=allData.find(x=>x.type==='employee'&&employeeKey(x)===eid),level=examLevelForEmployee(e),t=allData.find(x=>x.type==='exam_template'&&x.exam_level===level&&x.active!==false);if(t)document.getElementById('exam-assign-template').value=t.id;const hint=document.getElementById('exam-level-hint');if(hint)hint.innerText=e?((e.wage_level||'W0')+'：自動使用'+(level==='B'?'乙級':'丙級')+'範圍'):'';}
+        async function assignExam(){const eid=document.getElementById('exam-assign-employee').value,due=document.getElementById('exam-due-date').value,e=allData.find(x=>x.type==='employee'&&employeeKey(x)===eid),level=examLevelForEmployee(e),t=allData.find(x=>x.type==='exam_template'&&x.exam_level===level&&x.active!==false);if(!t||!e||!due)return alert('請完整選擇員工與截止日期');if(await insertData('exam_assignment',{template_id:t.id,title:t.title,exam_level:level,employee_grade:e.wage_level||'W0',employee_id:employeeKey(e),employee_name:e.employee_name,due_date:due,status:'assigned',assigned_by:currentUser.employee_name,timestamp:new Date().toISOString()})){await loadData();alert('筆試已依 '+(e.wage_level||'W0')+' 自動指派'+(level==='B'?'乙級':'丙級')+'範圍');}}
         function renderExamModule(){
             const key=employeeKey(currentUser),as=allData.filter(x=>x.type==='exam_assignment'&&(x.employee_id===key||x.employee_name===currentUser.employee_name)).sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp)),rs=allData.filter(x=>x.type==='exam_result'&&(x.employee_id===key||x.employee_name===currentUser.employee_name)),me=document.getElementById('my-exam-list');
             if(me)me.innerHTML=as.length?as.map(a=>{const r=rs.find(x=>x.assignment_id==a.id);return '<div class="bg-[#262626] border border-cyan-900 rounded-xl p-3"><div class="flex justify-between"><b class="text-cyan-300">'+esc(a.title)+'</b><span class="'+(r?'text-green-400':'text-yellow-400')+'">'+(r?'已完成':'待作答')+'</span></div><div class="text-xs text-gray-500">截止 '+esc(a.due_date||'')+'</div>'+(r?'<div class="mt-2">技能 '+r.skill_percent+'%（'+r.written_skill_score+'/15）｜安全 '+r.safety_percent+'%（'+r.safety_assessment_score+'/10）</div>':'<button onclick="startExam('+a.id+')" class="btn btn-primary text-sm py-2 mt-2">開始筆試</button>')+'</div>'}).join(''):'<div class="text-gray-500">目前沒有筆試</div>';
