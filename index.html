@@ -343,6 +343,7 @@
                 </div>
                 <div class="grid grid-cols-2 gap-3">
                     <div id="new-proj-amount-group"><label class="text-label">合約金額</label><input id="new-proj-amount" type="number" class="input-box" placeholder="0"></div>
+                    <div id="new-proj-labor-rate-group" class="hidden"><label class="text-label">點工單價（元/工）</label><input id="new-proj-labor-rate" type="number" class="input-box" placeholder="每工計費"></div>
                     <div><label class="text-label">開工日期</label><input id="new-proj-date" type="date" class="input-box" style="color-scheme:dark;"></div>
                 </div>
                 <div class="grid grid-cols-2 gap-3">
@@ -440,6 +441,9 @@
             </select>
             <div id="proj-edit-amount-group">
                 <label class="text-label">合約金額</label><input id="proj-edit-amount" type="number" class="input-box" placeholder="0">
+            </div>
+            <div id="proj-edit-labor-rate-group" class="hidden">
+                <label class="text-label">點工單價（元/工）</label><input id="proj-edit-labor-rate" type="number" class="input-box" placeholder="每工計費">
             </div>
             <div class="grid grid-cols-2 gap-3">
                 <div><label class="text-label">稅別</label>
@@ -1094,6 +1098,7 @@
                 const topRightBlock = isLabor
                     ? `<div class="text-right">
                             <div class="text-xs text-yellow-500 font-bold">點工</div>
+                            ${p.labor_rate?`<div class="text-xs text-yellow-600 mt-0.5">單價 $${parseInt(p.labor_rate).toLocaleString()}/工</div>`:''}
                             <div class="text-xs text-gray-400 mt-0.5">應收（出工累計）</div>
                             <div class="text-lg font-black text-yellow-400 font-mono">$${laborTotal.toLocaleString()}</div>
                             ${actionBtns}
@@ -1185,6 +1190,7 @@
         function toggleProjTypeFields() {
             const isLabor = document.getElementById('new-proj-type').value === 'labor';
             document.getElementById('new-proj-amount-group').classList.toggle('hidden', isLabor);
+            document.getElementById('new-proj-labor-rate-group').classList.toggle('hidden', !isLabor);
         }
 
         function toggleProjTaxRate() {
@@ -1223,9 +1229,10 @@
             const taxRate = document.getElementById('new-proj-tax-rate').value || 5;
             if(projType === 'contract' && !amount) return alert("請輸入合約金額");
             const address = document.getElementById('new-proj-address').value.trim();
-            if(await insertData('project', { project_name:name, client_name:client, address, project_type:projType, contract_amount:projType==='contract'?parseInt(amount):0, tax_type:taxType, tax_rate:parseFloat(taxRate), start_date:date, status:'進行中', notes:note, timestamp:new Date().toISOString() })) {
+            const laborRate = projType === 'labor' ? (parseInt(document.getElementById('new-proj-labor-rate').value) || 0) : 0;
+            if(await insertData('project', { project_name:name, client_name:client, address, project_type:projType, contract_amount:projType==='contract'?parseInt(amount):0, labor_rate:laborRate, tax_type:taxType, tax_rate:parseFloat(taxRate), start_date:date, status:'進行中', notes:note, timestamp:new Date().toISOString() })) {
                 alert("案件建立成功");
-                ['new-proj-name','new-proj-client','new-proj-address','new-proj-amount','new-proj-note'].forEach(id => document.getElementById(id).value='');
+                ['new-proj-name','new-proj-client','new-proj-address','new-proj-amount','new-proj-labor-rate','new-proj-note'].forEach(id => document.getElementById(id).value='');
                 document.getElementById('new-proj-type').value = 'contract';
                 document.getElementById('new-proj-tax-type').value = 'none';
                 toggleProjTypeFields();
@@ -1241,6 +1248,7 @@
             document.getElementById('proj-edit-name').value = p.project_name || '';
             document.getElementById('proj-edit-client').value = p.client_name || '';
             document.getElementById('proj-edit-address').value = p.address || '';
+            document.getElementById('proj-edit-labor-rate').value = p.labor_rate || '';
             document.getElementById('proj-edit-type').value = p.project_type || 'contract';
             document.getElementById('proj-edit-amount').value = p.contract_amount || '';
             document.getElementById('proj-edit-tax-type').value = p.tax_type || 'none';
@@ -1258,6 +1266,7 @@
         function toggleProjEditAmountGroup() {
             const isLabor = document.getElementById('proj-edit-type').value === 'labor';
             document.getElementById('proj-edit-amount-group').classList.toggle('hidden', isLabor);
+            document.getElementById('proj-edit-labor-rate-group').classList.toggle('hidden', !isLabor);
         }
 
         function toggleProjEditTaxRate() {
@@ -1279,6 +1288,7 @@
                 project_name: name,
                 client_name: document.getElementById('proj-edit-client').value.trim(),
                 address: document.getElementById('proj-edit-address').value.trim(),
+                labor_rate: projType === 'labor' ? (parseInt(document.getElementById('proj-edit-labor-rate').value) || 0) : 0,
                 project_type: projType,
                 contract_amount: projType === 'contract' ? parseInt(amount) : 0,
                 tax_type: document.getElementById('proj-edit-tax-type').value,
@@ -1321,10 +1331,11 @@
                 document.getElementById('proj-labor-fields').classList.remove('hidden');
                 document.getElementById('proj-labor-date').valueAsDate = new Date();
                 document.getElementById('proj-labor-count').value = '';
-                document.getElementById('proj-labor-rate').value = '';
+                const projForRate = allData.find(r => r.id === projId && r.type === 'project');
+                document.getElementById('proj-labor-rate').value = (projForRate && projForRate.labor_rate) ? projForRate.labor_rate : '';
                 document.getElementById('proj-labor-transport').value = '';
                 document.getElementById('proj-labor-note').value = '';
-                document.getElementById('proj-labor-subtotal').textContent = '$0';
+                calcLaborSubtotal();
             } else {
                 document.getElementById('proj-modal-title').innerText = `📋 新增支出 — ${projName}`;
                 document.getElementById('proj-expense-fields').classList.remove('hidden');
@@ -1811,7 +1822,8 @@
                     if(proj) {
                         const allWorkers = [emp, ...partners.split(',').map(x=>x.trim()), ...drivers.split(',').map(x=>x.trim())].filter(x=>x);
                         const workerCount = allWorkers.length;
-                        await insertData('proj_labor', { project_id: linkedProjId, project_name: proj.project_name, date, worker_count: workerCount, daily_rate: 0, transport_fee: 0, amount: 0, notes: `派工自動建立｜${allWorkers.join('、')}`, timestamp: new Date().toISOString() });
+                        const defaultRate = parseInt(proj.labor_rate) || 0;
+                        await insertData('proj_labor', { project_id: linkedProjId, project_name: proj.project_name, date, worker_count: workerCount, daily_rate: defaultRate, transport_fee: 0, amount: workerCount * defaultRate, notes: `派工自動建立｜${allWorkers.join('、')}`, timestamp: new Date().toISOString() });
                     }
                 }
                 alert("指派成功");
