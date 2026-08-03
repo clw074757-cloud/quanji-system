@@ -366,7 +366,7 @@
                 <label class="text-label">日期</label>
                 <input id="proj-labor-date" type="date" class="input-box" style="color-scheme:dark;">
                 <div class="grid grid-cols-2 gap-3">
-                    <div><label class="text-label">出工人數</label><input id="proj-labor-count" type="number" class="input-box" placeholder="1" min="1" oninput="calcLaborSubtotal()"></div>
+                    <div><label class="text-label">出工人數</label><input id="proj-labor-count" type="number" class="input-box" placeholder="1" min="0.5" step="0.5" oninput="calcLaborSubtotal()"></div>
                     <div><label class="text-label">每工價格（元）</label><input id="proj-labor-rate" type="number" class="input-box" placeholder="0" oninput="calcLaborSubtotal()"></div>
                 </div>
                 <div><label class="text-label">車資（請款給業主，選填）</label><input id="proj-labor-transport" type="number" class="input-box" placeholder="0" oninput="calcLaborSubtotal()"></div>
@@ -1187,7 +1187,7 @@
         }
 
         function calcLaborSubtotal() {
-            const count = parseInt(document.getElementById('proj-labor-count').value) || 0;
+            const count = parseFloat(document.getElementById('proj-labor-count').value) || 0;
             const rate = parseInt(document.getElementById('proj-labor-rate').value) || 0;
             const transport = parseInt(document.getElementById('proj-labor-transport').value) || 0;
             document.getElementById('proj-labor-subtotal').textContent = '$' + (count * rate + transport).toLocaleString();
@@ -1341,12 +1341,12 @@
                 } else { alert("新增失敗"); }
             } else if(type === 'labor') {
                 const date = document.getElementById('proj-labor-date').value;
-                const count = parseInt(document.getElementById('proj-labor-count').value);
+                const count = parseFloat(document.getElementById('proj-labor-count').value);
                 const rate = parseInt(document.getElementById('proj-labor-rate').value);
                 const transport = parseInt(document.getElementById('proj-labor-transport').value) || 0;
                 const notes = document.getElementById('proj-labor-note').value;
                 if(!date) return alert("請選擇日期");
-                if(!count || count < 1) return alert("請輸入出工人數");
+                if(!count || count < 0.5) return alert("請輸入出工人數");
                 if(!rate || rate < 1) return alert("請輸入每工價格");
                 const amount = count * rate + transport;
                 if(await insertData('proj_labor', { project_id:projId, project_name:projName, date, worker_count:count, daily_rate:rate, transport_fee:transport, amount, notes, timestamp:new Date().toISOString() })) {
@@ -1569,7 +1569,7 @@
         }
 
         function closeEdit() { document.getElementById('edit-modal').classList.add('hidden'); }
-        function calcEditLaborAmount() { const cnt=parseInt(document.getElementById('edit-labor-count').value)||0; const rate=parseInt(document.getElementById('edit-labor-rate').value)||0; const trans=parseInt(document.getElementById('edit-labor-transport').value)||0; document.getElementById('edit-labor-subtotal').textContent='$'+(cnt*rate+trans).toLocaleString(); }
+        function calcEditLaborAmount() { const cnt=parseFloat(document.getElementById('edit-labor-count').value)||0; const rate=parseInt(document.getElementById('edit-labor-rate').value)||0; const trans=parseInt(document.getElementById('edit-labor-transport').value)||0; document.getElementById('edit-labor-subtotal').textContent='$'+(cnt*rate+trans).toLocaleString(); }
 
         async function saveEdit() {
             const type=document.getElementById('edit-type').value, payload={...currentEditData};
