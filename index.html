@@ -1395,7 +1395,7 @@
             const startTime = Math.min(...sRecs.map(x => new Date(x.timestamp)));
             const endTime = new Date(r.timestamp);
             const totalMinutes = Math.floor((endTime - startTime) / 60000);
-            const standardMinutes = 540;
+            const standardMinutes = 480;
             if (totalMinutes <= standardMinutes) return '';
             const overtimeMin = totalMinutes - standardMinutes;
             return `<span class="text-[#dc2626] font-black text-sm ml-2 bg-[#262626] px-2 py-1 rounded-full border border-[#7f1d1d]">超時 ${Math.floor(overtimeMin/60)}h${overtimeMin%60}m</span>`;
