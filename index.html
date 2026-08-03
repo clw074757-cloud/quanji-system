@@ -680,10 +680,16 @@
 
         async function loadData() {
             try {
-                const res = await fetch(`${DB_URL}?select=*&order=created_at.desc&limit=1000`, { headers: HEADERS });
-                if(!res.ok) throw new Error("Err");
-                const data = await res.json();
-                allData = data.map(r => ({ id: r.id, type: r.type, created_at: r.created_at, ...r.data }));
+                const sixMonthsAgo = new Date();
+                sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+                const dateFilter = sixMonthsAgo.toISOString().split('T')[0];
+                const [res1, res2] = await Promise.all([
+                    fetch(`${DB_URL}?select=*&type=not.in.(clock,dispatch,progress)&order=created_at.desc`, { headers: HEADERS }),
+                    fetch(`${DB_URL}?select=*&type=in.(clock,dispatch,progress)&created_at=gte.${dateFilter}&order=created_at.desc`, { headers: HEADERS })
+                ]);
+                if(!res1.ok || !res2.ok) throw new Error("Err");
+                const [data1, data2] = await Promise.all([res1.json(), res2.json()]);
+                allData = [...data1, ...data2].map(r => ({ id: r.id, type: r.type, created_at: r.created_at, ...r.data }));
                 if(currentUser) render();
             } catch(e){ console.error(e); throw e; }
         }
