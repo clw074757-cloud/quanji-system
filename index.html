@@ -1520,7 +1520,7 @@
             document.getElementById('loading-overlay').classList.remove('hidden');
             let imgUrls=[];
             for(let i=0;i<fileInput.files.length;i++) { const url=await uploadFileAPI(fileInput.files[i]); if(url) imgUrls.push(url); }
-            if(await insertData('progress',{employee_name:name,project_name:proj,progress:"",notes:note,image_url:imgUrls,timestamp:new Date().toISOString(),location:document.getElementById('gps-status').innerText})) {
+            if(await insertData('progress',{employee_name:name,project_name:proj,progress:"",notes:note,image_url:imgUrls,timestamp:new Date().toISOString()})) {
                 alert("發佈成功"); document.getElementById('prog-project').value=''; document.getElementById('prog-note').value=''; clearImages(); await loadData();
             } else { alert("失敗"); }
             document.getElementById('loading-overlay').classList.add('hidden');
