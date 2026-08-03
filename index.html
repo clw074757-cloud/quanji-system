@@ -244,7 +244,7 @@
                 </details>
                 <h3 class="font-black text-cyan-300 mb-2">指派與成績</h3>
                 <div id="exam-admin-result-list" class="space-y-2"></div>
-            </div><div class="card" data-admin-section="assessment" style="border-color:#7e22ce;"><h2 class="font-black text-purple-400 text-xl mb-4">📋 員工考核管理</h2><div class="bg-[#111] border border-purple-900 rounded-xl p-3 mb-5"><h3 class="font-black text-purple-300 mb-3">＋ 指定員工發布考核</h3><select id="assessment-direct-employee" class="input-box"></select><div class="grid grid-cols-2 gap-2"><select id="assessment-direct-type" class="input-box"><option>管理員發布考核</option><option>試用期考核</option><option>季度考核</option><option>升級考核</option><option>調薪考核</option><option>複評考核</option></select><input id="assessment-direct-due" type="date" class="input-box" style="color-scheme:dark;"></div><div class="text-xs text-cyan-300 mb-3">系統依員工職級自動發布丙級或乙級筆試</div><button onclick="directPublishAssessment()" class="btn btn-warning">發布考核與筆試</button></div><h3 class="font-bold text-[#fca5a5] mb-2">待辦考核</h3><div id="assessment-request-list" class="space-y-3"></div><h3 class="font-bold text-[#fca5a5] mt-5 mb-2 border-t border-[#404040] pt-4">已完成／審核中</h3><div id="assessment-admin-list" class="space-y-3"></div><h3 class="font-bold text-purple-300 mt-5 mb-2 border-t border-[#404040] pt-4">📚 考核歷史查閱</h3><select id="assessment-history-filter" class="input-box mb-3" onchange="renderAssessmentHistory()"><option value="">全部員工</option></select><div id="assessment-history-list" class="space-y-3"></div></div><div class="card" data-admin-section="settings" style="border-color:#a16207;"><h2 class="font-black text-yellow-500 text-xl mb-4">🏷 職級與日薪級距</h2><div id="grade-config-list" class="space-y-2"></div><h3 class="font-bold text-[#fca5a5] mt-5 mb-2 border-t border-[#404040] pt-4">薪資異動歷史</h3><div id="salary-change-list" class="space-y-2"></div></div><div class="card" data-admin-section="attendance" style="border-color:#1d4ed8;">
+            </div><div class="card" data-admin-section="assessment" style="border-color:#7e22ce;"><h2 class="font-black text-purple-400 text-xl mb-4">📋 員工考核管理</h2><div class="bg-[#111] border border-purple-900 rounded-xl p-3 mb-5"><h3 class="font-black text-purple-300 mb-3">＋ 指定員工發布考核</h3><select id="assessment-direct-employee" class="input-box"></select><div class="grid grid-cols-2 gap-2"><select id="assessment-direct-type" class="input-box"><option>管理員發布考核</option><option>試用期考核</option><option>季度考核</option><option>升級考核</option><option>調薪考核</option><option>複評考核</option></select><input id="assessment-direct-due" type="date" class="input-box" style="color-scheme:dark;"></div><div class="text-xs text-cyan-300 mb-3">系統依員工職級自動發布丙級或乙級筆試</div><button onclick="directPublishAssessment()" class="btn btn-warning">發布考核與筆試</button></div><h3 class="font-bold text-[#fca5a5] mb-2">待辦考核</h3><div id="assessment-request-list" class="space-y-3"></div><h3 class="font-bold text-[#fca5a5] mt-5 mb-2 border-t border-[#404040] pt-4">已完成／審核中</h3><div id="assessment-admin-list" class="space-y-3"></div><h3 class="font-bold text-purple-300 mt-5 mb-2 border-t border-[#404040] pt-4">📝 日常評分記錄</h3><button onclick="openDailyRating()" class="btn btn-secondary border border-purple-700 mb-3">＋ 新增日常評分</button><select id="assessment-history-filter" class="input-box mb-3" onchange="renderAssessmentHistory()"><option value="">全部員工</option></select><div id="assessment-history-list" class="space-y-3"></div></div><div class="card" data-admin-section="settings" style="border-color:#a16207;"><h2 class="font-black text-yellow-500 text-xl mb-4">🏷 職級與日薪級距</h2><div id="grade-config-list" class="space-y-2"></div><h3 class="font-bold text-[#fca5a5] mt-5 mb-2 border-t border-[#404040] pt-4">薪資異動歷史</h3><div id="salary-change-list" class="space-y-2"></div></div><div class="card" data-admin-section="attendance" style="border-color:#1d4ed8;">
                 <h2 class="font-black text-blue-400 text-xl mb-4">⏰ 代為補打卡</h2>
                 <div class="grid grid-cols-2 gap-3">
                     <div><label class="text-label">員工</label><select id="admin-clock-emp" class="input-box"></select></div>
@@ -446,6 +446,7 @@
     </div>
 
     <div id="assessment-request-modal" class="fixed inset-0 bg-black/90 z-[90] hidden flex items-center justify-center p-4"><div class="bg-[#171717] w-full max-w-md p-6 rounded-2xl border-2 border-purple-700 max-h-[90vh] overflow-y-auto"><h3 class="text-2xl font-black text-purple-400 mb-4">申請考核</h3><label class="text-label">申請類型</label><select id="request-type" class="input-box"><option>試用期考核</option><option>季度考核</option><option>升級申請</option><option>調薪申請</option><option>複評申請</option><option>其他</option></select><label class="text-label">申請原因</label><textarea id="request-reason" class="input-box" rows="3"></textarea><label class="text-label">近期成果／可獨立完成工作</label><textarea id="request-achievements" class="input-box" rows="3"></textarea><label class="text-label">新學會技能與待改善項目</label><textarea id="request-skills" class="input-box" rows="3"></textarea><label class="text-label">希望評定職級</label><select id="request-grade" class="input-box"></select><div class="flex gap-3"><button onclick="closeAssessmentRequest()" class="btn btn-secondary">取消</button><button onclick="submitAssessmentRequest()" class="btn btn-primary">送出申請</button></div></div></div>
+    <div id="daily-rating-modal" class="fixed inset-0 bg-black/90 z-[90] hidden flex items-center justify-center p-4"><div class="bg-[#171717] w-full max-w-lg p-6 rounded-2xl border-2 border-purple-700 max-h-[95vh] overflow-y-auto"><h3 class="text-2xl font-black text-purple-400 mb-1">📝 日常評分記錄</h3><p class="text-xs text-gray-400 mb-4">此記錄僅供薪資考核參考，不觸發任何正式流程</p><div class="grid grid-cols-2 gap-3 mb-3"><div><label class="text-label">員工</label><select id="dr-employee" class="input-box"></select></div><div><label class="text-label">評分日期</label><input id="dr-date" type="date" class="input-box" style="color-scheme:dark;"></div></div><div id="dr-score-fields"></div><div class="bg-[#262626] p-3 rounded mb-3"><span>總分：</span><b id="dr-total" class="text-2xl text-yellow-400">0</b><div id="dr-recommendation" class="text-sm text-purple-300"></div></div><label class="text-label">備註</label><textarea id="dr-notes" class="input-box" rows="2"></textarea><div class="flex gap-2 mt-2"><button onclick="closeDailyRating()" class="btn btn-secondary">取消</button><button onclick="saveDailyRating()" class="btn btn-primary">儲存評分</button></div></div></div>
     <div id="assessment-admin-modal" class="fixed inset-0 bg-black/90 z-[90] hidden flex items-center justify-center p-4"><div class="bg-[#171717] w-full max-w-lg p-6 rounded-2xl border-2 border-purple-700 max-h-[95vh] overflow-y-auto"><h3 class="text-2xl font-black text-purple-400 mb-1">員工考核評分</h3><div id="assessment-employee-label" class="text-yellow-500 mb-4"></div><input type="hidden" id="assessment-request-id"><div id="assessment-score-fields"></div><label class="custom-checkbox border-red-900"><input id="assessment-major-safety" type="checkbox"><span class="text-red-400 font-bold">有重大安全違規</span></label><label class="text-label mt-3">總評與改善建議</label><textarea id="assessment-summary" class="input-box" rows="3"></textarea><div class="bg-[#262626] p-3 rounded mb-3"><span>總分：</span><b id="assessment-total" class="text-2xl text-yellow-400">0</b><div id="assessment-recommendation" class="text-sm text-purple-300"></div></div><div class="grid grid-cols-2 gap-3"><div><label class="text-label">建議職級</label><select id="assessment-proposed-grade" class="input-box" onchange="showProposedGradeRange()"></select></div><div><label class="text-label">建議日薪</label><input id="assessment-proposed-wage" type="number" class="input-box"></div></div><div id="assessment-range-hint" class="text-xs text-yellow-500 mb-3"></div><label class="text-label">生效日</label><input id="assessment-effective-date" type="date" class="input-box" style="color-scheme:dark;"><div class="flex gap-2"><button onclick="closeAdminAssessment()" class="btn btn-secondary">取消</button><button onclick="saveAssessment(false)" class="btn btn-warning">儲存待核准</button><button onclick="saveAssessment(true)" class="btn btn-success">核准發布</button></div></div></div>    <div id="exam-taking-modal" class="fixed inset-0 bg-black/95 z-[180] hidden flex items-center justify-center p-3">
     <div class="bg-[#171717] w-full max-w-2xl p-5 rounded-2xl border-2 border-cyan-700 max-h-[94vh] overflow-y-auto">
         <div class="flex justify-between items-center mb-3"><h3 id="exam-taking-title" class="text-xl font-black text-cyan-400">線上筆試</h3><span id="exam-timer" class="font-mono font-black text-yellow-400">--:--</span></div>
@@ -1615,42 +1616,87 @@
             if(!currentUser.is_admin)return;
             renderGradeConfig(); renderAdminAssessments();
         }
+        function dailyRatingChecklistHtml(key, name, max) {
+            const labels = [['1','達成'],['0.5','部分達成'],['0','未達成'],['na','不適用']];
+            return '<div class="bg-[#111] border border-purple-900 rounded-xl p-3 mb-3"><div class="flex justify-between mb-3"><b class="text-purple-300">'+name+'</b><b id="dr-score-'+key+'" class="text-yellow-400">0 / '+max+'</b></div>'+ASSESSMENT_CRITERIA[key].map((item,i)=>'<div class="bg-[#262626] rounded-lg p-3 mb-2"><div class="font-bold text-sm mb-2">'+(i+1)+'. '+esc(item)+'</div><div class="grid grid-cols-2 gap-2">'+labels.map(([v,l])=>'<label class="flex items-center gap-2 text-xs border border-[#404040] rounded p-2 cursor-pointer"><input type="radio" name="dr-criterion-'+key+'-'+i+'" value="'+v+'" onchange="calcDailyRatingScore()"> '+l+'</label>').join('')+'</div></div>').join('')+'<input id="dr-note-'+key+'" class="input-box mt-2 mb-0" placeholder="'+name+'補充說明（選填）"></div>';
+        }
+        function calcDailyRatingScore() {
+            let total = 0;
+            SCORE_ITEMS.forEach(([key,,max]) => {
+                let earned = 0, applicable = 0;
+                ASSESSMENT_CRITERIA[key].forEach((_, i) => {
+                    const sel = document.querySelector('input[name="dr-criterion-'+key+'-'+i+'"]:checked');
+                    if (sel && sel.value !== 'na') { applicable++; earned += parseFloat(sel.value); }
+                });
+                const score = applicable ? Math.round((earned / applicable * max) * 10) / 10 : 0;
+                const el = document.getElementById('dr-score-'+key); if (el) el.innerText = score + ' / ' + max;
+                total += score;
+            });
+            total = Math.round(total * 10) / 10;
+            const rec = total >= 90 ? '表現優異，建議考慮升級或調薪' : total >= 75 ? '表現良好，可列入調薪參考' : total >= 60 ? '表現符合標準' : '需加強，建議列入改善計畫';
+            const el = document.getElementById('dr-total'); if (el) el.innerText = total;
+            const rel = document.getElementById('dr-recommendation'); if (rel) rel.innerText = rec;
+        }
+        function openDailyRating() {
+            const emps = allData.filter(r => r.type === 'employee').sort((a,b) => (a.employee_name||'').localeCompare(b.employee_name||'','zh-TW'));
+            document.getElementById('dr-employee').innerHTML = '<option value="">選擇員工</option>' + emps.map(e => '<option value="'+esc(e.employee_name)+'">'+esc(e.employee_name)+'（'+esc(e.wage_level||'W0')+'）</option>').join('');
+            document.getElementById('dr-date').value = localDateKey(new Date());
+            document.getElementById('dr-notes').value = '';
+            document.getElementById('dr-score-fields').innerHTML = SCORE_ITEMS.map(([k,n,m]) => dailyRatingChecklistHtml(k,n,m)).join('');
+            calcDailyRatingScore();
+            document.getElementById('daily-rating-modal').classList.remove('hidden');
+        }
+        function closeDailyRating() { document.getElementById('daily-rating-modal').classList.add('hidden'); }
+        async function saveDailyRating() {
+            const empName = document.getElementById('dr-employee').value;
+            const date = document.getElementById('dr-date').value;
+            if (!empName || !date) return alert('請選擇員工與日期');
+            const categories = SCORE_ITEMS.map(([key, name, max]) => {
+                let earned = 0, applicable = 0;
+                const ratings = ASSESSMENT_CRITERIA[key].map((item, i) => {
+                    const sel = document.querySelector('input[name="dr-criterion-'+key+'-'+i+'"]:checked');
+                    if (!sel || sel.value === 'na') return { item, rating: '不適用' };
+                    applicable++; earned += parseFloat(sel.value);
+                    return { item, rating: parseFloat(sel.value) === 1 ? '達成' : parseFloat(sel.value) === 0.5 ? '部分達成' : '未達成' };
+                });
+                const score = applicable ? Math.round((earned / applicable * max) * 10) / 10 : 0;
+                return { key, name, max, score, ratings, note: document.getElementById('dr-note-'+key)?.value || '' };
+            });
+            const total = Math.round(categories.reduce((s, c) => s + c.score, 0) * 10) / 10;
+            const rec = document.getElementById('dr-recommendation')?.innerText || '';
+            const payload = { employee_name: empName, date, total_score: total, recommendation: rec, notes: document.getElementById('dr-notes').value, rated_by: currentUser.employee_name, timestamp: new Date().toISOString() };
+            categories.forEach(c => { payload[c.key+'_score'] = c.score; payload[c.key+'_criteria'] = c.ratings; if (c.note) payload[c.key+'_note'] = c.note; });
+            if (await insertData('daily_rating', payload)) { closeDailyRating(); await loadData(); alert('評分已儲存'); }
+            else alert('儲存失敗');
+        }
         function renderAssessmentHistory() {
             const filterEmp = document.getElementById('assessment-history-filter')?.value || '';
-            const records = allData.filter(r => r.type === 'employee_assessment' && (!filterEmp || r.employee_name === filterEmp))
+            const records = allData.filter(r => r.type === 'daily_rating' && (!filterEmp || r.employee_name === filterEmp))
                 .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
             const list = document.getElementById('assessment-history-list');
             if (!list) return;
             list.innerHTML = records.length ? records.map(a => {
-                const gradeChange = (a.old_grade || a.current_grade) !== (a.new_grade || a.proposed_grade)
-                    ? `<span class="text-gray-400">${esc(a.old_grade || a.current_grade || '未分級')}</span> → <span class="text-yellow-400 font-black">${esc(a.new_grade || a.proposed_grade || '')}</span>`
-                    : `<span class="text-gray-400">${esc(a.new_grade || a.proposed_grade || '維持')}</span>`;
-                const wageChange = (a.old_wage || a.current_wage) && (a.new_wage || a.proposed_wage)
-                    ? `$${parseInt(a.old_wage || a.current_wage).toLocaleString()} → <span class="text-green-400 font-black">$${parseInt(a.new_wage || a.proposed_wage).toLocaleString()}</span>`
-                    : `<span class="text-green-400">$${parseInt(a.new_wage || a.proposed_wage || 0).toLocaleString()}</span>`;
                 const score = a.total_score || 0;
                 const scoreColor = score >= 90 ? 'text-green-400' : score >= 75 ? 'text-yellow-400' : score >= 60 ? 'text-orange-400' : 'text-red-400';
-                const writtenSkill = a.written_skill_score ?? '-';
-                const writtenSafety = a.safety_assessment_score ?? '-';
+                const catHtml = SCORE_ITEMS.map(([key, name, max]) => a[key+'_score'] != null
+                    ? `<div class="flex justify-between text-xs"><span class="text-gray-400">${name}</span><span class="text-yellow-400">${a[key+'_score']} / ${max}</span></div>` : '').join('');
                 return `<div class="bg-[#1a1a2e] border border-purple-900 rounded-xl p-4">
                     <div class="flex justify-between items-start mb-2">
                         <div>
                             <span class="font-black text-purple-300 text-lg">${esc(a.employee_name)}</span>
-                            <span class="text-xs text-gray-500 ml-2">${new Date(a.timestamp).toLocaleDateString('zh-TW')}</span>
+                            <span class="text-xs text-gray-500 ml-2">${esc(a.date || new Date(a.timestamp).toLocaleDateString('zh-TW'))}</span>
                         </div>
-                        <span class="font-black text-2xl ${scoreColor}">${score} 分</span>
+                        <div class="text-right">
+                            <div class="font-black text-2xl ${scoreColor}">${score} 分</div>
+                            <button onclick="if(confirm('確定刪除此評分記錄？'))del(this,${a.id})" class="text-xs text-red-400 border border-red-900 px-2 py-1 rounded mt-1">刪除</button>
+                        </div>
                     </div>
-                    <div class="grid grid-cols-2 gap-2 text-sm mb-2">
-                        <div class="bg-[#262626] rounded p-2">📊 筆試技能 <b>${writtenSkill} / 15</b></div>
-                        <div class="bg-[#262626] rounded p-2">🦺 筆試安全 <b>${writtenSafety} / 10</b></div>
-                    </div>
-                    <div class="text-sm mb-1">職級：${gradeChange}</div>
-                    <div class="text-sm mb-1">日薪：${wageChange}</div>
-                    <div class="text-xs text-gray-400 mb-2">生效日：${esc(a.effective_date || '—')}｜核定人：${esc(a.approved_by || '—')}</div>
-                    ${a.recommendation ? `<div class="text-xs text-cyan-300 bg-[#0a1f1f] px-3 py-2 rounded border border-cyan-900">${esc(a.recommendation)}</div>` : ''}
-                    ${assessmentCriteriaDetails(a)}
+                    <div class="space-y-1 mb-2">${catHtml}</div>
+                    ${a.recommendation ? `<div class="text-xs text-cyan-300 bg-[#0a1f1f] px-3 py-2 rounded border border-cyan-900 mb-2">${esc(a.recommendation)}</div>` : ''}
+                    ${a.notes ? `<div class="text-xs text-gray-400">備註：${esc(a.notes)}</div>` : ''}
+                    <div class="text-xs text-gray-600 mt-1">評分人：${esc(a.rated_by || '—')}</div>
                 </div>`;
-            }).join('') : '<div class="text-gray-500 text-sm">尚無考核記錄</div>';
+            }).join('') : '<div class="text-gray-500 text-sm">尚無日常評分記錄</div>';
         }
         function renderGradeConfig(){
             document.getElementById('salary-change-list').innerHTML=allData.filter(r=>r.type==='salary_change').sort((a,b)=>new Date(b.effective_date)-new Date(a.effective_date)).map(r=>`<div class="bg-[#262626] p-2 rounded text-sm"><b>${esc(r.employee_name)}</b>　${esc(r.old_grade)} $${r.old_wage} → <span class="text-yellow-400">${esc(r.new_grade)} $${r.new_wage}</span><div class="text-xs text-gray-500">生效日 ${esc(r.effective_date)}｜${esc(r.approved_by||'')}</div></div>`).join('')||'<div class="text-gray-500">尚無薪資異動</div>';
@@ -1664,7 +1710,7 @@
         async function directPublishAssessment(){const employeeId=parseInt(document.getElementById('assessment-direct-employee').value),type=document.getElementById('assessment-direct-type').value,due=document.getElementById('assessment-direct-due').value;if(!employeeId||!due)return alert('請選擇員工與截止日期');const emp=allData.find(x=>x.id===employeeId&&x.type==='employee');if(!emp)return alert('找不到員工資料');if(!confirm('確定直接發布 '+emp.employee_name+' 的考核與筆試？'))return;try{const a=getAdminCredentials(),r=await callDatabaseFunction('admin_create_assessment_and_assign_exam',{p_admin_id:a.id,p_admin_password:a.password,p_employee_record_id:employeeId,p_request_type:type,p_due_date:due});if(!r?.ok)throw new Error('發布失敗');await loadData();alert('已發布 '+r.employee_name+' 的考核與「'+r.title+'」');}catch(e){alert(e.message||'發布考核失敗');}}
         async function deleteAssessmentData(id,label){if(!confirm('確定刪除這筆'+label+'資料？\n相關考核或筆試資料將一併移除，且無法復原。\n薪資異動歷史與目前薪資不會刪除。'))return;try{const a=getAdminCredentials(),r=await callDatabaseFunction('admin_delete_assessment_data',{p_admin_id:a.id,p_admin_password:a.password,p_record_id:id});if(!r?.ok)throw new Error('刪除失敗');await loadData();alert('資料已刪除，薪資紀錄已保留');}catch(e){alert(e.message||'刪除失敗');}}
         function assessmentActionButtons(r){const del='<button onclick="deleteAssessmentData('+r.id+',&quot;考核&quot;)" class="w-full mt-2 text-sm border border-red-800 bg-[#2a0808] px-3 py-2 rounded text-red-300">刪除考核資料</button>';if(r.status==='exam_assigned'){const done=allData.some(x=>x.type==='exam_result'&&x.assignment_id==r.exam_assignment_id);return'<button onclick="openAdminAssessment('+r.id+')" class="w-full mt-2 text-sm border border-green-700 bg-[#0a1f0a] px-3 py-2 rounded text-green-300">'+(done?'筆試完成｜':'筆試進行中｜')+'術科評分／發布考核</button>'+del;}return '<div class="flex gap-2 mt-2"><button onclick="rejectAssessment('+r.id+')" class="flex-1 text-sm border border-red-800 bg-[#2a0808] px-3 py-2 rounded text-red-300">拒絕考核</button><button onclick="approveAssessmentAndAssignExam('+r.id+')" class="flex-1 text-sm border border-cyan-700 bg-[#0a1f1f] px-3 py-2 rounded text-cyan-300">同意考核／發布筆試</button></div>'+del;}
-        function renderAdminAssessments(){const employees=allData.filter(r=>r.type==='employee').sort((a,b)=>(a.employee_name||'').localeCompare(b.employee_name||'','zh-TW')),sel=document.getElementById('assessment-direct-employee');if(sel){const keep=sel.value;sel.innerHTML='<option value="">選擇員工</option>'+employees.map(e=>'<option value="'+e.id+'">'+esc(e.employee_name)+'（'+esc(e.wage_level||'W0')+'）</option>').join('');if([...sel.options].some(o=>o.value===keep))sel.value=keep;const due=document.getElementById('assessment-direct-due');if(due&&!due.value){const d=new Date();d.setDate(d.getDate()+7);due.value=localDateKey(d);}}const reqs=allData.filter(r=>r.type==='assessment_request').sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp)),done=allData.filter(r=>r.type==='employee_assessment').sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp));document.getElementById('assessment-request-list').innerHTML=reqs.filter(r=>r.status!=='published').map(r=>'<div class="bg-[#262626] p-3 rounded border border-purple-900"><div class="flex justify-between"><b>'+esc(r.employee_name)+'｜'+esc(r.request_type)+'</b><span class="text-xs text-yellow-500">'+assessmentStatus(r.status)+'</span></div><div class="text-sm text-gray-300 mt-1">'+esc(r.reason)+'</div><div class="text-xs text-gray-500">希望職級：'+esc(r.desired_grade||'未指定')+'</div>'+assessmentActionButtons(r)+'</div>').join('')||'<div class="text-gray-500">目前無待辦申請</div>';const historyFilter=document.getElementById('assessment-history-filter');if(historyFilter){const keep=historyFilter.value;const empNames=[...new Set(allData.filter(r=>r.type==='employee_assessment').map(r=>r.employee_name))].sort((a,b)=>a.localeCompare(b,'zh-TW'));historyFilter.innerHTML='<option value="">全部員工</option>'+empNames.map(n=>'<option value="'+esc(n)+'">'+esc(n)+'</option>').join('');if(empNames.includes(keep))historyFilter.value=keep;}renderAssessmentHistory();document.getElementById('assessment-admin-list').innerHTML=done.map(a=>'<div class="bg-[#262626] p-3 rounded"><div class="flex justify-between gap-2"><div><div><b>'+esc(a.employee_name)+'</b><span class="text-purple-400 font-black ml-3">'+a.total_score+' 分</span></div><div class="text-sm">'+esc(a.recommendation||'')+'｜'+assessmentStatus(a.status)+'</div>'+assessmentCriteriaDetails(a)+'<div class="text-xs text-gray-500">'+esc(a.new_grade||a.proposed_grade||'')+'／$'+(parseInt(a.new_wage||a.proposed_wage)||0).toLocaleString()+'｜'+esc(a.effective_date||'')+'</div></div><button onclick="deleteAssessmentData('+a.id+',&quot;考核結果&quot;)" class="action-btn btn-del flex-shrink-0">✕</button></div></div>').join('')||'<div class="text-gray-500">尚無考核結果</div>';}
+        function renderAdminAssessments(){const employees=allData.filter(r=>r.type==='employee').sort((a,b)=>(a.employee_name||'').localeCompare(b.employee_name||'','zh-TW')),sel=document.getElementById('assessment-direct-employee');if(sel){const keep=sel.value;sel.innerHTML='<option value="">選擇員工</option>'+employees.map(e=>'<option value="'+e.id+'">'+esc(e.employee_name)+'（'+esc(e.wage_level||'W0')+'）</option>').join('');if([...sel.options].some(o=>o.value===keep))sel.value=keep;const due=document.getElementById('assessment-direct-due');if(due&&!due.value){const d=new Date();d.setDate(d.getDate()+7);due.value=localDateKey(d);}}const reqs=allData.filter(r=>r.type==='assessment_request').sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp)),done=allData.filter(r=>r.type==='employee_assessment').sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp));document.getElementById('assessment-request-list').innerHTML=reqs.filter(r=>r.status!=='published').map(r=>'<div class="bg-[#262626] p-3 rounded border border-purple-900"><div class="flex justify-between"><b>'+esc(r.employee_name)+'｜'+esc(r.request_type)+'</b><span class="text-xs text-yellow-500">'+assessmentStatus(r.status)+'</span></div><div class="text-sm text-gray-300 mt-1">'+esc(r.reason)+'</div><div class="text-xs text-gray-500">希望職級：'+esc(r.desired_grade||'未指定')+'</div>'+assessmentActionButtons(r)+'</div>').join('')||'<div class="text-gray-500">目前無待辦申請</div>';const historyFilter=document.getElementById('assessment-history-filter');if(historyFilter){const keep=historyFilter.value;const empNames=[...new Set(allData.filter(r=>r.type==='daily_rating').map(r=>r.employee_name))].sort((a,b)=>a.localeCompare(b,'zh-TW'));historyFilter.innerHTML='<option value="">全部員工</option>'+empNames.map(n=>'<option value="'+esc(n)+'">'+esc(n)+'</option>').join('');if(empNames.includes(keep))historyFilter.value=keep;}renderAssessmentHistory();document.getElementById('assessment-admin-list').innerHTML=done.map(a=>'<div class="bg-[#262626] p-3 rounded"><div class="flex justify-between gap-2"><div><div><b>'+esc(a.employee_name)+'</b><span class="text-purple-400 font-black ml-3">'+a.total_score+' 分</span></div><div class="text-sm">'+esc(a.recommendation||'')+'｜'+assessmentStatus(a.status)+'</div>'+assessmentCriteriaDetails(a)+'<div class="text-xs text-gray-500">'+esc(a.new_grade||a.proposed_grade||'')+'／$'+(parseInt(a.new_wage||a.proposed_wage)||0).toLocaleString()+'｜'+esc(a.effective_date||'')+'</div></div><button onclick="deleteAssessmentData('+a.id+',&quot;考核結果&quot;)" class="action-btn btn-del flex-shrink-0">✕</button></div></div>').join('')||'<div class="text-gray-500">尚無考核結果</div>';}
         const SCORE_ITEMS=[['practical','術科技能',15],['quality','施工品質',25],['efficiency','工作效率',20],['attendance','出勤紀律',15]];
         const ASSESSMENT_CRITERIA={
             practical:['工具選用與操作正確','能依圖說或工作指示完成配線','接線、量測與測試程序正確','能獨立排除一般故障','完工後完成整理與復原'],
