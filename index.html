@@ -879,7 +879,9 @@
                 currentWeeklyData.total = totalSalary;
 
                 if(hasSettledThisWeek) {
-                    document.getElementById('total-wage').innerText = "$0";
+                    const settledRecord = allData.find(r => r.type === 'payout_history' && r.start_date === weekRange.startStr);
+                    const settledAmount = settledRecord ? parseInt(settledRecord.total_amount) : totalSalary;
+                    document.getElementById('total-wage').innerText = "$" + settledAmount.toLocaleString() + " (已結算)";
                     btnSettle.innerText = "已完成結算";
                     btnSettle.classList.add('btn-disabled');
                     btnSettle.onclick = null;
@@ -1760,7 +1762,12 @@
             if (!q) return;
             const coords = await geocodeAddress(q);
             if (!coords) return alert("找不到該地址，請嘗試更完整的地址");
+            _mapSelectedLat = coords.lat; _mapSelectedLng = coords.lng;
             _map.setView([coords.lat, coords.lng], 16);
+            if (_mapMarker) _map.removeLayer(_mapMarker);
+            _mapMarker = L.marker([coords.lat, coords.lng]).addTo(_map)
+                .bindPopup(`📍 ${q}`).openPopup();
+            document.getElementById('map-confirm-btn').disabled = false;
         }
 
         function confirmMapLocation() {
