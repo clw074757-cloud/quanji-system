@@ -1273,7 +1273,7 @@
                 status: document.getElementById('proj-edit-status').value,
                 notes: document.getElementById('proj-edit-note').value,
             };
-            delete payload.id; delete payload.created_at;
+            delete payload.id; delete payload.created_at; delete payload.type;
             if(await updateDataAPI(id, payload)) {
                 closeProjEdit(); await loadData();
             } else { alert("儲存失敗"); }
