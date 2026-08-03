@@ -231,34 +231,6 @@
 
                         <div class="card" data-admin-section="exam" style="border-color:#0e7490;">
                 <h2 class="font-black text-cyan-400 text-xl mb-4">📝 線上筆試管理</h2>
-                <details open class="mb-4 bg-[#111] rounded-xl border border-cyan-900">
-                    <summary class="p-3 font-black text-cyan-300 cursor-pointer">＋ 建立題目</summary>
-                    <div class="p-3 border-t border-cyan-900">
-                        <input type="hidden" id="exam-question-id">
-                        <div class="grid grid-cols-2 gap-2">
-                            <select id="exam-question-category" class="input-box"><option value="skill">技能能力</option><option value="safety">工地安全</option></select>
-                            <select id="exam-question-type" class="input-box" onchange="toggleExamQuestionType()"><option value="single">單選題</option><option value="true_false">是非題</option></select>
-                        </div>
-                        <textarea id="exam-question-prompt" class="input-box" rows="2" placeholder="題目內容"></textarea>
-                        <div id="exam-option-fields" class="space-y-1">
-                            <input id="exam-option-0" class="input-box" placeholder="選項 A"><input id="exam-option-1" class="input-box" placeholder="選項 B">
-                            <input id="exam-option-2" class="input-box" placeholder="選項 C"><input id="exam-option-3" class="input-box" placeholder="選項 D">
-                        </div>
-                        <label class="text-label">正確答案</label><select id="exam-correct-index" class="input-box"></select>
-                        <input id="exam-question-explanation" class="input-box" placeholder="答案說明（選填）">
-                        <button onclick="saveExamQuestion()" class="btn btn-primary">儲存題目</button>
-                    </div>
-                </details>
-                <div id="exam-question-list" class="space-y-2 mb-5"></div>
-                <details class="mb-4 bg-[#111] rounded-xl border border-cyan-900">
-                    <summary class="p-3 font-black text-cyan-300 cursor-pointer">📄 建立試卷</summary>
-                    <div class="p-3 border-t border-cyan-900">
-                        <input id="exam-template-title" class="input-box" placeholder="試卷名稱">
-                        <div class="grid grid-cols-2 gap-2"><input id="exam-duration" type="number" class="input-box" value="30" min="1" placeholder="作答分鐘"><input id="exam-pass-score" type="number" class="input-box" value="70" min="0" max="100" placeholder="及格分數"></div>
-                        <div id="exam-template-question-list" class="space-y-1 max-h-64 overflow-y-auto mb-3"></div>
-                        <button onclick="saveExamTemplate()" class="btn btn-secondary border border-cyan-800">建立試卷</button>
-                    </div>
-                </details>
                 <div id="exam-template-list" class="space-y-2 mb-5"></div>
                 <details class="mb-4 bg-[#111] rounded-xl border border-cyan-900">
                     <summary class="p-3 font-black text-cyan-300 cursor-pointer">👷 指派筆試</summary>
