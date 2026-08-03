@@ -706,7 +706,7 @@
 
         function render() {
             const isAdmin = currentUser.is_admin;
-            const emps = allData.filter(r => r.type === 'employee');
+            const emps = allData.filter(r => r.type === 'employee').map(r => ({...r}));
             const today = new Date(); today.setHours(0,0,0,0);
 
             // 薪資異動依生效日套用；未到期的核准結果不提前改變員工目前薪資。
@@ -1800,7 +1800,7 @@
             if(await insertData('dispatch',{employee_name:emp,project_name:loc,notes:note,partners,drivers,site_lat:parseFloat(siteLat),site_lng:parseFloat(siteLng),linked_project_id:linkedProjId,timestamp:localTimestamp})) {
                 if(linkedProjId) {
                     const proj = allData.find(r => r.id === linkedProjId && r.type === 'project');
-                    if(proj) {
+                    if(proj && proj.project_type === 'labor') {
                         const allWorkers = [...new Set([emp, ...partners.split(',').map(x=>x.trim()), ...drivers.split(',').map(x=>x.trim())].filter(x=>x))];
                         const workerCount = allWorkers.length;
                         const defaultRate = parseInt(proj.labor_rate) || 0;
