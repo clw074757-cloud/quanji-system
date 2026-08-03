@@ -604,8 +604,8 @@
             const myDispatch = allData.filter(r => r.type === 'dispatch' &&
                 new Date(r.timestamp).toDateString() === todayStr &&
                 (r.employee_name === currentUser.employee_name ||
-                 (r.partners||'').includes(currentUser.employee_name) ||
-                 (r.drivers||'').includes(currentUser.employee_name)))
+                 (r.partners||'').split(',').map(x=>x.trim()).includes(currentUser.employee_name) ||
+                 (r.drivers||'').split(',').map(x=>x.trim()).includes(currentUser.employee_name)))
                 .sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp))[0];
 
             if (!myDispatch) {
@@ -701,7 +701,8 @@
             const d = new Date(baseDate); d.setHours(0,0,0,0); const day = d.getDay(); const diff = d.getDate() - day + (day == 0 ? -6 : 1);
             const monday = new Date(d.setDate(diff)); const nextMonday = new Date(monday); nextMonday.setDate(monday.getDate() + 7);
             const sunday = new Date(monday); sunday.setDate(monday.getDate() + 6);
-            return { monday, nextMonday, startStr: monday.toLocaleDateString('zh-TW'), endStr: sunday.toLocaleDateString('zh-TW') };
+            const fmtDate = d => `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}`;
+            return { monday, nextMonday, startStr: fmtDate(monday), endStr: fmtDate(sunday) };
         }
 
         async function loadData() {
@@ -788,7 +789,7 @@
             if(salaryEl) salaryEl.innerText = `$${myTotalPay.toLocaleString()}`;
 
             // -- 派工總覽 (我的任務) --
-            const myMissions = allData.filter(r => r.type==='dispatch' && new Date(r.timestamp)>=today && (r.employee_name===currentUser.employee_name || (r.partners||'').includes(currentUser.employee_name) || (r.drivers||'').includes(currentUser.employee_name))).sort((a,b)=>new Date(a.timestamp)-new Date(b.timestamp));
+            const myMissions = allData.filter(r => r.type==='dispatch' && new Date(r.timestamp)>=today && (r.employee_name===currentUser.employee_name || (r.partners||'').split(',').map(x=>x.trim()).includes(currentUser.employee_name) || (r.drivers||'').split(',').map(x=>x.trim()).includes(currentUser.employee_name))).sort((a,b)=>new Date(a.timestamp)-new Date(b.timestamp));
             document.getElementById('upcoming-missions-container').innerHTML = myMissions.map(m => {
                 const isToday = new Date(m.timestamp).toDateString() === today.toDateString();
                 const drvText = m.drivers ? `<div class="text-sm text-blue-400 mt-1">🚗 駕駛：${esc(m.drivers)}</div>` : '';
@@ -1820,7 +1821,7 @@
                 if(linkedProjId) {
                     const proj = allData.find(r => r.id === linkedProjId && r.type === 'project');
                     if(proj) {
-                        const allWorkers = [emp, ...partners.split(',').map(x=>x.trim()), ...drivers.split(',').map(x=>x.trim())].filter(x=>x);
+                        const allWorkers = [...new Set([emp, ...partners.split(',').map(x=>x.trim()), ...drivers.split(',').map(x=>x.trim())].filter(x=>x))];
                         const workerCount = allWorkers.length;
                         const defaultRate = parseInt(proj.labor_rate) || 0;
                         await insertData('proj_labor', { project_id: linkedProjId, project_name: proj.project_name, date, worker_count: workerCount, daily_rate: defaultRate, transport_fee: 0, amount: workerCount * defaultRate, notes: `派工自動建立｜${allWorkers.join('、')}`, timestamp: new Date().toISOString() });
