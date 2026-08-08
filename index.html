@@ -1889,11 +1889,13 @@
             if(await insertData('dispatch',{employee_name:emp,project_name:loc,notes:note,partners,drivers,site_lat:parseFloat(siteLat),site_lng:parseFloat(siteLng),linked_project_id:linkedProjId,timestamp:localTimestamp})) {
                 if(linkedProjId) {
                     const proj = allData.find(r => r.id === linkedProjId && r.type === 'project');
-                    if(proj && proj.project_type === 'labor') {
+                    if(proj) {
                         const allWorkers = [...new Set([emp, ...partners.split(',').map(x=>x.trim()), ...drivers.split(',').map(x=>x.trim())].filter(x=>x))];
                         const workerCount = allWorkers.length;
-                        const defaultRate = parseInt(proj.labor_rate) || 0;
-                        await insertData('proj_labor', { project_id: linkedProjId, project_name: proj.project_name, date, worker_count: workerCount, daily_rate: defaultRate, transport_fee: 0, amount: workerCount * defaultRate, notes: `派工自動建立｜${allWorkers.join('、')}`, timestamp: new Date().toISOString() });
+                        const isLabor = proj.project_type === 'labor';
+                        const defaultRate = isLabor ? (parseInt(proj.labor_rate) || 0) : 0;
+                        const autoNote = isLabor ? `派工自動建立｜${allWorkers.join('、')}` : `派工自動建立（待填金額）｜${allWorkers.join('、')}`;
+                        await insertData('proj_labor', { project_id: linkedProjId, project_name: proj.project_name, date, worker_count: workerCount, daily_rate: defaultRate, transport_fee: 0, amount: workerCount * defaultRate, notes: autoNote, timestamp: new Date().toISOString() });
                     }
                 }
                 alert("指派成功");
