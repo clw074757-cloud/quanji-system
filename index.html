@@ -1962,11 +1962,17 @@
                 const text = await res.text();
                 const match = text.match(/管理系統 (v[\d.]+)/);
                 if (match && match[1] !== APP_VERSION) {
-                    const banner = document.getElementById('update-banner');
-                    if (banner) banner.classList.remove('hidden');
+                    const loggedIn = currentUser !== null;
+                    if (!loggedIn) {
+                        location.reload(true);
+                    } else {
+                        const banner = document.getElementById('update-banner');
+                        if (banner) banner.classList.remove('hidden');
+                    }
                 }
             } catch(e) {}
         }
+        checkForUpdate();
         setInterval(checkForUpdate, 3 * 60 * 1000);
         document.addEventListener('visibilitychange', () => { if(document.visibilityState === 'visible') checkForUpdate(); });
     </script>
