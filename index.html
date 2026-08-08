@@ -6,7 +6,7 @@
     <meta http-equiv="cache-control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="pragma" content="no-cache">
     <meta http-equiv="expires" content="0">
-    <title>全技工程行 - 管理系統 v6.8</title>
+    <title>全技工程行 - 管理系統 v6.9</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -60,7 +60,7 @@
         <div class="bg-[#171717] w-full max-w-sm p-8 rounded-3xl shadow-2xl border-4 border-[#7f1d1d]">
             <img src="https://vegqsdqxnvqupmzsgbpt.supabase.co/storage/v1/object/public/site_photos/F21060CB-BAB1-4E07-91AC-1E3F35796914.png" alt="Logo" class="w-32 h-32 mx-auto mb-4 object-contain drop-shadow-[0_0_10px_rgba(220,38,38,0.3)]">
             <h1 class="text-4xl font-black text-center text-[#dc2626] mb-2">全技工程行</h1>
-            <p class="text-center text-[#fca5a5] font-bold text-lg mb-8">管理系統 v6.8</p>
+            <p class="text-center text-[#fca5a5] font-bold text-lg mb-8">管理系統 v6.9</p>
             <div class="w-full">
                 <label class="text-label">姓名 (或帳號)</label>
                 <input id="login-id" class="input-box" placeholder="請輸入帳號">
@@ -126,7 +126,7 @@
         <div class="flex items-center gap-3">
             <img src="https://vegqsdqxnvqupmzsgbpt.supabase.co/storage/v1/object/public/site_photos/F21060CB-BAB1-4E07-91AC-1E3F35796914.png" alt="Logo" class="w-10 h-10 object-contain">
             <div>
-                <h1 class="text-xl font-black tracking-widest text-[#dc2626]">全技工程行 <span class="text-xs text-[#fca5a5] tracking-normal">v6.8</span></h1>
+                <h1 class="text-xl font-black tracking-widest text-[#dc2626]">全技工程行 <span class="text-xs text-[#fca5a5] tracking-normal">v6.9</span></h1>
                 <div class="flex items-center gap-2 mt-1"><span class="w-2 h-2 rounded-full bg-[#ef4444] border border-black animate-pulse"></span><span id="user-role-display" class="text-xs font-bold text-[#fca5a5]">未登入</span></div>
             </div>
         </div>
@@ -956,6 +956,60 @@
             const display=x=>`${x.getFullYear()}/${x.getMonth()+1}/${x.getDate()}`;
             return {key:iso(monday),label:`${display(monday)}～${display(sunday)}`};
         }
+        function buildContractLaborCostMap(projects) {
+            const contractIds=new Set(projects.filter(p=>p.project_type!=='labor').map(p=>Number(p.id)));
+            const dispatches=allData.filter(r=>r.type==='dispatch'&&contractIds.has(Number(r.linked_project_id))).sort((a,b)=>new Date(a.timestamp)-new Date(b.timestamp)||a.id-b.id);
+            const employees=new Map(allData.filter(r=>r.type==='employee').map(e=>[e.employee_name,e]));
+            const clockGroups={};
+            allData.filter(r=>r.type==='clock').forEach(r=>{
+                const key=`${r.employee_name}|${getDispatchDate(r.timestamp)}`;
+                if(!clockGroups[key])clockGroups[key]={start:null,end:null};
+                const time=new Date(r.timestamp).getTime();
+                if(r.check_type==='上班'&&(!clockGroups[key].start||time<clockGroups[key].start))clockGroups[key].start=time;
+                if(r.check_type==='下班'&&(!clockGroups[key].end||time>clockGroups[key].end))clockGroups[key].end=time;
+            });
+            const assignmentProjects={};
+            dispatches.forEach(d=>{
+                const date=getDispatchDate(d.timestamp), projectId=Number(d.linked_project_id);
+                getDispatchWorkers(d).forEach(name=>{
+                    const key=`${name}|${date}`;
+                    if(!assignmentProjects[key])assignmentProjects[key]=new Set();
+                    assignmentProjects[key].add(projectId);
+                });
+            });
+            const result={}, entryIndex={};
+            dispatches.forEach(d=>{
+                const projectId=Number(d.linked_project_id), date=getDispatchDate(d.timestamp);
+                const drivers=new Set((d.drivers||'').split(',').map(x=>x.trim()).filter(Boolean));
+                if(!result[projectId])result[projectId]={total:0,entries:[]};
+                getDispatchWorkers(d).forEach(name=>{
+                    const entryKey=`${projectId}|${date}|${name}`;
+                    let entry=entryIndex[entryKey];
+                    if(!entry) {
+                        const attendance=clockGroups[`${name}|${date}`]||{};
+                        const employee=employees.get(name);
+                        const wage=employee?getEmployeeWageAtDate(employee,new Date(`${date}T12:00:00`)):0;
+                        let hours=null, dayCount=0, basePay=0;
+                        if(attendance.start&&attendance.end&&attendance.end>attendance.start) {
+                            const elapsed=(attendance.end-attendance.start)/36e5;
+                            const workHours=elapsed>5?elapsed-1:elapsed;
+                            hours=Math.max(0,workHours);
+                            if(workHours>=6){dayCount=1;basePay=wage;}
+                            else if(workHours>=1){dayCount=0.5;basePay=Math.floor(wage/2);}
+                            else {dayCount=parseFloat((workHours/8).toFixed(1));basePay=Math.floor(workHours*(wage/8));}
+                        }
+                        const projectCount=assignmentProjects[`${name}|${date}`]?.size||1;
+                        entry={date,name,wage,hours,dayCount,basePay:Math.round(basePay/projectCount),allowance:0,driverCount:0,total:0,complete:!!(attendance.start&&attendance.end)};
+                        entryIndex[entryKey]=entry;
+                        result[projectId].entries.push(entry);
+                    }
+                    if(drivers.has(name)){entry.allowance+=DRIVER_ALLOWANCE;entry.driverCount++;}
+                    entry.total=entry.basePay+entry.allowance;
+                });
+            });
+            Object.values(result).forEach(project=>{project.total=project.entries.reduce((sum,e)=>sum+e.total,0);});
+            return result;
+        }
         function renderProjectPage() {
             const statusOrder = {'進行中':0,'完工':1,'結案':2};
             const projects = allData.filter(r => r.type === 'project').sort((a,b) => {
@@ -965,6 +1019,7 @@
             const incomes = allData.filter(r => r.type === 'proj_income');
             const expenses = allData.filter(r => r.type === 'proj_expense');
             const laborRecs = allData.filter(r => r.type === 'proj_labor');
+            const contractCostMap = buildContractLaborCostMap(projects);
 
             // 先算每個案件的 payable/received/expense，再加總 → 總覽數字 = 卡片加總，不可能對不上
             let totalPayable = 0, totalTax = 0, totalReceived = 0, totalExpense = 0;
@@ -977,7 +1032,8 @@
                 totalPayable += taxTotal;
                 totalTax += taxAmount;
                 totalReceived += incomes.filter(i => i.project_id == p.id).reduce((ss,i) => ss + (parseInt(i.amount)||0), 0);
-                totalExpense += expenses.filter(e => e.project_id == p.id).reduce((ss,e) => ss + (parseInt(e.amount)||0), 0);
+                const manualExpense=expenses.filter(e => e.project_id == p.id).reduce((ss,e) => ss + (parseInt(e.amount)||0), 0);
+                totalExpense += manualExpense + (isL ? 0 : (contractCostMap[p.id]?.total||0));
             });
             const totalProfit = totalReceived - totalExpense;
             const totalOutstanding = totalPayable - totalReceived;
@@ -997,7 +1053,7 @@
                     <div class="text-xl font-black text-orange-400 font-mono">$${totalOutstanding.toLocaleString()}</div>
                 </div>
                 <div class="bg-[#262626] p-3 rounded-xl border border-red-900">
-                    <div class="text-xs text-[#fca5a5] font-bold">總支出</div>
+                    <div class="text-xs text-[#fca5a5] font-bold">總支出（含合約人事成本）</div>
                     <div class="text-xl font-black text-[#dc2626] font-mono">$${totalExpense.toLocaleString()}</div>
                 </div>
                 <div class="bg-[#262626] p-3 rounded-xl border border-purple-900">
@@ -1018,9 +1074,11 @@
                 const isLabor = p.project_type === 'labor';
                 const projIncomes = incomes.filter(i => i.project_id == p.id).sort((a,b) => (b.date||b.timestamp||'') > (a.date||a.timestamp||'') ? 1 : -1);
                 const projExpenses = expenses.filter(e => e.project_id == p.id).sort((a,b) => (b.date||b.timestamp||'') > (a.date||a.timestamp||'') ? 1 : -1);
-                const projLabors = laborRecs.filter(l => l.project_id == p.id).sort((a,b) => (b.date||b.timestamp||'').localeCompare(a.date||a.timestamp||''));
+                const projLabors = isLabor ? laborRecs.filter(l => l.project_id == p.id).sort((a,b) => (b.date||b.timestamp||'').localeCompare(a.date||a.timestamp||'')) : [];
+                const contractCost=contractCostMap[p.id]||{total:0,entries:[]};
                 const received = projIncomes.reduce((s,i) => s + (parseInt(i.amount)||0), 0);
-                const spent = projExpenses.reduce((s,e) => s + (parseInt(e.amount)||0), 0);
+                const manualExpense = projExpenses.reduce((s,e) => s + (parseInt(e.amount)||0), 0);
+                const spent = manualExpense + (isLabor ? 0 : contractCost.total);
                 const laborTotal = projLabors.reduce((s,l) => s + (parseInt(l.amount)||0), 0);
                 const baseContract = isLabor ? laborTotal : (parseInt(p.contract_amount) || 0);
                 const { taxAmount, taxTotal, preTotal } = calcTax(baseContract, p.tax_type, p.tax_rate);
@@ -1074,7 +1132,21 @@
                         </div>`).join('');
                     return `<details class="mb-2 bg-[#111] rounded-lg border border-yellow-900" ${weekIndex===0?'open':''}><summary class="p-3 cursor-pointer"><div class="flex justify-between items-center gap-2"><span class="font-black text-yellow-400">📅 ${week.label}</span><span class="text-yellow-400 font-black font-mono">$${week.amount.toLocaleString()}</span></div><div class="text-xs text-gray-400 mt-1">${week.records.length} 天｜共 ${week.workers.toLocaleString()} 工${week.transport?`｜車資 $${week.transport.toLocaleString()}`:''}</div></summary><div class="px-2 pb-2 border-t border-yellow-900 pt-2">${dailyRows}</div></details>`;
                 }).join('');
-                const actionBtns = `<div class="flex gap-1 mt-1 justify-end">
+                const contractCostWeekMap={};
+                contractCost.entries.forEach(entry=>{
+                    const info=getLaborWeekInfo(entry.date);
+                    if(!contractCostWeekMap[info.key])contractCostWeekMap[info.key]={...info,entries:[],amount:0};
+                    contractCostWeekMap[info.key].entries.push(entry);
+                    contractCostWeekMap[info.key].amount+=entry.total;
+                });
+                const contractCostWeekRows=Object.values(contractCostWeekMap).sort((a,b)=>b.key.localeCompare(a.key)).map((week,weekIndex)=>{
+                    const costRows=week.entries.sort((a,b)=>b.date.localeCompare(a.date)||a.name.localeCompare(b.name,'zh-TW')).map(entry=>{
+                        const attendance=entry.complete?`${entry.hours.toFixed(1)} 小時｜${entry.dayCount} 天`:'打卡未完整｜基本薪資 $0';
+                        const driverText=entry.allowance?`<span class="text-xs text-blue-400 ml-2">＋駕駛津貼 $${entry.allowance.toLocaleString()}${entry.driverCount>1?`（${entry.driverCount}次）`:''}</span>`:'';
+                        return `<div class="flex justify-between items-center p-2 bg-[#000] rounded border border-blue-900 mb-1"><div><span class="text-blue-300 font-bold text-sm">${esc(entry.date)}　${esc(entry.name)}</span><div class="text-xs ${entry.complete?'text-gray-400':'text-red-400'} mt-1">${attendance}｜日薪 $${entry.wage.toLocaleString()}｜基本成本 $${entry.basePay.toLocaleString()}${driverText}</div></div><span class="text-blue-300 font-black font-mono text-sm">$${entry.total.toLocaleString()}</span></div>`;
+                    }).join('');
+                    return `<details class="mb-2 bg-[#08111f] rounded-lg border border-blue-900" ${weekIndex===0?'open':''}><summary class="p-3 cursor-pointer"><div class="flex justify-between items-center gap-2"><span class="font-black text-blue-300">📅 ${week.label}</span><span class="text-blue-300 font-black font-mono">$${week.amount.toLocaleString()}</span></div><div class="text-xs text-gray-400 mt-1">${week.entries.length} 人次｜含駕駛津貼</div></summary><div class="px-2 pb-2 border-t border-blue-900 pt-2">${costRows}</div></details>`;
+                }).join('');                const actionBtns = `<div class="flex gap-1 mt-1 justify-end">
                     <button onclick="openProjEdit(${p.id})" class="text-xs text-blue-400 border border-blue-800 px-2 py-1 rounded">編輯</button>
                     <button onclick="del(this,${p.id})" class="text-xs text-red-500 border border-red-900 px-2 py-1 rounded">刪除</button>
                 </div>`;
@@ -1093,15 +1165,23 @@
                             ${actionBtns}
                         </div>`;
 
-                const laborSection = (isLabor || projLabors.length > 0) ? `
+                const contractCostSection = !isLabor ? `
+                    <details class="mb-2">
+                        <summary class="flex justify-between items-center p-3 bg-[#08111f] rounded-lg cursor-pointer border border-blue-900">
+                            <span class="font-bold text-blue-300">👷 人事成本（含駕駛津貼）　$${contractCost.total.toLocaleString()}</span>
+                            <span class="text-blue-300 text-xs">▼ 展開</span>
+                        </summary>
+                        <div class="pt-2">${contractCostWeekRows || '<div class="text-center text-gray-500 text-sm py-2">尚無關聯派工，或派工資料已超出載入期間</div>'}<div class="text-xs text-gray-500 mt-2 px-1">依派工人員、實際打卡、該日期日薪及駕駛津貼自動計算。</div></div>
+                    </details>` : '';
+                const laborSection = isLabor ? `
                     <details class="mb-2">
                         <summary class="flex justify-between items-center p-3 bg-[#1a1500] rounded-lg cursor-pointer border border-yellow-900">
-                            <span class="font-bold text-yellow-400">👷 出工記錄（${projLabors.length} 筆）　累計 $${laborTotal.toLocaleString()}</span>
+                            <span class="font-bold text-yellow-400">📋 對上包請款工數（${projLabors.length} 筆）　$${laborTotal.toLocaleString()}</span>
                             <span class="text-yellow-400 text-xs">▼ 展開</span>
                         </summary>
                         <div class="pt-2">
-                            ${laborWeekRows || '<div class="text-center text-gray-500 text-sm py-2">尚無出工記錄</div>'}
-                            <button onclick="openProjModal('labor',${p.id})" class="btn btn-warning text-sm py-3 mt-2">＋ 記錄出工</button>
+                            ${laborWeekRows || '<div class="text-center text-gray-500 text-sm py-2">尚無請款工數記錄</div>'}
+                            <button onclick="openProjModal('labor',${p.id})" class="btn btn-warning text-sm py-3 mt-2">＋ 記錄請款工數</button>
                         </div>
                     </details>` : '';
 
@@ -1137,7 +1217,7 @@
                             <div class="font-black text-green-400 font-mono text-sm">$${received.toLocaleString()}</div>
                         </div>
                         <div class="bg-[#262626] p-2 rounded text-center">
-                            <div class="text-xs text-[#fca5a5]">支出</div>
+                            <div class="text-xs text-[#fca5a5]">${isLabor?'支出':'支出（含人事）'}</div>
                             <div class="font-black text-[#dc2626] font-mono text-sm">$${spent.toLocaleString()}</div>
                         </div>
                         <div class="bg-[#262626] p-2 rounded text-center">
@@ -1145,6 +1225,7 @@
                             <div class="font-black ${profit>=0?'text-yellow-400':'text-red-400'} font-mono text-sm">$${profit.toLocaleString()}</div>
                         </div>
                     </div>
+                    ${contractCostSection}
                     ${laborSection}
                     <details class="mb-2">
                         <summary class="flex justify-between items-center p-3 bg-[#0a1f0a] rounded-lg cursor-pointer border border-green-900">
@@ -1158,7 +1239,7 @@
                     </details>
                     <details>
                         <summary class="flex justify-between items-center p-3 bg-[#1f0a0a] rounded-lg cursor-pointer border border-red-900">
-                            <span class="font-bold text-[#fca5a5]">📋 支出記錄（${projExpenses.length} 筆）</span>
+                            <span class="font-bold text-[#fca5a5]">📋 ${isLabor?'支出記錄':'其他支出記錄'}（${projExpenses.length} 筆）</span>
                             <span class="text-[#fca5a5] text-xs">▼ 展開</span>
                         </summary>
                         <div class="pt-2">
@@ -1431,6 +1512,7 @@
             const linkedProjectId=parseInt(dispatchData.linked_project_id)||null;
             if(!linkedProjectId)return true;
             const project=allData.find(r=>r.type==='project'&&r.id===linkedProjectId);
+            if(project&&project.project_type!=='labor')return true;
             if(!project)return false;
             const workers=getDispatchWorkers(dispatchData), date=getDispatchDate(dispatchData.timestamp);
             let labor=allData.find(r=>r.type==='proj_labor'&&Number(r.dispatch_id)===Number(dispatchId));
