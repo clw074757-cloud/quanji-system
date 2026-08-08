@@ -6,7 +6,7 @@
     <meta http-equiv="cache-control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="pragma" content="no-cache">
     <meta http-equiv="expires" content="0">
-    <title>全技工程行 - 管理系統 v6.6</title>
+    <title>全技工程行 - 管理系統 v6.7</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -60,7 +60,7 @@
         <div class="bg-[#171717] w-full max-w-sm p-8 rounded-3xl shadow-2xl border-4 border-[#7f1d1d]">
             <img src="https://vegqsdqxnvqupmzsgbpt.supabase.co/storage/v1/object/public/site_photos/F21060CB-BAB1-4E07-91AC-1E3F35796914.png" alt="Logo" class="w-32 h-32 mx-auto mb-4 object-contain drop-shadow-[0_0_10px_rgba(220,38,38,0.3)]">
             <h1 class="text-4xl font-black text-center text-[#dc2626] mb-2">全技工程行</h1>
-            <p class="text-center text-[#fca5a5] font-bold text-lg mb-8">管理系統 v6.6</p>
+            <p class="text-center text-[#fca5a5] font-bold text-lg mb-8">管理系統 v6.7</p>
             <div class="w-full">
                 <label class="text-label">姓名 (或帳號)</label>
                 <input id="login-id" class="input-box" placeholder="請輸入帳號">
@@ -126,7 +126,7 @@
         <div class="flex items-center gap-3">
             <img src="https://vegqsdqxnvqupmzsgbpt.supabase.co/storage/v1/object/public/site_photos/F21060CB-BAB1-4E07-91AC-1E3F35796914.png" alt="Logo" class="w-10 h-10 object-contain">
             <div>
-                <h1 class="text-xl font-black tracking-widest text-[#dc2626]">全技工程行 <span class="text-xs text-[#fca5a5] tracking-normal">v6.6</span></h1>
+                <h1 class="text-xl font-black tracking-widest text-[#dc2626]">全技工程行 <span class="text-xs text-[#fca5a5] tracking-normal">v6.7</span></h1>
                 <div class="flex items-center gap-2 mt-1"><span class="w-2 h-2 rounded-full bg-[#ef4444] border border-black animate-pulse"></span><span id="user-role-display" class="text-xs font-bold text-[#fca5a5]">未登入</span></div>
             </div>
         </div>
@@ -1409,6 +1409,44 @@
         }
 
         async function insertData(t, d) { try{ const r=await fetch(DB_URL,{method:'POST',headers:HEADERS,body:JSON.stringify({type:t,data:d})}); return r.ok; }catch(e){ return false; } }
+        async function insertDataWithRecord(t, d) {
+            try {
+                const r=await fetch(DB_URL,{method:'POST',headers:HEADERS,body:JSON.stringify({type:t,data:d})});
+                if(!r.ok)return null;
+                const rows=await r.json();
+                return Array.isArray(rows)&&rows.length ? rows[0] : null;
+            } catch(e){return null;}
+        }
+        function getDispatchWorkers(dispatch) {
+            return [...new Set([dispatch.employee_name,...(dispatch.partners||'').split(',').map(x=>x.trim()),...(dispatch.drivers||'').split(',').map(x=>x.trim())].filter(x=>x))];
+        }
+        function getDispatchDate(timestamp) {
+            const d=new Date(timestamp);
+            return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+        }
+        function getAutoLaborNote(project, workers) {
+            return project.project_type==='labor' ? `派工自動建立｜${workers.join('、')}` : `派工自動建立（待填金額）｜${workers.join('、')}`;
+        }
+        async function syncDispatchLabor(dispatchId, previousDispatch, dispatchData) {
+            const linkedProjectId=parseInt(dispatchData.linked_project_id)||null;
+            if(!linkedProjectId)return true;
+            const project=allData.find(r=>r.type==='project'&&r.id===linkedProjectId);
+            if(!project)return false;
+            const workers=getDispatchWorkers(dispatchData), date=getDispatchDate(dispatchData.timestamp);
+            let labor=allData.find(r=>r.type==='proj_labor'&&Number(r.dispatch_id)===Number(dispatchId));
+            if(!labor&&previousDispatch) {
+                const oldProjectId=parseInt(previousDispatch.linked_project_id)||linkedProjectId;
+                const oldDate=getDispatchDate(previousDispatch.timestamp), oldWorkers=getDispatchWorkers(previousDispatch);
+                const candidates=allData.filter(r=>r.type==='proj_labor'&&r.project_id==oldProjectId&&r.date===oldDate&&String(r.notes||'').startsWith('派工自動建立'));
+                labor=candidates.find(r=>oldWorkers.every(name=>String(r.notes||'').includes(name)))||(candidates.length===1?candidates[0]:null);
+            }
+            const rate=labor?(parseInt(labor.daily_rate)||0):(project.project_type==='labor'?(parseInt(project.labor_rate)||0):0);
+            const transport=labor?(parseInt(labor.transport_fee)||0):0;
+            const payload=labor?{...labor}:{timestamp:new Date().toISOString()};
+            delete payload.id; delete payload.type; delete payload.created_at;
+            Object.assign(payload,{dispatch_id:dispatchId,project_id:linkedProjectId,project_name:project.project_name,date,worker_count:workers.length,daily_rate:rate,transport_fee:transport,amount:workers.length*rate+transport,notes:getAutoLaborNote(project,workers)});
+            return labor?await updateDataAPI(labor.id,payload):await insertData('proj_labor',payload);
+        }
         async function uploadFileAPI(f) { const n=`img_${Date.now()}_${Math.random().toString(36).substr(2,5)}.jpg`; try{ const r=await fetch(`${STORAGE_URL}/${n}`,{method:'POST',headers:{'apikey':ANON_KEY,'Authorization':`Bearer ${ANON_KEY}`,'Content-Type':f.type,'x-upsert':'true'},body:f}); if(!r.ok) return null; return `${PROJECT_URL}/storage/v1/object/public/site_photos/${n}`; }catch(e){ return null; } }
 
         // 一般單筆修改仍確認實際受影響資料；高風險操作改由資料庫交易函式處理。
@@ -1586,7 +1624,13 @@
             else if(type==='proj_labor') { const cnt=parseInt(document.getElementById('edit-labor-count').value)||0; const rate=parseInt(document.getElementById('edit-labor-rate').value)||0; const trans=parseInt(document.getElementById('edit-labor-transport').value)||0; payload.date=document.getElementById('edit-labor-date').value; payload.worker_count=cnt; payload.daily_rate=rate; payload.transport_fee=trans; payload.amount=cnt*rate+trans; payload.notes=document.getElementById('edit-labor-note').value; }
             else if(type==='dispatch') { payload.timestamp=new Date(document.getElementById('edit-time').value).toISOString(); payload.project_name=document.getElementById('edit-dispatch-loc').value; payload.notes=document.getElementById('edit-dispatch-note').value; payload.partners=Array.from(document.querySelectorAll('#edit-dispatch-partners-list input:checked')).map(c=>c.value).join(', '); payload.drivers=Array.from(document.querySelectorAll('#edit-dispatch-drivers-list input:checked')).map(c=>c.value).join(', '); }
             else { payload.timestamp=new Date(document.getElementById('edit-time').value).toISOString(); if(type==='clock') payload.check_type=document.getElementById('edit-check-type').value; else { payload.project_name=document.getElementById('edit-proj').value; payload.notes=document.getElementById('edit-note').value; } }
-            if(await updateDataAPI(currentEditId,payload)) { if(type==='employee'&&(String(currentEditData.wage)!==String(payload.wage)||String(currentEditData.wage_level||'')!==String(payload.wage_level||''))){ await insertData('salary_change',{employee_id:currentEditData.employee_id||currentEditData.employee_name,employee_name:payload.employee_name,old_grade:currentEditData.wage_level||'',new_grade:payload.wage_level||'',old_wage:parseInt(currentEditData.wage)||0,new_wage:parseInt(payload.wage)||0,effective_date:new Date().toISOString().slice(0,10),reason:'員工資料人工調整',approved_by:currentUser.employee_name,timestamp:new Date().toISOString()}); } alert('修改成功'); closeEdit(); await loadData(); }
+            if(await updateDataAPI(currentEditId,payload)) {
+                if(type==='dispatch'&&!await syncDispatchLabor(currentEditId,currentEditData,payload)) {
+                    alert('派工已修改，但案件出工紀錄同步失敗，請重新整理後再試一次'); await loadData(); return;
+                }
+                if(type==='employee'&&(String(currentEditData.wage)!==String(payload.wage)||String(currentEditData.wage_level||'')!==String(payload.wage_level||''))){ await insertData('salary_change',{employee_id:currentEditData.employee_id||currentEditData.employee_name,employee_name:payload.employee_name,old_grade:currentEditData.wage_level||'',new_grade:payload.wage_level||'',old_wage:parseInt(currentEditData.wage)||0,new_wage:parseInt(payload.wage)||0,effective_date:new Date().toISOString().slice(0,10),reason:'員工資料人工調整',approved_by:currentUser.employee_name,timestamp:new Date().toISOString()}); }
+                alert('修改成功'); closeEdit(); await loadData();
+            }
         }
         async function addEmployee() {
             const name=document.getElementById('new-name').value, id=document.getElementById('new-id').value, code=document.getElementById('new-code').value, wage=document.getElementById('new-wage').value, wageLevel=document.getElementById('new-level').value, hireDate=document.getElementById('new-hire-date').value, probationDays=parseInt(document.getElementById('new-probation-days').value)||30, pwd=document.getElementById('new-pwd').value||"1234", isAdmin=document.getElementById('new-is-admin').checked;
@@ -1886,17 +1930,11 @@
             const parts=date.split('-').map(Number);
             const localTimestamp=new Date(parts[0],parts[1]-1,parts[2]).toISOString();
             const linkedProjId = parseInt(document.getElementById('dispatch-proj-select').value) || null;
-            if(await insertData('dispatch',{employee_name:emp,project_name:loc,notes:note,partners,drivers,site_lat:parseFloat(siteLat),site_lng:parseFloat(siteLng),linked_project_id:linkedProjId,timestamp:localTimestamp})) {
-                if(linkedProjId) {
-                    const proj = allData.find(r => r.id === linkedProjId && r.type === 'project');
-                    if(proj) {
-                        const allWorkers = [...new Set([emp, ...partners.split(',').map(x=>x.trim()), ...drivers.split(',').map(x=>x.trim())].filter(x=>x))];
-                        const workerCount = allWorkers.length;
-                        const isLabor = proj.project_type === 'labor';
-                        const defaultRate = isLabor ? (parseInt(proj.labor_rate) || 0) : 0;
-                        const autoNote = isLabor ? `派工自動建立｜${allWorkers.join('、')}` : `派工自動建立（待填金額）｜${allWorkers.join('、')}`;
-                        await insertData('proj_labor', { project_id: linkedProjId, project_name: proj.project_name, date, worker_count: workerCount, daily_rate: defaultRate, transport_fee: 0, amount: workerCount * defaultRate, notes: autoNote, timestamp: new Date().toISOString() });
-                    }
+            const dispatchPayload={employee_name:emp,project_name:loc,notes:note,partners,drivers,site_lat:parseFloat(siteLat),site_lng:parseFloat(siteLng),linked_project_id:linkedProjId,timestamp:localTimestamp};
+            const createdDispatch=await insertDataWithRecord('dispatch',dispatchPayload);
+            if(createdDispatch) {
+                if(linkedProjId&&!await syncDispatchLabor(createdDispatch.id,null,dispatchPayload)) {
+                    alert('派工已建立，但案件出工紀錄建立失敗，請重新整理後編輯此派工再試一次');
                 }
                 alert("指派成功");
                 document.getElementById('dispatch-proj-select').value='';
