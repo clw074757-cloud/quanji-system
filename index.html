@@ -6,7 +6,7 @@
     <meta http-equiv="cache-control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="pragma" content="no-cache">
     <meta http-equiv="expires" content="0">
-    <title>全技工程行 - 管理系統 v7.5</title>
+    <title>全技工程行 - 管理系統 v7.6</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -60,7 +60,7 @@
         <div class="bg-[#171717] w-full max-w-sm p-8 rounded-3xl shadow-2xl border-4 border-[#7f1d1d]">
             <img src="https://vegqsdqxnvqupmzsgbpt.supabase.co/storage/v1/object/public/site_photos/F21060CB-BAB1-4E07-91AC-1E3F35796914.png" alt="Logo" class="w-32 h-32 mx-auto mb-4 object-contain drop-shadow-[0_0_10px_rgba(220,38,38,0.3)]">
             <h1 class="text-4xl font-black text-center text-[#dc2626] mb-2">全技工程行</h1>
-            <p class="text-center text-[#fca5a5] font-bold text-lg mb-8">管理系統 v7.5</p>
+            <p class="text-center text-[#fca5a5] font-bold text-lg mb-8">管理系統 v7.6</p>
             <div class="w-full">
                 <label class="text-label">姓名 (或帳號)</label>
                 <input id="login-id" class="input-box" placeholder="請輸入帳號">
@@ -126,7 +126,7 @@
         <div class="flex items-center gap-3">
             <img src="https://vegqsdqxnvqupmzsgbpt.supabase.co/storage/v1/object/public/site_photos/F21060CB-BAB1-4E07-91AC-1E3F35796914.png" alt="Logo" class="w-10 h-10 object-contain">
             <div>
-                <h1 class="text-xl font-black tracking-widest text-[#dc2626]">全技工程行 <span class="text-xs text-[#fca5a5] tracking-normal">v7.5</span></h1>
+                <h1 class="text-xl font-black tracking-widest text-[#dc2626]">全技工程行 <span class="text-xs text-[#fca5a5] tracking-normal">v7.6</span></h1>
                 <div class="flex items-center gap-2 mt-1"><span class="w-2 h-2 rounded-full bg-[#ef4444] border border-black animate-pulse"></span><span id="user-role-display" class="text-xs font-bold text-[#fca5a5]">未登入</span></div>
             </div>
         </div>
@@ -713,11 +713,12 @@
 
         function render() {
             const isAdmin = currentUser.is_admin;
-            const emps = allData.filter(r => r.type === 'employee' && r.active !== false).map(r => ({...r}));
+            const allEmps = allData.filter(r => r.type === 'employee').map(r => ({...r}));
+            const emps = allEmps.filter(r => r.active !== false);
             const today = new Date(); today.setHours(0,0,0,0);
 
             // 薪資異動依生效日套用；未到期的核准結果不提前改變員工目前薪資。
-            emps.forEach(emp => {
+            allEmps.forEach(emp => {
                 const compensation = getEmployeeCompensationAtDate(emp, new Date());
                 emp.wage = compensation.wage;
                 emp.wage_level = compensation.grade;
@@ -808,7 +809,7 @@
 
                 document.getElementById('dispatch-list').innerHTML = allData.filter(r=>r.type==='dispatch').sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp)).map(d=>`<div class="bg-[#262626] p-3 rounded border border-yellow-900 flex justify-between"><div><div class="font-bold text-yellow-500">${new Date(d.timestamp).toLocaleDateString('zh-TW')} ➤ ${esc(d.employee_name)}</div><div class="text-[#fca5a5]">${esc(d.project_name)}</div>${d.drivers?`<div class="text-xs text-blue-400 font-bold">🚗 ${esc(d.drivers)}</div>`:''}${d.partners?`<div class="text-xs text-gray-400">👥 ${esc(d.partners)}</div>`:''}<div class="text-sm text-[#7f1d1d] mt-1">${esc(d.notes)}</div></div><div class="flex gap-2"><button onclick="openEdit(${d.id})" class="action-btn btn-edit">✏️</button><button onclick="del(this,${d.id})" class="action-btn btn-del">✕</button></div></div>`).join('');
 
-                const empMap={}; emps.forEach(e => empMap[e.employee_name]=parseInt(e.wage)||0);
+                const empMap={}; allEmps.forEach(e => empMap[e.employee_name]=parseInt(e.wage)||0);
                 const weekRange = getWeekRange(currentViewDate);
                 document.getElementById('current-week-display').innerText = `週期：${weekRange.startStr} ~ ${weekRange.endStr}`;
                 const hasSettledThisWeek = allData.some(r => r.type === 'payout_history' && r.start_date === weekRange.startStr);
@@ -839,7 +840,7 @@
                     const name = k.split('|')[0];
                     if(v.start && v.end) {
                         const hrs = (v.end - v.start)/36e5;
-                        const wageEmp=emps.find(e=>e.employee_name===name);
+                        const wageEmp=allEmps.find(e=>e.employee_name===name);
                         const wage = wageEmp ? getEmployeeWageAtDate(wageEmp,new Date(v.start)) : (empMap[name]||0);
                         const workHrs = hrs > 5 ? hrs - 1 : hrs;
                         let pay = 0, dayCount = 0;
@@ -853,8 +854,9 @@
 
                 document.getElementById('emp-directory-list').innerHTML = emps.map(e => `<div class="flex justify-between items-center p-3 bg-[#171717] rounded-xl border border-[#7f1d1d] shadow-sm"><div><div class="font-black text-[#fca5a5]">${e.employee_code?`[${esc(e.employee_code)}]`:''} ${esc(e.employee_name)} ${e.is_admin?'(Admin)':''}</div><div class="text-xs text-yellow-500">${esc(e.wage_level||'尚未分級')}｜日薪 $${esc(e.wage)}</div></div><div class="flex gap-2"><button onclick="openEdit(${e.id})" class="action-btn btn-edit">✏️</button><button onclick="del(this,${e.id})" class="action-btn btn-del">✕</button></div></div>`).join('');
 
+                const salaryEmps=allEmps.filter(e=>e.active!==false||(weeklyCalc[e.employee_name]||0)>0||(driverCounts[e.employee_name]||0)>0);
                 let totalSalary = 0;
-                document.getElementById('salary-calc-list').innerHTML = emps.map(e => {
+                document.getElementById('salary-calc-list').innerHTML = salaryEmps.map(e => {
                     const basePay = weeklyCalc[e.employee_name] || 0;
                     const days = workDaysCount[e.employee_name] || 0;
                     const dCount = driverCounts[e.employee_name] || 0;
@@ -864,7 +866,8 @@
                     totalSalary += finalPay;
                     const settledText = hasSettledThisWeek ? '<span class="text-xs text-green-500 font-bold ml-2">(已結算)</span>' : '';
                     const drvHtml = dCount > 0 ? `<div class="text-xs text-blue-400 mt-1 font-bold">🚗 津貼 +$${driverBonus} (${dCount}次)</div>` : '';
-                    return `<div class="flex justify-between items-center p-4 bg-[#262626] rounded-xl border border-[#404040]"><div class="font-bold text-[#fca5a5]">${esc(e.employee_name)}${drvHtml}</div><div class="text-right"><div class="text-xs text-[#7f1d1d]">本週出勤 ${days} 天</div><div class="font-black text-[#dc2626] text-xl">$${finalPay.toLocaleString()}${settledText}</div></div></div>`;
+                    const inactiveHtml = e.active===false ? '<span class="text-xs text-gray-500 ml-2">（已離職）</span>' : '';
+                    return `<div class="flex justify-between items-center p-4 bg-[#262626] rounded-xl border border-[#404040]"><div class="font-bold text-[#fca5a5]">${esc(e.employee_name)}${inactiveHtml}${drvHtml}</div><div class="text-right"><div class="text-xs text-[#7f1d1d]">本週出勤 ${days} 天</div><div class="font-black text-[#dc2626] text-xl">$${finalPay.toLocaleString()}${settledText}</div></div></div>`;
                 }).join('');
 
                 const btnSettle = document.getElementById('btn-settle');
@@ -892,7 +895,7 @@
 
                 // -- 後台打卡列表依員工分組 --
                 const clockRecords = allData.filter(r => r.type === 'clock');
-                const clockHTML = emps.map(emp => {
+                const clockHTML = allEmps.map(emp => {
                     const empName = emp.employee_name;
                     const empRecords = clockRecords.filter(r => r.employee_name === empName).sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp)).slice(0, 30);
                     if (empRecords.length === 0) return '';
