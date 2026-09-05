@@ -6,7 +6,7 @@
     <meta http-equiv="cache-control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="pragma" content="no-cache">
     <meta http-equiv="expires" content="0">
-    <title>全技工程行 - 管理系統 v7.8</title>
+    <title>全技工程行 - 管理系統 v7.9</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -60,7 +60,7 @@
         <div class="bg-[#171717] w-full max-w-sm p-8 rounded-3xl shadow-2xl border-4 border-[#7f1d1d]">
             <img src="https://vegqsdqxnvqupmzsgbpt.supabase.co/storage/v1/object/public/site_photos/F21060CB-BAB1-4E07-91AC-1E3F35796914.png" alt="Logo" class="w-32 h-32 mx-auto mb-4 object-contain drop-shadow-[0_0_10px_rgba(220,38,38,0.3)]">
             <h1 class="text-4xl font-black text-center text-[#dc2626] mb-2">全技工程行</h1>
-            <p class="text-center text-[#fca5a5] font-bold text-lg mb-8">管理系統 v7.8</p>
+            <p class="text-center text-[#fca5a5] font-bold text-lg mb-8">管理系統 v7.9</p>
             <div class="w-full">
                 <label class="text-label">姓名 (或帳號)</label>
                 <input id="login-id" class="input-box" placeholder="請輸入帳號">
@@ -99,7 +99,7 @@
             <div id="edit-dispatch-area" class="hidden">
                 <label class="text-label">指派負責人</label><input id="edit-dispatch-emp" class="input-box" readonly>
                 <label class="text-label">駕駛人 (勾選)</label><div id="edit-dispatch-drivers-list" class="grid grid-cols-2 gap-2 mb-3 bg-[#262626] p-2 rounded"></div>
-                <label class="text-label">陪同人員</label><div id="edit-dispatch-partners-list" class="grid grid-cols-2 gap-2 mb-3"></div>
+                <label class="text-label">陪同人員</label><div id="edit-dispatch-partners-list" class="grid grid-cols-2 gap-2 mb-3"></div><label class="custom-checkbox border-purple-800 mb-3"><input type="checkbox" id="edit-dispatch-night-shift" onchange="toggleNightFields('edit-dispatch')"><span class="text-purple-300 font-black">🌙 夜班派工</span></label><div id="edit-dispatch-night-fields" class="hidden bg-[#160d20] border border-purple-900 rounded-xl p-3 mb-3"><div class="text-sm text-purple-300 font-bold mb-2">各員工夜班加給</div><div id="edit-dispatch-night-allowances" class="space-y-2"></div><div class="text-xs text-gray-500 mt-2">完成上下班打卡後才計入加給。</div></div>
                 <label class="text-label">施工地點</label><input id="edit-dispatch-loc" class="input-box">
                 <label class="text-label">派工內容</label><textarea id="edit-dispatch-note" class="input-box" rows="3"></textarea>
             </div>
@@ -126,7 +126,7 @@
         <div class="flex items-center gap-3">
             <img src="https://vegqsdqxnvqupmzsgbpt.supabase.co/storage/v1/object/public/site_photos/F21060CB-BAB1-4E07-91AC-1E3F35796914.png" alt="Logo" class="w-10 h-10 object-contain">
             <div>
-                <h1 class="text-xl font-black tracking-widest text-[#dc2626]">全技工程行 <span class="text-xs text-[#fca5a5] tracking-normal">v7.8</span></h1>
+                <h1 class="text-xl font-black tracking-widest text-[#dc2626]">全技工程行 <span class="text-xs text-[#fca5a5] tracking-normal">v7.9</span></h1>
                 <div class="flex items-center gap-2 mt-1"><span class="w-2 h-2 rounded-full bg-[#ef4444] border border-black animate-pulse"></span><span id="user-role-display" class="text-xs font-bold text-[#fca5a5]">未登入</span></div>
             </div>
         </div>
@@ -213,7 +213,7 @@
                         <div><label class="text-label">日期</label><input type="date" id="dispatch-date" class="input-box" style="color-scheme: dark;"></div>
                     </div>
                     <div><label class="text-label">駕駛人 (勾選)</label><div id="dispatch-drivers-list" class="grid grid-cols-2 gap-2 bg-[#1a0505] p-3 rounded border border-[#dc2626]"></div></div>
-                    <div><label class="text-label">陪同人員 (勾選)</label><div id="dispatch-partners-list" class="grid grid-cols-2 gap-2 bg-[#262626] p-3 rounded border border-[#7f1d1d]"></div></div>
+                    <div><label class="text-label">陪同人員 (勾選)</label><div id="dispatch-partners-list" class="grid grid-cols-2 gap-2 bg-[#262626] p-3 rounded border border-[#7f1d1d]"></div></div><label class="custom-checkbox border-purple-800"><input type="checkbox" id="dispatch-night-shift" onchange="toggleNightFields('dispatch')"><span class="text-purple-300 font-black">🌙 夜班派工</span></label><div id="dispatch-night-fields" class="hidden bg-[#160d20] border border-purple-900 rounded-xl p-3"><div class="text-sm text-purple-300 font-bold mb-2">各員工夜班加給</div><div id="dispatch-night-allowances" class="space-y-2"></div><div class="text-xs text-gray-500 mt-2">完成上下班打卡後才計入加給。</div></div>
                     <div>
                         <label class="text-label">施工地點</label>
                         <input id="dispatch-loc" placeholder="例：台北市信義區信義路五段7號" class="input-box">
@@ -735,18 +735,7 @@
             const myWage = parseInt(currentUser.wage) || 0;
             let myTotalPay = 0, myDriverCount = 0;
             const thisWeek = getWeekRange(new Date());
-            const myDailyGroups = {};
-
-            allData.filter(r => r.type === 'clock' && r.employee_name === currentUser.employee_name).forEach(r => {
-                const t = new Date(r.timestamp);
-                if(t >= thisWeek.monday && t < thisWeek.nextMonday) {
-                    const k = t.toDateString();
-                    if(!myDailyGroups[k]) myDailyGroups[k] = {start:null, end:null};
-                    const tv = t.getTime();
-                    if(r.check_type === '上班' && (!myDailyGroups[k].start || tv < myDailyGroups[k].start)) myDailyGroups[k].start = tv;
-                    if(r.check_type === '下班' && (!myDailyGroups[k].end || tv > myDailyGroups[k].end)) myDailyGroups[k].end = tv;
-                }
-            });
+            const myDailyGroups = attendanceGroups(thisWeek,currentUser.employee_name);
 
             allData.filter(r => r.type === 'dispatch').forEach(d => {
                 const dt = new Date(d.timestamp);
@@ -765,7 +754,7 @@
                     if (workHrs >= 6) pay = dayWage;
                     else if (workHrs >= 1) pay = Math.floor(dayWage / 2);
                     else pay = Math.floor(workHrs * (dayWage / 8));
-                    myTotalPay += pay;
+                    myTotalPay += pay + (parseInt(v.nightAllowance)||0);
                 }
             });
             myTotalPay += (myDriverCount * DRIVER_ALLOWANCE);
@@ -819,7 +808,7 @@
                 const hasSettledThisWeek = allData.some(r => r.type === 'payout_history' && r.start_date === weekRange.startStr);
 
                 currentWeeklyData = { startDate: weekRange.startStr, endDate: weekRange.endStr, details: [] };
-                const weeklyCalc={}, workDaysCount={}, dailyGroups={}, driverCounts={};
+                const weeklyCalc={}, workDaysCount={}, dailyGroups={}, driverCounts={}, nightTotals={}, nightCounts={};
 
                 allData.filter(r => r.type === 'dispatch').forEach(d => {
                     const dt = new Date(d.timestamp);
@@ -829,16 +818,7 @@
                     }
                 });
 
-                allData.filter(r => r.type==='clock').forEach(r => {
-                    const t = new Date(r.timestamp);
-                    if(t >= weekRange.monday && t < weekRange.nextMonday) {
-                        const k = `${r.employee_name}|${t.toDateString()}`;
-                        if(!dailyGroups[k]) dailyGroups[k]={start:null, end:null};
-                        const tv = t.getTime();
-                        if(r.check_type==='上班' && (!dailyGroups[k].start || tv<dailyGroups[k].start)) dailyGroups[k].start = tv;
-                        if(r.check_type==='下班' && (!dailyGroups[k].end || tv>dailyGroups[k].end)) dailyGroups[k].end = tv;
-                    }
-                });
+                allEmps.forEach(emp=>Object.assign(dailyGroups,attendanceGroups(weekRange,emp.employee_name)));
 
                 Object.entries(dailyGroups).forEach(([k,v]) => {
                     const name = k.split('|')[0];
@@ -852,7 +832,7 @@
                         else if (workHrs >= 1) { pay = Math.floor(wage / 2); dayCount = 0.5; }
                         else { pay = Math.floor(workHrs * (wage/8)); dayCount = parseFloat((workHrs/8).toFixed(1)); }
                         weeklyCalc[name] = (weeklyCalc[name]||0) + pay;
-                        workDaysCount[name] = (workDaysCount[name]||0) + dayCount;
+                        workDaysCount[name] = (workDaysCount[name]||0) + dayCount;const nb=parseInt(v.nightAllowance)||0;if(nb>0){nightTotals[name]=(nightTotals[name]||0)+nb;nightCounts[name]=(nightCounts[name]||0)+1;}
                     }
                 });
 
@@ -865,13 +845,13 @@
                     const days = workDaysCount[e.employee_name] || 0;
                     const dCount = driverCounts[e.employee_name] || 0;
                     const driverBonus = dCount * DRIVER_ALLOWANCE;
-                    const finalPay = basePay + driverBonus;
+                    const nightBonus=nightTotals[e.employee_name]||0,nightCount=nightCounts[e.employee_name]||0;const finalPay = basePay + driverBonus + nightBonus;
                     if(finalPay > 0) currentWeeklyData.details.push({name:e.employee_name, code:e.employee_code, pay:finalPay, days});
                     totalSalary += finalPay;
                     const settledText = hasSettledThisWeek ? '<span class="text-xs text-green-500 font-bold ml-2">(已結算)</span>' : '';
                     const drvHtml = dCount > 0 ? `<div class="text-xs text-blue-400 mt-1 font-bold">🚗 津貼 +$${driverBonus} (${dCount}次)</div>` : '';
-                    const inactiveHtml = e.active===false ? '<span class="text-xs text-gray-500 ml-2">（已離職）</span>' : (e.employment_status==='unpaid_leave' ? '<span class="text-xs text-orange-400 ml-2">（留職停薪）</span>' : '');
-                    return `<div class="flex justify-between items-center p-4 bg-[#262626] rounded-xl border border-[#404040]"><div class="font-bold text-[#fca5a5]">${esc(e.employee_name)}${inactiveHtml}${drvHtml}</div><div class="text-right"><div class="text-xs text-[#7f1d1d]">本週出勤 ${days} 天</div><div class="font-black text-[#dc2626] text-xl">$${finalPay.toLocaleString()}${settledText}</div></div></div>`;
+                    const nightHtml=nightBonus>0?'<div class="text-xs text-purple-400 mt-1 font-bold">🌙 夜班加給 +$'+nightBonus.toLocaleString()+' ('+nightCount+'次)</div>':' ';const inactiveHtml = e.active===false ? '<span class="text-xs text-gray-500 ml-2">（已離職）</span>' : (e.employment_status==='unpaid_leave' ? '<span class="text-xs text-orange-400 ml-2">（留職停薪）</span>' : '');
+                    return `<div class="flex justify-between items-center p-4 bg-[#262626] rounded-xl border border-[#404040]"><div class="font-bold text-[#fca5a5]">${esc(e.employee_name)}${inactiveHtml}${drvHtml}${nightHtml}</div><div class="text-right"><div class="text-xs text-[#7f1d1d]">本週出勤 ${days} 天</div><div class="font-black text-[#dc2626] text-xl">$${finalPay.toLocaleString()}${settledText}</div></div></div>`;
                 }).join('');
 
                 const btnSettle = document.getElementById('btn-settle');
@@ -989,7 +969,7 @@
                     const entryKey=`${projectId}|${date}|${name}`;
                     let entry=entryIndex[entryKey];
                     if(!entry) {
-                        const attendance=clockGroups[`${name}|${date}`]||{};
+                        let attendance=clockGroups[`${name}|${date}`]||{}; if(d.night_shift===true){const records=allData.filter(r=>r.type==='clock'&&r.employee_name===name).sort((a,b)=>new Date(a.timestamp)-new Date(b.timestamp));const start=records.find(r=>r.check_type==='上班'&&getDispatchDate(r.timestamp)===date);const st=start?new Date(start.timestamp).getTime():null;const end=st?records.find(r=>r.check_type==='下班'&&new Date(r.timestamp).getTime()>st&&new Date(r.timestamp).getTime()-st<=16*36e5):null;attendance={start:st,end:end?new Date(end.timestamp).getTime():null};}
                         const employee=employees.get(name);
                         const wage=employee?getEmployeeWageAtDate(employee,new Date(`${date}T12:00:00`)):0;
                         let hours=null, dayCount=0, basePay=0;
@@ -1002,12 +982,12 @@
                             else {dayCount=parseFloat((workHours/8).toFixed(1));basePay=Math.floor(workHours*(wage/8));}
                         }
                         const projectCount=assignmentProjects[`${name}|${date}`]?.size||1;
-                        entry={date,name,wage,hours,dayCount,basePay:Math.round(basePay/projectCount),allowance:0,driverCount:0,total:0,complete:!!(attendance.start&&attendance.end)};
+                        const complete=!!(attendance.start&&attendance.end);entry={date,name,wage,hours,dayCount,basePay:Math.round(basePay/projectCount),allowance:0,nightAllowance:complete&&d.night_shift===true?getNightAllowance(d,name):0,driverCount:0,total:0,complete};
                         entryIndex[entryKey]=entry;
                         result[projectId].entries.push(entry);
                     }
                     if(drivers.has(name)){entry.allowance+=DRIVER_ALLOWANCE;entry.driverCount++;}
-                    entry.total=entry.basePay+entry.allowance;
+                    entry.total=entry.basePay+entry.allowance+entry.nightAllowance;
                 });
             });
             Object.values(result).forEach(project=>{project.total=project.entries.reduce((sum,e)=>sum+e.total,0);});
@@ -1508,7 +1488,17 @@
             const d=new Date(timestamp);
             return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
         }
-        function getAutoLaborNote(project, workers) {
+        function getNightAllowance(d,n){return Math.max(0,parseInt(d?.night_allowances?.[n])||0);}
+        function attendanceWorkers(d){return [...new Set([d.employee_name,...(d.partners||'').split(',').map(x=>x.trim()),...(d.drivers||'').split(',').map(x=>x.trim())].filter(Boolean))];}
+        function attendanceGroups(range,name){
+            const records=allData.filter(r=>r.type==='clock'&&r.employee_name===name).sort((a,b)=>new Date(a.timestamp)-new Date(b.timestamp)),used=new Set(),groups={};
+            allData.filter(d=>d.type==='dispatch'&&d.night_shift===true&&new Date(d.timestamp)>=range.monday&&new Date(d.timestamp)<range.nextMonday&&attendanceWorkers(d).includes(name)).sort((a,b)=>new Date(a.timestamp)-new Date(b.timestamp)).forEach(d=>{const date=getDispatchDate(d.timestamp),start=records.find(r=>!used.has(r.id)&&r.check_type==='上班'&&getDispatchDate(r.timestamp)===date);if(!start){groups[name+'|'+date+'|night|'+d.id]={start:null,end:null,nightAllowance:getNightAllowance(d,name)};return;}const st=new Date(start.timestamp).getTime(),end=records.find(r=>!used.has(r.id)&&r.check_type==='下班'&&new Date(r.timestamp).getTime()>st&&new Date(r.timestamp).getTime()-st<=16*36e5);used.add(start.id);if(end)used.add(end.id);groups[name+'|'+date+'|night|'+d.id]={start:st,end:end?new Date(end.timestamp).getTime():null,nightAllowance:getNightAllowance(d,name)};});
+            records.filter(r=>!used.has(r.id)&&new Date(r.timestamp)>=range.monday&&new Date(r.timestamp)<range.nextMonday).forEach(r=>{const key=name+'|'+getDispatchDate(r.timestamp);if(!groups[key])groups[key]={start:null,end:null,nightAllowance:0};const t=new Date(r.timestamp).getTime();if(r.check_type==='上班'&&(!groups[key].start||t<groups[key].start))groups[key].start=t;if(r.check_type==='下班'&&(!groups[key].end||t>groups[key].end))groups[key].end=t;});return groups;
+        }
+        function nightFormWorkers(p){const root=p==='dispatch'?'dispatch':'edit-dispatch',emp=document.getElementById(root+'-emp')?.value||document.getElementById('dispatch-emp-select')?.value||'',list=s=>Array.from(document.querySelectorAll('#'+root+'-'+s+'-list input:checked')).map(x=>x.value);return [...new Set([emp,...list('partners'),...list('drivers')].filter(Boolean))];}
+        function renderNightInputs(p,values=null){const box=document.getElementById(p+'-night-allowances');if(!box)return;const old={};box.querySelectorAll('input').forEach(x=>old[x.dataset.employee]=x.value);values=values||old;box.innerHTML=nightFormWorkers(p).map(name=>'<label class="flex justify-between items-center gap-3"><span class="font-bold text-purple-200">'+esc(name)+'</span><input data-employee="'+esc(name)+'" type="number" min="0" step="50" value="'+(parseInt(values[name])||0)+'" class="input-box mb-0 max-w-[150px]"></label>').join('')||'<div class="text-gray-500">請先選擇派工人員</div>';}
+        function toggleNightFields(p){const on=!!document.getElementById(p+'-night-shift')?.checked;document.getElementById(p+'-night-fields')?.classList.toggle('hidden',!on);if(on)renderNightInputs(p);}
+        function collectNightAllowances(p){const result={};document.querySelectorAll('#'+p+'-night-allowances input').forEach(x=>result[x.dataset.employee]=Math.max(0,parseInt(x.value)||0));return result;}        function getAutoLaborNote(project, workers) {
             return project.project_type==='labor' ? `派工自動建立｜${workers.join('、')}` : `派工自動建立（待填金額）｜${workers.join('、')}`;
         }
         async function syncDispatchLabor(dispatchId, previousDispatch, dispatchData) {
@@ -1756,6 +1746,7 @@
                 const emps=allData.filter(x=>x.type==='employee'&&isEmployeeAvailable(x));
                 const ps=(r.partners||'').split(', ').filter(x=>x);
                 const ds=(r.drivers||'').split(', ').filter(x=>x);
+                document.getElementById('edit-dispatch-night-shift').checked=!!r.night_shift;document.getElementById('edit-dispatch-night-fields').classList.toggle('hidden',!r.night_shift);setTimeout(()=>renderNightInputs('edit-dispatch',r.night_allowances||{}),0);
                 // [FIX] employee_name 用 esc() 防止 XSS
                 document.getElementById('edit-dispatch-partners-list').innerHTML=emps.map(e=>`<label class="custom-checkbox"><input type="checkbox" value="${esc(e.employee_name)}" ${ps.includes(e.employee_name)?'checked':''}><span class="text-[#fca5a5] font-bold">${esc(e.employee_name)}</span></label>`).join('');
                 document.getElementById('edit-dispatch-drivers-list').innerHTML=emps.map(e=>`<label class="custom-checkbox border-blue-900"><input type="checkbox" value="${esc(e.employee_name)}" ${ds.includes(e.employee_name)?'checked':''}><span class="text-blue-400 font-bold">${esc(e.employee_name)}</span></label>`).join('');
@@ -1776,7 +1767,7 @@
             if(type==='employee') { payload.employee_name=document.getElementById('edit-name').value; payload.wage=document.getElementById('edit-wage').value; payload.wage_level=document.getElementById('edit-level').value; payload.hire_date=document.getElementById('edit-hire-date').value; payload.probation_days=parseInt(document.getElementById('edit-probation-days').value)||30; payload.password=document.getElementById('edit-pwd').value; payload.employee_code=document.getElementById('edit-code').value; payload.is_admin=document.getElementById('edit-is-admin').checked; }
             else if(type==='payout_history') { payload.start_date=document.getElementById('edit-pay-start').value.replace(/-/g,'/'); payload.end_date=document.getElementById('edit-pay-end').value.replace(/-/g,'/'); payload.total_amount=parseInt(document.getElementById('edit-pay-amount').value)||0; }
             else if(type==='proj_labor') { const cnt=parseInt(document.getElementById('edit-labor-count').value)||0; const rate=parseInt(document.getElementById('edit-labor-rate').value)||0; const trans=parseInt(document.getElementById('edit-labor-transport').value)||0; payload.date=document.getElementById('edit-labor-date').value; payload.worker_count=cnt; payload.daily_rate=rate; payload.transport_fee=trans; payload.amount=cnt*rate+trans; payload.notes=document.getElementById('edit-labor-note').value; }
-            else if(type==='dispatch') { payload.timestamp=new Date(document.getElementById('edit-time').value).toISOString(); payload.project_name=document.getElementById('edit-dispatch-loc').value; payload.notes=document.getElementById('edit-dispatch-note').value; payload.partners=Array.from(document.querySelectorAll('#edit-dispatch-partners-list input:checked')).map(c=>c.value).join(', '); payload.drivers=Array.from(document.querySelectorAll('#edit-dispatch-drivers-list input:checked')).map(c=>c.value).join(', '); }
+            else if(type==='dispatch') { payload.timestamp=new Date(document.getElementById('edit-time').value).toISOString(); payload.project_name=document.getElementById('edit-dispatch-loc').value; payload.notes=document.getElementById('edit-dispatch-note').value; payload.partners=Array.from(document.querySelectorAll('#edit-dispatch-partners-list input:checked')).map(c=>c.value).join(', '); payload.drivers=Array.from(document.querySelectorAll('#edit-dispatch-drivers-list input:checked')).map(c=>c.value).join(', ');payload.night_shift=document.getElementById('edit-dispatch-night-shift').checked;payload.night_allowances=payload.night_shift?collectNightAllowances('edit-dispatch'):{}; }
             else { payload.timestamp=new Date(document.getElementById('edit-time').value).toISOString(); if(type==='clock') payload.check_type=document.getElementById('edit-check-type').value; else { payload.project_name=document.getElementById('edit-proj').value; payload.notes=document.getElementById('edit-note').value; } }
             if(await updateDataAPI(currentEditId,payload)) {
                 if(type==='dispatch'&&!await syncDispatchLabor(currentEditId,currentEditData,payload)) {
@@ -2084,14 +2075,14 @@
             const parts=date.split('-').map(Number);
             const localTimestamp=new Date(parts[0],parts[1]-1,parts[2]).toISOString();
             const linkedProjId = parseInt(document.getElementById('dispatch-proj-select').value) || null;
-            const dispatchPayload={employee_name:emp,project_name:loc,notes:note,partners,drivers,site_lat:parseFloat(siteLat),site_lng:parseFloat(siteLng),linked_project_id:linkedProjId,timestamp:localTimestamp};
+            const nightShift=document.getElementById('dispatch-night-shift').checked;const dispatchPayload={employee_name:emp,project_name:loc,notes:note,partners,drivers,site_lat:parseFloat(siteLat),site_lng:parseFloat(siteLng),linked_project_id:linkedProjId,night_shift:nightShift,night_allowances:nightShift?collectNightAllowances('dispatch'):{},timestamp:localTimestamp};
             const createdDispatch=await insertDataWithRecord('dispatch',dispatchPayload);
             if(createdDispatch) {
                 if(linkedProjId&&!await syncDispatchLabor(createdDispatch.id,null,dispatchPayload)) {
                     alert('派工已建立，但案件出工紀錄建立失敗，請重新整理後編輯此派工再試一次');
                 }
                 alert("指派成功");
-                document.getElementById('dispatch-proj-select').value='';
+                document.getElementById('dispatch-proj-select').value='';document.getElementById('dispatch-night-shift').checked=false;document.getElementById('dispatch-night-fields').classList.add('hidden');document.getElementById('dispatch-night-allowances').innerHTML='';
                 document.getElementById('dispatch-loc').value='';
                 document.getElementById('dispatch-note').value='';
                 document.getElementById('dispatch-site-lat').value='';
