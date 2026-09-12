@@ -6,7 +6,7 @@
     <meta http-equiv="cache-control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="pragma" content="no-cache">
     <meta http-equiv="expires" content="0">
-    <title>全技工程行 - 管理系統 v8.0</title>
+    <title>全技工程行 - 管理系統 v8.1</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -60,7 +60,7 @@
         <div class="bg-[#171717] w-full max-w-sm p-8 rounded-3xl shadow-2xl border-4 border-[#7f1d1d]">
             <img src="https://vegqsdqxnvqupmzsgbpt.supabase.co/storage/v1/object/public/site_photos/F21060CB-BAB1-4E07-91AC-1E3F35796914.png" alt="Logo" class="w-32 h-32 mx-auto mb-4 object-contain drop-shadow-[0_0_10px_rgba(220,38,38,0.3)]">
             <h1 class="text-4xl font-black text-center text-[#dc2626] mb-2">全技工程行</h1>
-            <p class="text-center text-[#fca5a5] font-bold text-lg mb-8">管理系統 v8.0</p>
+            <p class="text-center text-[#fca5a5] font-bold text-lg mb-8">管理系統 v8.1</p>
             <div class="w-full">
                 <label class="text-label">姓名 (或帳號)</label>
                 <input id="login-id" class="input-box" placeholder="請輸入帳號">
@@ -126,7 +126,7 @@
         <div class="flex items-center gap-3">
             <img src="https://vegqsdqxnvqupmzsgbpt.supabase.co/storage/v1/object/public/site_photos/F21060CB-BAB1-4E07-91AC-1E3F35796914.png" alt="Logo" class="w-10 h-10 object-contain">
             <div>
-                <h1 class="text-xl font-black tracking-widest text-[#dc2626]">全技工程行 <span class="text-xs text-[#fca5a5] tracking-normal">v8.0</span></h1>
+                <h1 class="text-xl font-black tracking-widest text-[#dc2626]">全技工程行 <span class="text-xs text-[#fca5a5] tracking-normal">v8.1</span></h1>
                 <div class="flex items-center gap-2 mt-1"><span class="w-2 h-2 rounded-full bg-[#ef4444] border border-black animate-pulse"></span><span id="user-role-display" class="text-xs font-bold text-[#fca5a5]">未登入</span></div>
             </div>
         </div>
@@ -189,7 +189,7 @@
 
         <div id="page-reimbursement" class="hidden">
             <div class="card" style="border-color:#0f766e;">
-                <h2 class="font-black text-teal-400 text-xl mb-4">🧾 員工代墊款</h2>
+                <h2 class="font-black text-teal-400 text-xl mb-4">🧾 員工代墊款</h2><div id="reimburse-employee-group" class="hidden mb-3"><label class="text-label">代墊員工</label><select id="reimburse-employee" class="input-box"></select><div class="text-xs text-teal-300">管理員可代替指定員工建立代墊紀錄。</div></div>
                 <div class="grid grid-cols-2 gap-3">
                     <div><label class="text-label">日期</label><input id="reimburse-date" type="date" class="input-box" style="color-scheme:dark;"></div>
                     <div><label class="text-label">項目</label><select id="reimburse-category" class="input-box"><option>加油</option><option>材料</option><option>停車費</option><option>過路費</option><option>餐費</option><option>其他</option></select></div>
@@ -1655,7 +1655,7 @@
         }
         function renderReimbursements() {
             if(!currentUser)return;
-            const projectSelect=document.getElementById('reimburse-project');
+            const employeeGroup=document.getElementById('reimburse-employee-group'),employeeSelect=document.getElementById('reimburse-employee');if(employeeGroup)employeeGroup.classList.toggle('hidden',!currentUser.is_admin);if(employeeSelect&&currentUser.is_admin){const selectedEmployee=employeeSelect.value;const employees=allData.filter(r=>r.type==='employee'&&r.active!==false).sort((a,b)=>String(a.employee_name).localeCompare(String(b.employee_name),'zh-TW'));employeeSelect.innerHTML=employees.map(e=>'<option>'+esc(e.employee_name)+'</option>').join('');if(employees.some(e=>e.employee_name===selectedEmployee))employeeSelect.value=selectedEmployee;}const projectSelect=document.getElementById('reimburse-project');
             if(projectSelect){const selected=projectSelect.value;const projects=allData.filter(r=>r.type==='project'&&r.status!=='結案').sort((a,b)=>String(a.project_name).localeCompare(String(b.project_name),'zh-TW'));projectSelect.innerHTML='<option value="">— 不指定案件 —</option>'+projects.map(p=>'<option value="'+p.id+'">'+esc(p.project_name)+'</option>').join('');projectSelect.value=selected;}
             const isAdmin=!!currentUser.is_admin,filter=document.getElementById('reimbursement-status-filter')?.value||'';
             let rows=allData.filter(r=>r.type==='reimbursement'&&(isAdmin||r.employee_name===currentUser.employee_name));
@@ -1671,11 +1671,11 @@
             list.innerHTML=rows.length?rows.map(r=>{const st=reimbursementStatus(r.status),img=r.receipt_url?'<button onclick=\'openLightbox('+JSON.stringify(r.receipt_url)+')\' class="text-xs text-blue-400 underline">查看收據</button>':'<span class="text-xs text-gray-600">無收據</span>';let actions='';if(isAdmin&&r.status==='pending')actions='<button onclick="approveReimbursement('+r.id+')" class="text-xs text-green-400 border border-green-800 px-3 py-2 rounded">核准</button><button onclick="rejectReimbursement('+r.id+')" class="text-xs text-gray-400 border border-gray-700 px-3 py-2 rounded">拒絕</button>';if(isAdmin&&r.status==='approved')actions='<button onclick="markReimbursementPaid('+r.id+')" class="text-xs text-orange-300 border border-orange-800 px-3 py-2 rounded">確認已付款</button>';if(isAdmin)actions+='<button onclick="deleteReimbursement('+r.id+')" class="text-xs text-red-400 border border-red-900 px-3 py-2 rounded">刪除</button>';return '<div class="bg-[#171717] border '+st[2]+' rounded-xl p-4"><div class="flex justify-between gap-3"><div><div class="font-black text-lg">'+esc(r.employee_name)+'・'+esc(r.category)+'</div><div class="text-xs text-gray-400">'+esc(r.date||'')+(r.project_name?'｜'+esc(r.project_name):'')+'</div></div><div class="text-right"><div class="font-black text-xl text-teal-300">$'+(parseInt(r.amount)||0).toLocaleString()+'</div><div class="text-xs font-bold '+st[1]+'">'+st[0]+'</div></div></div><div class="bg-[#262626] p-2 rounded mt-2 text-sm">'+esc(r.notes||'未填說明')+'</div><div class="flex justify-between items-center mt-3"><div>'+img+(r.status==='paid'?'<div class="text-xs text-green-500 mt-1">付款：'+esc(r.paid_date||'')+'｜'+esc(r.payment_method||'未註明')+'</div>':'')+'</div><div class="flex flex-wrap justify-end gap-2">'+actions+'</div></div></div>';}).join(''):'<div class="text-center text-gray-500 py-8">目前沒有代墊紀錄</div>';
         }
         async function submitReimbursement() {
-            const date=document.getElementById('reimburse-date').value,category=document.getElementById('reimburse-category').value,amount=parseInt(document.getElementById('reimburse-amount').value),projectId=parseInt(document.getElementById('reimburse-project').value)||null,notes=document.getElementById('reimburse-note').value.trim(),file=document.getElementById('reimburse-receipt').files[0];
+            const employeeName=currentUser.is_admin?(document.getElementById('reimburse-employee').value||currentUser.employee_name):currentUser.employee_name,date=document.getElementById('reimburse-date').value,category=document.getElementById('reimburse-category').value,amount=parseInt(document.getElementById('reimburse-amount').value),projectId=parseInt(document.getElementById('reimburse-project').value)||null,notes=document.getElementById('reimburse-note').value.trim(),file=document.getElementById('reimburse-receipt').files[0];
             if(!date)return alert('請選擇代墊日期');if(!amount||amount<1)return alert('請輸入正確金額');if(!notes)return alert('請填寫用途說明');
             const project=projectId?allData.find(r=>r.type==='project'&&r.id===projectId):null;
             showLoading('正在送出代墊申請...');let receiptUrl='';if(file){receiptUrl=await uploadFileAPI(file);if(!receiptUrl){hideLoading();return alert('收據上傳失敗，請稍後再試');}}
-            const ok=await insertData('reimbursement',{employee_name:currentUser.employee_name,date,category,amount,project_id:projectId,project_name:project?.project_name||'',notes,receipt_url:receiptUrl,status:'pending',timestamp:new Date().toISOString()});hideLoading();
+            const ok=await insertData('reimbursement',{employee_name:employeeName,entered_by:currentUser.employee_name,admin_entry:!!currentUser.is_admin,date,category,amount,project_id:projectId,project_name:project?.project_name||'',notes,receipt_url:receiptUrl,status:'pending',timestamp:new Date().toISOString()});hideLoading();
             if(!ok)return alert('代墊申請送出失敗');document.getElementById('reimburse-amount').value='';document.getElementById('reimburse-note').value='';document.getElementById('reimburse-project').value='';document.getElementById('reimburse-receipt').value='';document.getElementById('reimburse-preview').classList.add('hidden');await loadData();renderReimbursements();alert('代墊申請已送出，等待管理員核准');
         }
         async function approveReimbursement(id) {
