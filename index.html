@@ -6,7 +6,7 @@
     <meta http-equiv="cache-control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="pragma" content="no-cache">
     <meta http-equiv="expires" content="0">
-    <title>全技工程行 - 管理系統 v8.1</title>
+    <title>全技工程行 - 管理系統 v8.2</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -60,7 +60,7 @@
         <div class="bg-[#171717] w-full max-w-sm p-8 rounded-3xl shadow-2xl border-4 border-[#7f1d1d]">
             <img src="https://vegqsdqxnvqupmzsgbpt.supabase.co/storage/v1/object/public/site_photos/F21060CB-BAB1-4E07-91AC-1E3F35796914.png" alt="Logo" class="w-32 h-32 mx-auto mb-4 object-contain drop-shadow-[0_0_10px_rgba(220,38,38,0.3)]">
             <h1 class="text-4xl font-black text-center text-[#dc2626] mb-2">全技工程行</h1>
-            <p class="text-center text-[#fca5a5] font-bold text-lg mb-8">管理系統 v8.1</p>
+            <p class="text-center text-[#fca5a5] font-bold text-lg mb-8">管理系統 v8.2</p>
             <div class="w-full">
                 <label class="text-label">姓名 (或帳號)</label>
                 <input id="login-id" class="input-box" placeholder="請輸入帳號">
@@ -126,7 +126,7 @@
         <div class="flex items-center gap-3">
             <img src="https://vegqsdqxnvqupmzsgbpt.supabase.co/storage/v1/object/public/site_photos/F21060CB-BAB1-4E07-91AC-1E3F35796914.png" alt="Logo" class="w-10 h-10 object-contain">
             <div>
-                <h1 class="text-xl font-black tracking-widest text-[#dc2626]">全技工程行 <span class="text-xs text-[#fca5a5] tracking-normal">v8.1</span></h1>
+                <h1 class="text-xl font-black tracking-widest text-[#dc2626]">全技工程行 <span class="text-xs text-[#fca5a5] tracking-normal">v8.2</span></h1>
                 <div class="flex items-center gap-2 mt-1"><span class="w-2 h-2 rounded-full bg-[#ef4444] border border-black animate-pulse"></span><span id="user-role-display" class="text-xs font-bold text-[#fca5a5]">未登入</span></div>
             </div>
         </div>
@@ -828,7 +828,16 @@
                 document.getElementById('current-week-display').innerText = `週期：${weekRange.startStr} ~ ${weekRange.endStr}`;
                 const hasSettledThisWeek = allData.some(r => r.type === 'payout_history' && r.start_date === weekRange.startStr);
 
-                currentWeeklyData = { startDate: weekRange.startStr, endDate: weekRange.endStr, details: [] };
+                const payrollReimbursements = allData.filter(r => {
+                    if(r.type !== 'reimbursement' || r.status !== 'approved') return false;
+                    const payrollDate = new Date(r.approved_at || r.timestamp || r.created_at);
+                    return !Number.isNaN(payrollDate.getTime()) && payrollDate >= weekRange.monday && payrollDate < weekRange.nextMonday;
+                });
+                const reimbursementTotals = {};
+                payrollReimbursements.forEach(r => {
+                    reimbursementTotals[r.employee_name] = (reimbursementTotals[r.employee_name] || 0) + (parseInt(r.amount) || 0);
+                });
+                currentWeeklyData = { startDate: weekRange.startStr, endDate: weekRange.endStr, details: [], reimbursementIds: payrollReimbursements.map(r => r.id) };
                 const weeklyCalc={}, workDaysCount={}, dailyGroups={}, driverCounts={}, nightTotals={}, nightCounts={};
 
                 allData.filter(r => r.type === 'dispatch').forEach(d => {
@@ -859,20 +868,22 @@
 
                 document.getElementById('emp-directory-list').innerHTML = staffEmps.map(e => { const onLeave=e.employment_status==='unpaid_leave'; const status=onLeave?'<span class="text-xs text-orange-400 ml-2">留職停薪</span>':''; const leaveBtn=`<button onclick="toggleUnpaidLeave(${e.id})" class="text-xs ${onLeave?'text-green-400 border-green-800':'text-orange-400 border-orange-800'} border px-2 py-2 rounded">${onLeave?'恢復在職':'留職停薪'}</button>`; return `<div class="flex justify-between items-center p-3 bg-[#171717] rounded-xl border ${onLeave?'border-orange-800':'border-[#7f1d1d]'} shadow-sm"><div><div class="font-black text-[#fca5a5]">${e.employee_code?`[${esc(e.employee_code)}]`:''} ${esc(e.employee_name)} ${e.is_admin?'(Admin)':''}${status}</div><div class="text-xs text-yellow-500">${esc(e.wage_level||'尚未分級')}｜日薪 $${esc(e.wage)}</div>${onLeave&&e.leave_without_pay_start?`<div class="text-xs text-orange-300">留停起日 ${esc(e.leave_without_pay_start)}</div>`:''}</div><div class="flex gap-2 items-center">${leaveBtn}<button onclick="openEdit(${e.id})" class="action-btn btn-edit">✏️</button><button onclick="del(this,${e.id})" class="action-btn btn-del">✕</button></div></div>`; }).join('');
 
-                const salaryEmps=allEmps.filter(e=>e.active!==false||(weeklyCalc[e.employee_name]||0)>0||(driverCounts[e.employee_name]||0)>0);
+                const salaryEmps=allEmps.filter(e=>e.active!==false||(weeklyCalc[e.employee_name]||0)>0||(driverCounts[e.employee_name]||0)>0||(reimbursementTotals[e.employee_name]||0)>0);
                 let totalSalary = 0;
                 document.getElementById('salary-calc-list').innerHTML = salaryEmps.map(e => {
                     const basePay = weeklyCalc[e.employee_name] || 0;
                     const days = workDaysCount[e.employee_name] || 0;
                     const dCount = driverCounts[e.employee_name] || 0;
                     const driverBonus = dCount * DRIVER_ALLOWANCE;
-                    const nightBonus=nightTotals[e.employee_name]||0,nightCount=nightCounts[e.employee_name]||0;const finalPay = basePay + driverBonus + nightBonus;
-                    if(finalPay > 0) currentWeeklyData.details.push({name:e.employee_name, code:e.employee_code, pay:finalPay, days});
+                    const nightBonus=nightTotals[e.employee_name]||0,nightCount=nightCounts[e.employee_name]||0;
+                    const reimbursementPay=reimbursementTotals[e.employee_name]||0;
+                    const finalPay = basePay + driverBonus + nightBonus + reimbursementPay;
+                    if(finalPay > 0) currentWeeklyData.details.push({name:e.employee_name, code:e.employee_code, pay:finalPay, days, base_pay:basePay, driver_allowance:driverBonus, night_allowance:nightBonus, reimbursement:reimbursementPay});
                     totalSalary += finalPay;
                     const settledText = hasSettledThisWeek ? '<span class="text-xs text-green-500 font-bold ml-2">(已結算)</span>' : '';
                     const drvHtml = dCount > 0 ? `<div class="text-xs text-blue-400 mt-1 font-bold">🚗 津貼 +$${driverBonus} (${dCount}次)</div>` : '';
-                    const nightHtml=nightBonus>0?'<div class="text-xs text-purple-400 mt-1 font-bold">🌙 夜班加給 +$'+nightBonus.toLocaleString()+' ('+nightCount+'次)</div>':' ';const inactiveHtml = e.active===false ? '<span class="text-xs text-gray-500 ml-2">（已離職）</span>' : (e.employment_status==='unpaid_leave' ? '<span class="text-xs text-orange-400 ml-2">（留職停薪）</span>' : '');
-                    return `<div class="flex justify-between items-center p-4 bg-[#262626] rounded-xl border border-[#404040]"><div class="font-bold text-[#fca5a5]">${esc(e.employee_name)}${inactiveHtml}${drvHtml}${nightHtml}</div><div class="text-right"><div class="text-xs text-[#7f1d1d]">本週出勤 ${days} 天</div><div class="font-black text-[#dc2626] text-xl">$${finalPay.toLocaleString()}${settledText}</div></div></div>`;
+                    const nightHtml=nightBonus>0?'<div class="text-xs text-purple-400 mt-1 font-bold">🌙 夜班加給 +$'+nightBonus.toLocaleString()+' ('+nightCount+'次)</div>':' ';const reimbursementHtml=reimbursementPay>0?'<div class="text-xs text-teal-400 mt-1 font-bold">🧾 代墊併薪 +$'+reimbursementPay.toLocaleString()+'</div>':'';const inactiveHtml = e.active===false ? '<span class="text-xs text-gray-500 ml-2">（已離職）</span>' : (e.employment_status==='unpaid_leave' ? '<span class="text-xs text-orange-400 ml-2">（留職停薪）</span>' : '');
+                    return `<div class="flex justify-between items-center p-4 bg-[#262626] rounded-xl border border-[#404040]"><div class="font-bold text-[#fca5a5]">${esc(e.employee_name)}${inactiveHtml}${drvHtml}${nightHtml}${reimbursementHtml}</div><div class="text-right"><div class="text-xs text-[#7f1d1d]">本週出勤 ${days} 天</div><div class="font-black text-[#dc2626] text-xl">$${finalPay.toLocaleString()}${settledText}</div></div></div>`;
                 }).join('');
 
                 const btnSettle = document.getElementById('btn-settle');
@@ -2196,8 +2207,19 @@
         async function settleSalary() {
             if(!currentWeeklyData||currentWeeklyData.total===0) return alert("目前沒有可結算的金額");
             if(!confirm(`確定要結算本週薪資嗎？\n總金額: $${currentWeeklyData.total}\n這將會儲存一份歷史記錄。`)) return;
-            if(await insertData('payout_history',{timestamp:new Date().toISOString(),start_date:currentWeeklyData.startDate,end_date:currentWeeklyData.endDate,total_amount:currentWeeklyData.total,details:currentWeeklyData.details,settled_by:currentUser.employee_name})) {
-                alert("薪資已結算並歸檔！"); await loadData();
+            const reimbursementIds=currentWeeklyData.reimbursementIds||[];
+            if(await insertData('payout_history',{timestamp:new Date().toISOString(),start_date:currentWeeklyData.startDate,end_date:currentWeeklyData.endDate,total_amount:currentWeeklyData.total,details:currentWeeklyData.details,reimbursement_ids:reimbursementIds,settled_by:currentUser.employee_name})) {
+                let reimbursementUpdateFailed=false;
+                const paidAt=new Date().toISOString();
+                for(const id of reimbursementIds){
+                    const r=allData.find(x=>x.type==='reimbursement'&&x.id===id);
+                    if(!r||r.status!=='approved')continue;
+                    const payload={...r,status:'paid',paid_date:localDateKey(new Date()),paid_at:paidAt,paid_by:currentUser.employee_name,payment_method:'薪資併付',payout_start_date:currentWeeklyData.startDate};
+                    delete payload.id;delete payload.type;delete payload.created_at;
+                    if(!await updateDataAPI(id,payload))reimbursementUpdateFailed=true;
+                }
+                await loadData();
+                alert(reimbursementUpdateFailed?'薪資已結算，但部分代墊付款狀態更新失敗，請至代墊頁確認。':'薪資已結算並歸檔，代墊款已標記為薪資併付！');
             } else { alert("結算失敗"); }
         }
 
