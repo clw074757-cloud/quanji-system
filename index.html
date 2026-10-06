@@ -6,7 +6,7 @@
     <meta http-equiv="cache-control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="pragma" content="no-cache">
     <meta http-equiv="expires" content="0">
-    <title>全技工程行 - 管理系統 v8.3</title>
+    <title>全技工程行 - 管理系統 v8.4</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -60,7 +60,7 @@
         <div class="bg-[#171717] w-full max-w-sm p-8 rounded-3xl shadow-2xl border-4 border-[#7f1d1d]">
             <img src="https://vegqsdqxnvqupmzsgbpt.supabase.co/storage/v1/object/public/site_photos/F21060CB-BAB1-4E07-91AC-1E3F35796914.png" alt="Logo" class="w-32 h-32 mx-auto mb-4 object-contain drop-shadow-[0_0_10px_rgba(220,38,38,0.3)]">
             <h1 class="text-4xl font-black text-center text-[#dc2626] mb-2">全技工程行</h1>
-            <p class="text-center text-[#fca5a5] font-bold text-lg mb-8">管理系統 v8.3</p>
+            <p class="text-center text-[#fca5a5] font-bold text-lg mb-8">管理系統 v8.4</p>
             <div class="w-full">
                 <label class="text-label">姓名 (或帳號)</label>
                 <input id="login-id" class="input-box" placeholder="請輸入帳號">
@@ -126,7 +126,7 @@
         <div class="flex items-center gap-3">
             <img src="https://vegqsdqxnvqupmzsgbpt.supabase.co/storage/v1/object/public/site_photos/F21060CB-BAB1-4E07-91AC-1E3F35796914.png" alt="Logo" class="w-10 h-10 object-contain">
             <div>
-                <h1 class="text-xl font-black tracking-widest text-[#dc2626]">全技工程行 <span class="text-xs text-[#fca5a5] tracking-normal">v8.3</span></h1>
+                <h1 class="text-xl font-black tracking-widest text-[#dc2626]">全技工程行 <span class="text-xs text-[#fca5a5] tracking-normal">v8.4</span></h1>
                 <div class="flex items-center gap-2 mt-1"><span class="w-2 h-2 rounded-full bg-[#ef4444] border border-black animate-pulse"></span><span id="user-role-display" class="text-xs font-bold text-[#fca5a5]">未登入</span></div>
             </div>
         </div>
@@ -313,6 +313,16 @@
                 <button id="btn-settle" onclick="settleSalary()" class="btn btn-success text-xl shadow-lg border-2 border-green-800">💰 結算本週薪資 (歸檔)</button>
             </div>
 
+            <div class="card" data-admin-section="salary">
+                <h2 class="text-xl font-black text-yellow-400 mb-3">⏱ 手動加班費</h2>
+                <p class="text-sm text-gray-400 mb-3">按加班日期加入該週薪資；金額由管理員核定。已結算週期不可直接增刪。</p>
+                <label class="text-label">員工</label><select id="overtime-employee" class="input-box"></select>
+                <label class="text-label">加班日期</label><input id="overtime-date" type="date" class="input-box" style="color-scheme:dark;">
+                <label class="text-label">加班費（元）</label><input id="overtime-amount" type="number" min="1" step="1" class="input-box" placeholder="輸入核定金額">
+                <label class="text-label">備註</label><input id="overtime-note" class="input-box" placeholder="例如：週五加班2小時">
+                <button id="overtime-save" onclick="saveOvertime()" class="btn btn-warning mb-4">新增加班費</button>
+                <h3 class="font-bold mb-2">目前檢視週期的加班費</h3><div id="overtime-list"></div>
+            </div>
             <div class="card" data-admin-section="salary" style="border-color:#0f766e;">
                 <h2 class="font-black text-teal-400 text-xl mb-2">🧾 薪資條產生器</h2>
                 <p class="text-xs text-gray-400 mb-4">可選任意日期區間，適用一週、兩週或跨週發薪。</p>
@@ -806,7 +816,7 @@
                     myTotalPay += pay + (parseInt(v.nightAllowance)||0);
                 }
             });
-            myTotalPay += (myDriverCount * DRIVER_ALLOWANCE);
+            myTotalPay += (myDriverCount * DRIVER_ALLOWANCE) + overtimeTotal(currentUser.employee_name, thisWeek);
 
             const salaryEl = document.getElementById('my-salary-text');
             if(salaryEl) salaryEl.innerText = `$${myTotalPay.toLocaleString()}`;
@@ -896,7 +906,7 @@
 
                 document.getElementById('emp-directory-list').innerHTML = staffEmps.map(e => { const onLeave=e.employment_status==='unpaid_leave'; const status=onLeave?'<span class="text-xs text-orange-400 ml-2">留職停薪</span>':''; const leaveBtn=`<button onclick="toggleUnpaidLeave(${e.id})" class="text-xs ${onLeave?'text-green-400 border-green-800':'text-orange-400 border-orange-800'} border px-2 py-2 rounded">${onLeave?'恢復在職':'留職停薪'}</button>`; return `<div class="flex justify-between items-center p-3 bg-[#171717] rounded-xl border ${onLeave?'border-orange-800':'border-[#7f1d1d]'} shadow-sm"><div><div class="font-black text-[#fca5a5]">${e.employee_code?`[${esc(e.employee_code)}]`:''} ${esc(e.employee_name)} ${e.is_admin?'(Admin)':''}${status}</div><div class="text-xs text-yellow-500">${esc(e.wage_level||'尚未分級')}｜日薪 $${esc(e.wage)}</div>${onLeave&&e.leave_without_pay_start?`<div class="text-xs text-orange-300">留停起日 ${esc(e.leave_without_pay_start)}</div>`:''}</div><div class="flex gap-2 items-center">${leaveBtn}<button onclick="openEdit(${e.id})" class="action-btn btn-edit">✏️</button><button onclick="del(this,${e.id})" class="action-btn btn-del">✕</button></div></div>`; }).join('');
 
-                const salaryEmps=allEmps.filter(e=>e.active!==false||(weeklyCalc[e.employee_name]||0)>0||(driverCounts[e.employee_name]||0)>0||(reimbursementTotals[e.employee_name]||0)>0);
+                const salaryEmps=allEmps.filter(e=>e.active!==false||(weeklyCalc[e.employee_name]||0)>0||(driverCounts[e.employee_name]||0)>0||(reimbursementTotals[e.employee_name]||0)>0||overtimeTotal(e.employee_name,weekRange)>0);
                 let totalSalary = 0;
                 document.getElementById('salary-calc-list').innerHTML = salaryEmps.map(e => {
                     const basePay = weeklyCalc[e.employee_name] || 0;
@@ -905,13 +915,15 @@
                     const driverBonus = dCount * DRIVER_ALLOWANCE;
                     const nightBonus=nightTotals[e.employee_name]||0,nightCount=nightCounts[e.employee_name]||0;
                     const reimbursementPay=reimbursementTotals[e.employee_name]||0;
-                    const finalPay = basePay + driverBonus + nightBonus + reimbursementPay;
-                    if(finalPay > 0) currentWeeklyData.details.push({name:e.employee_name, code:e.employee_code, pay:finalPay, days, base_pay:basePay, driver_allowance:driverBonus, night_allowance:nightBonus, reimbursement:reimbursementPay});
+                    const overtimePay = overtimeTotal(e.employee_name,weekRange);
+                    const finalPay = basePay + driverBonus + nightBonus + reimbursementPay + overtimePay;
+                    if(finalPay > 0) currentWeeklyData.details.push({name:e.employee_name, code:e.employee_code, pay:finalPay, days, base_pay:basePay, driver_allowance:driverBonus, night_allowance:nightBonus, reimbursement:reimbursementPay, overtime_pay:overtimePay, overtime_records:overtimeRows(e.employee_name,weekRange).map(r=>({id:r.id,date:r.date,amount:r.amount,notes:r.notes}))});
                     totalSalary += finalPay;
                     const settledText = hasSettledThisWeek ? '<span class="text-xs text-green-500 font-bold ml-2">(已結算)</span>' : '';
                     const drvHtml = dCount > 0 ? `<div class="text-xs text-blue-400 mt-1 font-bold">🚗 津貼 +$${driverBonus} (${dCount}次)</div>` : '';
                     const nightHtml=nightBonus>0?'<div class="text-xs text-purple-400 mt-1 font-bold">🌙 夜班加給 +$'+nightBonus.toLocaleString()+' ('+nightCount+'次)</div>':' ';const reimbursementHtml=reimbursementPay>0?'<div class="text-xs text-teal-400 mt-1 font-bold">🧾 代墊併薪 +$'+reimbursementPay.toLocaleString()+'</div>':'';const inactiveHtml = e.active===false ? '<span class="text-xs text-gray-500 ml-2">（已離職）</span>' : (e.employment_status==='unpaid_leave' ? '<span class="text-xs text-orange-400 ml-2">（留職停薪）</span>' : '');
-                    return `<div class="flex justify-between items-center p-4 bg-[#262626] rounded-xl border border-[#404040]"><div class="font-bold text-[#fca5a5]">${esc(e.employee_name)}${inactiveHtml}${drvHtml}${nightHtml}${reimbursementHtml}</div><div class="text-right"><div class="text-xs text-[#7f1d1d]">本週出勤 ${days} 天</div><div class="font-black text-[#dc2626] text-xl">$${finalPay.toLocaleString()}${settledText}</div></div></div>`;
+                    const overtimeHtml=overtimePay>0?'<div class="text-xs text-yellow-400 mt-1">⏱ 加班費 +$'+overtimePay.toLocaleString()+'</div>':'';
+                    return `<div class="flex justify-between items-center p-4 bg-[#262626] rounded-xl border border-[#404040]"><div class="font-bold text-[#fca5a5]">${esc(e.employee_name)}${inactiveHtml}${drvHtml}${nightHtml}${reimbursementHtml}${overtimeHtml}</div><div class="text-right"><div class="text-xs text-[#7f1d1d]">本週出勤 ${days} 天</div><div class="font-black text-[#dc2626] text-xl">$${finalPay.toLocaleString()}${settledText}</div></div></div>`;
                 }).join('');
 
                 const btnSettle = document.getElementById('btn-settle');
@@ -984,6 +996,7 @@
                     </details>` : ''}
                 `;
                 openPayslipGenerator();
+                renderOvertime();
                 renderProjectPage();
             }
         }
@@ -1502,7 +1515,7 @@
             if (!record) return alert("找不到記錄");
             let csvContent = "﻿";
             csvContent += "編號,姓名,出勤天數,實發金額(含津貼),備註\n";
-            record.details.forEach(d => { csvContent += `${d.code || '-'},${d.name},${d.days},${d.pay}\n`; });
+            record.details.forEach(d => { csvContent += `${d.code || '-'},${d.name},${d.days},${d.pay},加班費${d.overtime_pay||0}元（已含於實發）\n`; });
             csvContent += `,,總計,${record.total_amount},\n`;
             csvContent += `週期,${record.start_date} ~ ${record.end_date},,,\n`;
             csvContent += `經辦人,${record.settled_by || '系統'},,,\n`;
@@ -2272,9 +2285,9 @@
             }).join('');
             const dispatches=allData.filter(d=>d.type==='dispatch'&&new Date(d.timestamp)>=start&&new Date(d.timestamp)<next),driverCount=dispatches.filter(d=>(d.drivers||'').split(',').map(x=>x.trim()).includes(name)).length,driverTotal=driverCount*DRIVER_ALLOWANCE;
             const reimbursements=allData.filter(r=>{if(r.type!=='reimbursement'||r.employee_name!==name)return false;if(!(r.status==='approved'||(r.status==='paid'&&r.payment_method==='薪資併付')))return false;const d=new Date(r.approved_at||r.timestamp||r.created_at);return !Number.isNaN(d.getTime())&&d>=start&&d<next;}).sort((a,b)=>new Date(a.approved_at||a.timestamp)-new Date(b.approved_at||b.timestamp));
-            const reimbursementTotal=reimbursements.reduce((s,r)=>s+(parseInt(r.amount)||0),0),reimbursementRows=reimbursements.map(r=>'<tr><td>'+esc(r.date||'')+'</td><td>'+esc(r.category||'代墊')+'</td><td>'+esc(r.notes||'')+'</td><td>$'+(parseInt(r.amount)||0).toLocaleString()+'</td></tr>').join(''),grandTotal=baseTotal+driverTotal+nightTotal+reimbursementTotal;
+            const reimbursementTotal=reimbursements.reduce((s,r)=>s+(parseInt(r.amount)||0),0),reimbursementRows=reimbursements.map(r=>'<tr><td>'+esc(r.date||'')+'</td><td>'+esc(r.category||'代墊')+'</td><td>'+esc(r.notes||'')+'</td><td>$'+(parseInt(r.amount)||0).toLocaleString()+'</td></tr>').join(''),grandTotal=baseTotal+driverTotal+nightTotal+reimbursementTotal+overtimeTotal(name,range);
             const area=document.getElementById('payslip-print-area');area.dataset.title='薪資條_'+name+'_'+localDateKey(start)+'_'+localDateKey(end);
-            area.innerHTML='<div class="text-center mb-5"><div class="text-2xl font-black text-teal-300">全技工程行 薪資條</div><div class="mt-2 font-bold">'+esc(name)+'｜'+esc(localDateKey(start))+' ～ '+esc(localDateKey(end))+'</div></div><h4 class="font-black text-yellow-400 mb-2">出工明細</h4><div class="overflow-x-auto"><table class="w-full text-xs border-collapse"><thead><tr><th>日期</th><th>工地／案件</th><th>打卡</th><th>計薪時數</th><th>工數</th><th>金額</th></tr></thead><tbody>'+(rows||'<tr><td colspan="6">本區間無出勤資料</td></tr>')+'</tbody></table></div><div class="grid grid-cols-2 gap-2 my-4 text-sm"><div class="bg-[#262626] p-3 rounded">基本薪資：<b>$'+baseTotal.toLocaleString()+'</b></div><div class="bg-[#262626] p-3 rounded">出勤：<b>'+totalDays+' 天</b></div><div class="bg-[#262626] p-3 rounded">駕駛津貼：<b>$'+driverTotal.toLocaleString()+'（'+driverCount+'次）</b></div><div class="bg-[#262626] p-3 rounded">夜班加給：<b>$'+nightTotal.toLocaleString()+'</b></div></div><h4 class="font-black text-teal-400 mb-2">代墊明細</h4><div class="overflow-x-auto"><table class="w-full text-xs border-collapse"><thead><tr><th>代墊日期</th><th>類別</th><th>說明</th><th>金額</th></tr></thead><tbody>'+(reimbursementRows||'<tr><td colspan="4">本區間無薪資併付代墊</td></tr>')+'</tbody></table></div><div class="mt-5 bg-teal-950 border border-teal-700 rounded-xl p-4 flex justify-between items-center"><span class="font-black">本期應發總額</span><span class="text-3xl font-black text-teal-300">$'+grandTotal.toLocaleString()+'</span></div><div class="text-xs text-gray-500 mt-3">計算：基本薪資＋駕駛津貼＋夜班加給＋代墊併薪。缺卡資料不計薪，請先由管理員補登。</div>';
+            area.innerHTML='<div class="text-center mb-5"><div class="text-2xl font-black text-teal-300">全技工程行 薪資條</div><div class="mt-2 font-bold">'+esc(name)+'｜'+esc(localDateKey(start))+' ～ '+esc(localDateKey(end))+'</div></div><h4 class="font-black text-yellow-400 mb-2">出工明細</h4><div class="overflow-x-auto"><table class="w-full text-xs border-collapse"><thead><tr><th>日期</th><th>工地／案件</th><th>打卡</th><th>計薪時數</th><th>工數</th><th>金額</th></tr></thead><tbody>'+(rows||'<tr><td colspan="6">本區間無出勤資料</td></tr>')+'</tbody></table></div><div class="grid grid-cols-2 gap-2 my-4 text-sm"><div class="bg-[#262626] p-3 rounded">基本薪資：<b>$'+baseTotal.toLocaleString()+'</b></div><div class="bg-[#262626] p-3 rounded">出勤：<b>'+totalDays+' 天</b></div><div class="bg-[#262626] p-3 rounded">駕駛津貼：<b>$'+driverTotal.toLocaleString()+'（'+driverCount+'次）</b></div><div class="bg-[#262626] p-3 rounded">夜班加給：<b>$'+nightTotal.toLocaleString()+'</b></div></div>'+overtimeSlipHtml(name,range)+'<h4 class="font-black text-teal-400 mb-2">代墊明細</h4><div class="overflow-x-auto"><table class="w-full text-xs border-collapse"><thead><tr><th>代墊日期</th><th>類別</th><th>說明</th><th>金額</th></tr></thead><tbody>'+(reimbursementRows||'<tr><td colspan="4">本區間無薪資併付代墊</td></tr>')+'</tbody></table></div><div class="mt-5 bg-teal-950 border border-teal-700 rounded-xl p-4 flex justify-between items-center"><span class="font-black">本期應發總額</span><span class="text-3xl font-black text-teal-300">$'+grandTotal.toLocaleString()+'</span></div><div class="text-xs text-gray-500 mt-3">計算：基本薪資＋駕駛津貼＋夜班加給＋加班費＋代墊併薪。缺卡資料不計薪，請先由管理員補登。</div>';
             area.querySelectorAll('th,td').forEach(el=>el.className='border border-gray-700 px-2 py-2 text-left');document.getElementById('payslip-modal').classList.remove('hidden');
         }
         function closePayslip(){document.getElementById('payslip-modal').classList.add('hidden');}
@@ -2336,5 +2349,6 @@
     <div id="update-banner" class="hidden fixed top-0 left-0 right-0 z-[500] bg-yellow-400 text-black text-center font-black py-3 px-4 shadow-lg cursor-pointer" onclick="location.reload(true)">
         🔄 系統有新版本，點此立即更新
     </div>
+    <script src="overtime.js?v=8.4"></script>
 </body>
 </html>
