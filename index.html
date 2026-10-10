@@ -6,7 +6,7 @@
     <meta http-equiv="cache-control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="pragma" content="no-cache">
     <meta http-equiv="expires" content="0">
-    <title>全技工程行 - 管理系統 v8.7</title>
+    <title>全技工程行 - 管理系統 v8.8</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -60,7 +60,7 @@
         <div class="bg-[#171717] w-full max-w-sm p-8 rounded-3xl shadow-2xl border-4 border-[#7f1d1d]">
             <img src="https://vegqsdqxnvqupmzsgbpt.supabase.co/storage/v1/object/public/site_photos/F21060CB-BAB1-4E07-91AC-1E3F35796914.png" alt="Logo" class="w-32 h-32 mx-auto mb-4 object-contain drop-shadow-[0_0_10px_rgba(220,38,38,0.3)]">
             <h1 class="text-4xl font-black text-center text-[#dc2626] mb-2">全技工程行</h1>
-            <p class="text-center text-[#fca5a5] font-bold text-lg mb-8">管理系統 v8.7</p>
+            <p class="text-center text-[#fca5a5] font-bold text-lg mb-8">管理系統 v8.8</p>
             <div class="w-full">
                 <label class="text-label">姓名 (或帳號)</label>
                 <input id="login-id" class="input-box" placeholder="請輸入帳號">
@@ -126,7 +126,7 @@
         <div class="flex items-center gap-3">
             <img src="https://vegqsdqxnvqupmzsgbpt.supabase.co/storage/v1/object/public/site_photos/F21060CB-BAB1-4E07-91AC-1E3F35796914.png" alt="Logo" class="w-10 h-10 object-contain">
             <div>
-                <h1 class="text-xl font-black tracking-widest text-[#dc2626]">全技工程行 <span class="text-xs text-[#fca5a5] tracking-normal">v8.7</span></h1>
+                <h1 class="text-xl font-black tracking-widest text-[#dc2626]">全技工程行 <span class="text-xs text-[#fca5a5] tracking-normal">v8.8</span></h1>
                 <div class="flex items-center gap-2 mt-1"><span class="w-2 h-2 rounded-full bg-[#ef4444] border border-black animate-pulse"></span><span id="user-role-display" class="text-xs font-bold text-[#fca5a5]">未登入</span></div>
             </div>
         </div>
@@ -311,6 +311,7 @@
                 </div>
                 <div id="salary-calc-list" class="space-y-3 mb-6"></div>
                 <button id="btn-settle" onclick="settleSalary()" class="btn btn-success text-xl shadow-lg border-2 border-green-800">💰 結算本週薪資 (歸檔)</button>
+                <p class="text-xs text-gray-400 mt-3">新版結算會先確認案件分配，再將工資新增到案件支出。代墊沿用已存在的支出，缺少才補登；舊結算不回填。</p>
             </div>
 
             <div class="card" data-admin-section="salary">
@@ -864,7 +865,7 @@
                 const empMap={}; allEmps.forEach(e => empMap[e.employee_name]=parseInt(e.wage)||0);
                 const weekRange = getWeekRange(currentViewDate);
                 document.getElementById('current-week-display').innerText = `週期：${weekRange.startStr} ~ ${weekRange.endStr}`;
-                const hasSettledThisWeek = allData.some(r => r.type === 'payout_history' && r.start_date === weekRange.startStr);
+                const hasSettledThisWeek = payrollPeriodSettled(payrollDateKey(weekRange.startStr),payrollDateKey(weekRange.endStr));
 
                 const payrollReimbursements = allData.filter(r => {
                     if(r.type !== 'reimbursement' || r.status !== 'approved') return false;
@@ -931,7 +932,7 @@
                 currentWeeklyData.total = totalSalary;
 
                 if(hasSettledThisWeek) {
-                    const settledRecord = allData.find(r => r.type === 'payout_history' && r.start_date === weekRange.startStr);
+                    const settledRecord = allData.find(r => r.type === 'payout_history' && payrollDateKey(r.start_date) <= payrollDateKey(weekRange.endStr) && payrollDateKey(r.end_date) >= payrollDateKey(weekRange.startStr));
                     const settledAmount = settledRecord ? parseInt(settledRecord.total_amount) : totalSalary;
                     document.getElementById('total-wage').innerText = "$" + settledAmount.toLocaleString() + " (已結算)";
                     btnSettle.innerText = "已完成結算";
@@ -1041,6 +1042,8 @@
                 if(!result[projectId])result[projectId]={total:0,entries:[]};
                 getDispatchWorkers(d).forEach(name=>{
                     const entryKey=`${projectId}|${date}|${name}`;
+                    // New settlements already have frozen expense rows; legacy history remains unchanged.
+                    if(payrollCostAlreadyPosted(name,date))return;
                     let entry=entryIndex[entryKey];
                     if(!entry) {
                         let attendance=clockGroups[`${name}|${date}`]||{}; if(d.night_shift===true){const records=allData.filter(r=>r.type==='clock'&&r.employee_name===name).sort((a,b)=>new Date(a.timestamp)-new Date(b.timestamp));const start=records.find(r=>r.check_type==='上班'&&getDispatchDate(r.timestamp)===date);const st=start?new Date(start.timestamp).getTime():null;const end=st?records.find(r=>r.check_type==='下班'&&new Date(r.timestamp).getTime()>st&&new Date(r.timestamp).getTime()-st<=16*36e5):null;attendance={start:st,end:end?new Date(end.timestamp).getTime():null};}
@@ -1167,10 +1170,12 @@
                             ${e.description?`<span class="text-xs text-gray-400 ml-1">${esc(e.description)}</span>`:''}
                             <span class="text-xs text-gray-400 ml-2">${esc(e.date||'')}</span>
                             ${e.notes?`<div class="text-xs text-gray-500">${esc(e.notes)}</div>`:''}
+                            ${e.settlement_version===1?`<div class="text-xs text-yellow-400">🔒 薪資結算 #${Number(e.payout_id)} 固定紀錄</div>`:''}
+                            ${Array.isArray(e.payroll_lines)?`<details class="mt-1"><summary class="text-xs text-blue-300 cursor-pointer">員工工資明細</summary>${e.payroll_lines.map(l=>`<div class="text-xs text-gray-400">${esc(l.date)} ${esc(l.employee_name)}｜${esc(payrollKinds[l.kind]||l.kind)} $${Number(l.amount).toLocaleString()}</div>`).join('')}</details>`:''}
                         </div>
                         <div class="flex items-center gap-2">
                             <span class="text-[#dc2626] font-black font-mono text-sm">-$${(parseInt(e.amount)||0).toLocaleString()}</span>
-                            <button onclick="del(this,${e.id})" class="action-btn btn-del w-7 h-7 text-xs">✕</button>
+                            ${isPostedPayrollRecord(e)?'':`<button onclick="del(this,${e.id})" class="action-btn btn-del w-7 h-7 text-xs">✕</button>`}
                         </div>
                     </div>`).join('');
 
@@ -1652,6 +1657,7 @@
         async function del(button,id) {
             const record=allData.find(r=>r.id==id);
             if(!record)return alert('找不到要刪除的資料，請先更新畫面');
+            if(isPostedPayrollRecord(record)||(record.type==='project'&&allData.some(r=>r.type==='proj_expense'&&isPostedPayrollRecord(r)&&Number(r.project_id)===Number(id))))return alert('此資料已有固定薪資結算支出，不可單獨刪除，避免薪資與案件帳目不一致。');
             if(record.type==='employee') {
                 if(!confirm('確定停用並封存「'+record.employee_name+'」？\n停用後無法登入或被新派工選取，但歷史出勤、薪資、考核與案件人事成本都會保留。'))return;
                 if(button)button.disabled=true;
@@ -1746,6 +1752,7 @@
             if(!currentUser?.is_admin)return;const r=allData.find(x=>x.type==='reimbursement'&&x.id===id);if(!r||r.status!=='approved')return alert('此筆不是待付款狀態');const method=prompt('付款方式（現金／轉帳／其他）','現金');if(method===null)return;if(!confirm('確認已支付 $'+r.amount+' 給 '+r.employee_name+'？'))return;const payload={...r,status:'paid',paid_date:localDateKey(new Date()),paid_at:new Date().toISOString(),paid_by:currentUser.employee_name,payment_method:method.trim()||'未註明'};delete payload.id;delete payload.type;delete payload.created_at;if(await updateDataAPI(id,payload)){await loadData();renderReimbursements();alert('已記錄付款完成');}
         }
         async function deleteReimbursement(id) {
+            if(allData.some(r=>r.type==='payout_history'&&r.settlement_version===1&&(r.reimbursement_ids||[]).map(Number).includes(Number(id))))return alert('此代墊已納入新版薪資結算，不可單獨刪除。');
             if(!currentUser?.is_admin||!confirm('確定刪除此筆代墊紀錄？關聯案件支出也會一併刪除。'))return;const expenses=allData.filter(x=>x.type==='proj_expense'&&Number(x.reimbursement_id)===Number(id));for(const e of expenses){if(!await deleteDataAPI(e.id))return alert('關聯案件支出刪除失敗');}if(await deleteDataAPI(id)){await loadData();renderReimbursements();}
         }
         function setupNav() {
@@ -1846,6 +1853,7 @@
 
         function openEdit(id) {
             const r=allData.find(d=>d.id===id); if(!r) return;
+            if(isPostedPayrollRecord(r))return alert('此筆已結算並連動案件支出，金額固定保存，不可單獨修改。');
             currentEditId=id; currentEditData=r;
             document.getElementById('edit-id').value=id; document.getElementById('edit-type').value=r.type;
             ['edit-time-group','edit-clock-area','edit-prog-area','edit-emp-area','edit-dispatch-area','edit-payout-area','edit-labor-area','edit-name-group'].forEach(a=>document.getElementById(a).classList.add('hidden'));
@@ -1888,6 +1896,7 @@
         function calcEditLaborAmount() { const cnt=parseFloat(document.getElementById('edit-labor-count').value)||0; const rate=parseInt(document.getElementById('edit-labor-rate').value)||0; const trans=parseInt(document.getElementById('edit-labor-transport').value)||0; document.getElementById('edit-labor-subtotal').textContent='$'+(cnt*rate+trans).toLocaleString(); }
 
         async function saveEdit() {
+            if(isPostedPayrollRecord(currentEditData))return alert('此筆已連動案件支出，不可單獨修改。');
             const type=document.getElementById('edit-type').value, payload={...currentEditData};
             delete payload.id; delete payload.type; delete payload.created_at;
             if(type==='employee') { payload.employee_name=document.getElementById('edit-name').value; payload.wage=document.getElementById('edit-wage').value; payload.wage_level=document.getElementById('edit-level').value; payload.hire_date=document.getElementById('edit-hire-date').value; payload.probation_days=parseInt(document.getElementById('edit-probation-days').value)||30; payload.password=document.getElementById('edit-pwd').value; payload.employee_code=document.getElementById('edit-code').value; payload.is_admin=document.getElementById('edit-is-admin').checked; }
@@ -2299,24 +2308,6 @@
         }
         async function manualRefresh() { await loadData(); alert("數據已更新"); }
 
-        async function settleSalary() {
-            if(!currentWeeklyData||currentWeeklyData.total===0) return alert("目前沒有可結算的金額");
-            if(!confirm(`確定要結算本週薪資嗎？\n總金額: $${currentWeeklyData.total}\n這將會儲存一份歷史記錄。`)) return;
-            const reimbursementIds=currentWeeklyData.reimbursementIds||[];
-            if(await insertData('payout_history',{timestamp:new Date().toISOString(),start_date:currentWeeklyData.startDate,end_date:currentWeeklyData.endDate,total_amount:currentWeeklyData.total,details:currentWeeklyData.details,reimbursement_ids:reimbursementIds,settled_by:currentUser.employee_name})) {
-                let reimbursementUpdateFailed=false;
-                const paidAt=new Date().toISOString();
-                for(const id of reimbursementIds){
-                    const r=allData.find(x=>x.type==='reimbursement'&&x.id===id);
-                    if(!r||r.status!=='approved')continue;
-                    const payload={...r,status:'paid',paid_date:localDateKey(new Date()),paid_at:paidAt,paid_by:currentUser.employee_name,payment_method:'薪資併付',payout_start_date:currentWeeklyData.startDate};
-                    delete payload.id;delete payload.type;delete payload.created_at;
-                    if(!await updateDataAPI(id,payload))reimbursementUpdateFailed=true;
-                }
-                await loadData();
-                alert(reimbursementUpdateFailed?'薪資已結算，但部分代墊付款狀態更新失敗，請至代墊頁確認。':'薪資已結算並歸檔，代墊款已標記為薪資併付！');
-            } else { alert("結算失敗"); }
-        }
 
         function setupRealtimeListener() {
             supabaseClient.channel('room1').on('postgres_changes',{event:'INSERT',schema:'public',table:'construction_records'},p=>{
@@ -2351,6 +2342,16 @@
     <div id="update-banner" class="hidden fixed top-0 left-0 right-0 z-[500] bg-yellow-400 text-black text-center font-black py-3 px-4 shadow-lg cursor-pointer" onclick="location.reload(true)">
         🔄 系統有新版本，點此立即更新
     </div>
-    <script src="overtime.js?v=8.5"></script>
+    <div id="payroll-posting-modal" class="fixed inset-0 bg-black/95 z-[180] hidden flex items-center justify-center p-3">
+        <div class="bg-[#171717] border-2 border-green-700 rounded-2xl p-5 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <h3 class="font-black text-green-400 text-xl mb-3">薪資結算・確認案件支出</h3>
+            <div id="payroll-posting-summary" class="font-bold mb-3"></div>
+            <p class="text-sm text-gray-400 mb-3">每筆請確認對應案件。無派工或同日多案時須自行選擇。工資、津貼、加班費列為薪資；代墊另列，已有支出不重複新增。既有結算／支出不回填或刪除。新結算金額固定保存，不可單獨修改或刪除。</p>
+            <div id="payroll-posting-rows"></div>
+            <div class="flex gap-3 mt-4"><button onclick="closePayrollPosting()" class="btn btn-secondary">取消</button><button id="payroll-posting-save" onclick="confirmPayrollPosting()" class="btn btn-success">確認結算及建立支出</button></div>
+        </div>
+    </div>
+    <script src="overtime.js?v=8.8"></script>
+    <script src="payroll-settlement.js?v=8.8"></script>
 </body>
 </html>

@@ -9,7 +9,7 @@ function overtimeTotal(name, range) {
 }
 function overtimeLocked(date) {
     const week = getWeekRange(new Date(date + 'T00:00:00'));
-    return allData.some(r => r.type === 'payout_history' && r.start_date === week.startStr);
+    return payrollPeriodSettled(payrollDateKey(week.startStr),payrollDateKey(week.endStr));
 }
 function renderOvertime() {
     if (!currentUser?.is_admin) return;
