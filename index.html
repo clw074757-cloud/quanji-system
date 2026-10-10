@@ -6,7 +6,7 @@
     <meta http-equiv="cache-control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="pragma" content="no-cache">
     <meta http-equiv="expires" content="0">
-    <title>全技工程行 - 管理系統 v8.5</title>
+    <title>全技工程行 - 管理系統 v8.6</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -60,7 +60,7 @@
         <div class="bg-[#171717] w-full max-w-sm p-8 rounded-3xl shadow-2xl border-4 border-[#7f1d1d]">
             <img src="https://vegqsdqxnvqupmzsgbpt.supabase.co/storage/v1/object/public/site_photos/F21060CB-BAB1-4E07-91AC-1E3F35796914.png" alt="Logo" class="w-32 h-32 mx-auto mb-4 object-contain drop-shadow-[0_0_10px_rgba(220,38,38,0.3)]">
             <h1 class="text-4xl font-black text-center text-[#dc2626] mb-2">全技工程行</h1>
-            <p class="text-center text-[#fca5a5] font-bold text-lg mb-8">管理系統 v8.5</p>
+            <p class="text-center text-[#fca5a5] font-bold text-lg mb-8">管理系統 v8.6</p>
             <div class="w-full">
                 <label class="text-label">姓名 (或帳號)</label>
                 <input id="login-id" class="input-box" placeholder="請輸入帳號">
@@ -126,7 +126,7 @@
         <div class="flex items-center gap-3">
             <img src="https://vegqsdqxnvqupmzsgbpt.supabase.co/storage/v1/object/public/site_photos/F21060CB-BAB1-4E07-91AC-1E3F35796914.png" alt="Logo" class="w-10 h-10 object-contain">
             <div>
-                <h1 class="text-xl font-black tracking-widest text-[#dc2626]">全技工程行 <span class="text-xs text-[#fca5a5] tracking-normal">v8.5</span></h1>
+                <h1 class="text-xl font-black tracking-widest text-[#dc2626]">全技工程行 <span class="text-xs text-[#fca5a5] tracking-normal">v8.6</span></h1>
                 <div class="flex items-center gap-2 mt-1"><span class="w-2 h-2 rounded-full bg-[#ef4444] border border-black animate-pulse"></span><span id="user-role-display" class="text-xs font-bold text-[#fca5a5]">未登入</span></div>
             </div>
         </div>
@@ -1013,60 +1013,6 @@
             const display=x=>`${x.getFullYear()}/${x.getMonth()+1}/${x.getDate()}`;
             return {key:iso(monday),label:`${display(monday)}～${display(sunday)}`};
         }
-        function buildContractLaborCostMap(projects) {
-            const contractIds=new Set(projects.filter(p=>p.project_type!=='labor').map(p=>Number(p.id)));
-            const dispatches=allData.filter(r=>r.type==='dispatch'&&contractIds.has(Number(r.linked_project_id))).sort((a,b)=>new Date(a.timestamp)-new Date(b.timestamp)||a.id-b.id);
-            const employees=new Map(allData.filter(r=>r.type==='employee').map(e=>[e.employee_name,e]));
-            const clockGroups={};
-            allData.filter(r=>r.type==='clock').forEach(r=>{
-                const key=`${r.employee_name}|${getDispatchDate(r.timestamp)}`;
-                if(!clockGroups[key])clockGroups[key]={start:null,end:null};
-                const time=new Date(r.timestamp).getTime();
-                if(r.check_type==='上班'&&(!clockGroups[key].start||time<clockGroups[key].start))clockGroups[key].start=time;
-                if(r.check_type==='下班'&&(!clockGroups[key].end||time>clockGroups[key].end))clockGroups[key].end=time;
-            });
-            const assignmentProjects={};
-            dispatches.forEach(d=>{
-                const date=getDispatchDate(d.timestamp), projectId=Number(d.linked_project_id);
-                getDispatchWorkers(d).forEach(name=>{
-                    const key=`${name}|${date}`;
-                    if(!assignmentProjects[key])assignmentProjects[key]=new Set();
-                    assignmentProjects[key].add(projectId);
-                });
-            });
-            const result={}, entryIndex={};
-            dispatches.forEach(d=>{
-                const projectId=Number(d.linked_project_id), date=getDispatchDate(d.timestamp);
-                const drivers=new Set((d.drivers||'').split(',').map(x=>x.trim()).filter(Boolean));
-                if(!result[projectId])result[projectId]={total:0,entries:[]};
-                getDispatchWorkers(d).forEach(name=>{
-                    const entryKey=`${projectId}|${date}|${name}`;
-                    let entry=entryIndex[entryKey];
-                    if(!entry) {
-                        let attendance=clockGroups[`${name}|${date}`]||{}; if(d.night_shift===true){const records=allData.filter(r=>r.type==='clock'&&r.employee_name===name).sort((a,b)=>new Date(a.timestamp)-new Date(b.timestamp));const start=records.find(r=>r.check_type==='上班'&&getDispatchDate(r.timestamp)===date);const st=start?new Date(start.timestamp).getTime():null;const end=st?records.find(r=>r.check_type==='下班'&&new Date(r.timestamp).getTime()>st&&new Date(r.timestamp).getTime()-st<=16*36e5):null;attendance={start:st,end:end?new Date(end.timestamp).getTime():null};}
-                        const employee=employees.get(name);
-                        const wage=employee?getEmployeeWageAtDate(employee,new Date(`${date}T12:00:00`)):0;
-                        let hours=null, dayCount=0, basePay=0;
-                        if(attendance.start&&attendance.end&&attendance.end>attendance.start) {
-                            const elapsed=(attendance.end-attendance.start)/36e5;
-                            const workHours=elapsed>5?elapsed-1:elapsed;
-                            hours=Math.max(0,workHours);
-                            if(workHours>=6){dayCount=1;basePay=wage;}
-                            else if(workHours>=1){dayCount=0.5;basePay=Math.floor(wage/2);}
-                            else {dayCount=parseFloat((workHours/8).toFixed(1));basePay=Math.floor(workHours*(wage/8));}
-                        }
-                        const projectCount=assignmentProjects[`${name}|${date}`]?.size||1;
-                        const complete=!!(attendance.start&&attendance.end);entry={date,name,wage,hours,dayCount,basePay:Math.round(basePay/projectCount),allowance:0,nightAllowance:complete&&d.night_shift===true?getNightAllowance(d,name):0,driverCount:0,total:0,complete};
-                        entryIndex[entryKey]=entry;
-                        result[projectId].entries.push(entry);
-                    }
-                    if(drivers.has(name)){entry.allowance+=DRIVER_ALLOWANCE;entry.driverCount++;}
-                    entry.total=entry.basePay+entry.allowance+entry.nightAllowance;
-                });
-            });
-            Object.values(result).forEach(project=>{project.total=project.entries.reduce((sum,e)=>sum+e.total,0);});
-            return result;
-        }
         function renderProjectPage() {
             const statusOrder = {'進行中':0,'完工':1,'結案':2};
             const projects = allData.filter(r => r.type === 'project').sort((a,b) => {
@@ -1076,7 +1022,8 @@
             const incomes = allData.filter(r => r.type === 'proj_income');
             const expenses = allData.filter(r => r.type === 'proj_expense');
             const laborRecs = allData.filter(r => r.type === 'proj_labor');
-            const contractCostMap = buildContractLaborCostMap(projects);
+            const projectCosts = buildProjectLaborCostMap(projects);
+            const contractCostMap = projectCosts.byProject;
 
             // 先算每個案件的 payable/received/expense，再加總 → 總覽數字 = 卡片加總，不可能對不上
             let totalPayable = 0, totalTax = 0, totalReceived = 0, totalExpense = 0;
@@ -1090,7 +1037,7 @@
                 totalTax += taxAmount;
                 totalReceived += incomes.filter(i => i.project_id == p.id).reduce((ss,i) => ss + (parseInt(i.amount)||0), 0);
                 const manualExpense=expenses.filter(e => e.project_id == p.id).reduce((ss,e) => ss + (parseInt(e.amount)||0), 0);
-                totalExpense += manualExpense + (isL ? 0 : (contractCostMap[p.id]?.total||0));
+                totalExpense += manualExpense + (contractCostMap[p.id]?.total||0);
             });
             const totalProfit = totalReceived - totalExpense;
             const totalOutstanding = totalPayable - totalReceived;
@@ -1110,7 +1057,7 @@
                     <div class="text-xl font-black text-orange-400 font-mono">$${totalOutstanding.toLocaleString()}</div>
                 </div>
                 <div class="bg-[#262626] p-3 rounded-xl border border-red-900">
-                    <div class="text-xs text-[#fca5a5] font-bold">總支出（含合約人事成本）</div>
+                    <div class="text-xs text-[#fca5a5] font-bold">總成本／支出（含所有案件人事）</div>
                     <div class="text-xl font-black text-[#dc2626] font-mono">$${totalExpense.toLocaleString()}</div>
                 </div>
                 <div class="bg-[#262626] p-3 rounded-xl border border-purple-900">
@@ -1123,6 +1070,11 @@
                 </div>
             `;
 
+            if(sumEl) {
+                sumEl.innerHTML += '<div class="col-span-2 text-xs text-gray-400">人事成本依目前已載入的派工／打卡即時計算，修改後更新數據即可重算；尚未發薪也列入成本。超出資料載入期間的歷史工資不包含在內。</div>';
+                const pending = projectCosts.unassigned;
+                if(pending.entries.length) sumEl.innerHTML += `<details class="col-span-2 border border-yellow-700 rounded p-3"><summary class="text-yellow-400 cursor-pointer">⚠ 待歸屬人事成本 $${pending.total.toLocaleString()}（未計入案件總成本）</summary><p class="text-xs text-gray-400 my-2">請補建派工或在派工選擇關聯案件，更新後自動歸入；沒有案件依據時不任意分配。</p>${pending.entries.map(e=>`<div class="text-xs py-1">${esc(e.date)} ${esc(e.name)}｜工資 $${e.basePay.toLocaleString()}／津貼 $${(e.allowance+e.nightAllowance).toLocaleString()}／加班 $${e.overtimePay.toLocaleString()}${e.missingWage?'｜⚠ 缺少員工日薪資料':''}${!e.complete?'｜打卡未完整':''}</div>`).join('')}</details>`;
+            }
             const listEl = document.getElementById('project-list');
             if(!listEl) return;
             if(projects.length === 0) { listEl.innerHTML = '<div class="text-center text-[#7f1d1d] font-bold py-10">尚無案件，請新增</div>'; return; }
@@ -1135,7 +1087,7 @@
                 const contractCost=contractCostMap[p.id]||{total:0,entries:[]};
                 const received = projIncomes.reduce((s,i) => s + (parseInt(i.amount)||0), 0);
                 const manualExpense = projExpenses.reduce((s,e) => s + (parseInt(e.amount)||0), 0);
-                const spent = manualExpense + (isLabor ? 0 : contractCost.total);
+                const spent = manualExpense + contractCost.total;
                 const laborTotal = projLabors.reduce((s,l) => s + (parseInt(l.amount)||0), 0);
                 const baseContract = isLabor ? laborTotal : (parseInt(p.contract_amount) || 0);
                 const { taxAmount, taxTotal, preTotal } = calcTax(baseContract, p.tax_type, p.tax_rate);
@@ -1200,9 +1152,10 @@
                     const costRows=week.entries.sort((a,b)=>b.date.localeCompare(a.date)||a.name.localeCompare(b.name,'zh-TW')).map(entry=>{
                         const attendance=entry.complete?`${entry.hours.toFixed(1)} 小時｜${entry.dayCount} 天`:'打卡未完整｜基本薪資 $0';
                         const driverText=entry.allowance?`<span class="text-xs text-blue-400 ml-2">＋駕駛津貼 $${entry.allowance.toLocaleString()}${entry.driverCount>1?`（${entry.driverCount}次）`:''}</span>`:'';
-                        return `<div class="flex justify-between items-center p-2 bg-[#000] rounded border border-blue-900 mb-1"><div><span class="text-blue-300 font-bold text-sm">${esc(entry.date)}　${esc(entry.name)}</span><div class="text-xs ${entry.complete?'text-gray-400':'text-red-400'} mt-1">${attendance}｜日薪 $${entry.wage.toLocaleString()}｜基本成本 $${entry.basePay.toLocaleString()}${driverText}</div></div><span class="text-blue-300 font-black font-mono text-sm">$${entry.total.toLocaleString()}</span></div>`;
+                        const extras=`${entry.nightAllowance?`｜夜班 $${entry.nightAllowance.toLocaleString()}`:''}${entry.overtimePay?`｜加班 $${entry.overtimePay.toLocaleString()}`:''}${entry.shared?'｜同日多案分攤（工時顯示原班次）':''}${entry.missingWage?'｜⚠ 缺少員工日薪資料':''}`;
+                        return `<div class="flex justify-between items-center p-2 bg-[#000] rounded border border-blue-900 mb-1"><div><span class="text-blue-300 font-bold text-sm">${esc(entry.date)}　${esc(entry.name)}</span><div class="text-xs ${entry.complete?'text-gray-400':'text-red-400'} mt-1">${attendance}｜日薪 $${entry.wage.toLocaleString()}｜基本成本 $${entry.basePay.toLocaleString()}${driverText}${extras}</div></div><span class="text-blue-300 font-black font-mono text-sm">$${entry.total.toLocaleString()}</span></div>`;
                     }).join('');
-                    return `<details class="mb-2 bg-[#08111f] rounded-lg border border-blue-900" ${weekIndex===0?'open':''}><summary class="p-3 cursor-pointer"><div class="flex justify-between items-center gap-2"><span class="font-black text-blue-300">📅 ${week.label}</span><span class="text-blue-300 font-black font-mono">$${week.amount.toLocaleString()}</span></div><div class="text-xs text-gray-400 mt-1">${week.entries.length} 人次｜含駕駛津貼</div></summary><div class="px-2 pb-2 border-t border-blue-900 pt-2">${costRows}</div></details>`;
+                    return `<details class="mb-2 bg-[#08111f] rounded-lg border border-blue-900" ${weekIndex===0?'open':''}><summary class="p-3 cursor-pointer"><div class="flex justify-between items-center gap-2"><span class="font-black text-blue-300">📅 ${week.label}</span><span class="text-blue-300 font-black font-mono">$${week.amount.toLocaleString()}</span></div><div class="text-xs text-gray-400 mt-1">${week.entries.length} 人次｜工資、駕駛／夜班津貼、加班費</div></summary><div class="px-2 pb-2 border-t border-blue-900 pt-2">${costRows}</div></details>`;
                 }).join('');                const actionBtns = `<div class="flex gap-1 mt-1 justify-end">
                     <button onclick="openProjEdit(${p.id})" class="text-xs text-blue-400 border border-blue-800 px-2 py-1 rounded">編輯</button>
                     <button onclick="del(this,${p.id})" class="text-xs text-red-500 border border-red-900 px-2 py-1 rounded">刪除</button>
@@ -1222,14 +1175,14 @@
                             ${actionBtns}
                         </div>`;
 
-                const contractCostSection = !isLabor ? `
+                const contractCostSection = `
                     <details class="mb-2">
                         <summary class="flex justify-between items-center p-3 bg-[#08111f] rounded-lg cursor-pointer border border-blue-900">
-                            <span class="font-bold text-blue-300">👷 人事成本（含駕駛津貼）　$${contractCost.total.toLocaleString()}</span>
+                            <span class="font-bold text-blue-300">👷 自動人事成本（工資＋津貼＋加班）　$${contractCost.total.toLocaleString()}</span>
                             <span class="text-blue-300 text-xs">▼ 展開</span>
                         </summary>
-                        <div class="pt-2">${contractCostWeekRows || '<div class="text-center text-gray-500 text-sm py-2">尚無關聯派工，或派工資料已超出載入期間</div>'}<div class="text-xs text-gray-500 mt-2 px-1">依派工人員、實際打卡、該日期日薪及駕駛津貼自動計算。</div></div>
-                    </details>` : '';
+                        <div class="pt-2">${contractCostWeekRows || '<div class="text-center text-gray-500 text-sm py-2">尚無關聯派工，或派工資料已超出載入期間</div>'}<div class="text-xs text-gray-500 mt-2 px-1">依已載入的派工、打卡及歷史日薪計算基本工資、駕駛／夜班津貼與手動加班費。同日多案平均分攤（夜班按該班派工），整元餘數依案件編號分配。代墊非工資，不重複列入；不影響對上包請款。${projExpenses.some(e=>e.category==='薪資')?'<div class="text-yellow-400 mt-2">⚠ 本案已有手動「薪資」支出，仍保留計入總成本。請核對是否與自動人事成本重複，勿再手動登錄同筆工資。</div>':''}</div></div>
+                    </details>`;
                 const laborSection = isLabor ? `
                     <details class="mb-2">
                         <summary class="flex justify-between items-center p-3 bg-[#1a1500] rounded-lg cursor-pointer border border-yellow-900">
@@ -1274,7 +1227,7 @@
                             <div class="font-black text-green-400 font-mono text-sm">$${received.toLocaleString()}</div>
                         </div>
                         <div class="bg-[#262626] p-2 rounded text-center">
-                            <div class="text-xs text-[#fca5a5]">${isLabor?'支出':'支出（含人事）'}</div>
+                            <div class="text-xs text-[#fca5a5]">成本／支出（含人事）</div>
                             <div class="font-black text-[#dc2626] font-mono text-sm">$${spent.toLocaleString()}</div>
                         </div>
                         <div class="bg-[#262626] p-2 rounded text-center">
@@ -1296,7 +1249,7 @@
                     </details>
                     <details>
                         <summary class="flex justify-between items-center p-3 bg-[#1f0a0a] rounded-lg cursor-pointer border border-red-900">
-                            <span class="font-bold text-[#fca5a5]">📋 ${isLabor?'支出記錄':'其他支出記錄'}（${projExpenses.length} 筆）</span>
+                            <span class="font-bold text-[#fca5a5]">📋 手動支出記錄（${projExpenses.length} 筆）</span>
                             <span class="text-[#fca5a5] text-xs">▼ 展開</span>
                         </summary>
                         <div class="pt-2">
@@ -2351,6 +2304,7 @@
     <div id="update-banner" class="hidden fixed top-0 left-0 right-0 z-[500] bg-yellow-400 text-black text-center font-black py-3 px-4 shadow-lg cursor-pointer" onclick="location.reload(true)">
         🔄 系統有新版本，點此立即更新
     </div>
-    <script src="overtime.js?v=8.5"></script>
+    <script src="overtime.js?v=8.6"></script>
+    <script src="project-costs.js?v=8.6"></script>
 </body>
 </html>
