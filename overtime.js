@@ -15,7 +15,7 @@ function renderOvertime() {
     if (!currentUser?.is_admin) return;
     const select = document.getElementById('overtime-employee');
     const previous = select.value;
-    select.innerHTML = allData.filter(r=>r.type==='employee').map(e=>'<option value="'+esc(e.employee_name)+'">'+esc(e.employee_name)+(e.active===false?'（已離職）':'')+'</option>').join('');
+    select.innerHTML = allData.filter(r=>r.type==='employee'&&isEmployeeAvailable(r)).map(e=>'<option value="'+esc(e.employee_name)+'">'+esc(e.employee_name)+'</option>').join('');
     if ([...select.options].some(o=>o.value===previous)) select.value=previous;
     const date = document.getElementById('overtime-date');
     if (!date.value) date.value=localDateKey(new Date());
