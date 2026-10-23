@@ -74,6 +74,7 @@ function openAdminTodo(index) {
         document.getElementById('admin-clock-todo-hint').textContent=`待補：${item.name} ${item.date}${item.night?' 夜班（下班日期可能為隔日）':''}，請填實際下班日期與時間。`;
         document.getElementById('admin-clock-time').focus();
     } else if(item.kind==='overtime') {
+        if(typeof clearAppliedOvertimeEstimate==='function')clearAppliedOvertimeEstimate();
         document.getElementById('overtime-employee').value=item.name;
         document.getElementById('overtime-date').value=item.date;
         document.getElementById('overtime-amount').value='';

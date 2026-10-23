@@ -35,8 +35,12 @@ async function saveOvertime() {
     try {
         await loadData();
         if (overtimeLocked(date)) return alert('該週已結算，不能直接追加加班費。請先核對原結算紀錄。');
+        if (!allData.some(r=>r.type==='employee'&&r.employee_name===employee_name&&isEmployeeAvailable(r))) throw new Error('員工已非在職，請重新選擇。');
+        const calculation=validateAppliedOvertimeEstimate(employee_name,date);
         if (allData.some(r=>r.type==='overtime_pay'&&r.employee_name===employee_name&&r.date===date) && !confirm('這位員工當天已有加班費，確定另外新增一筆？')) return;
-        if (!await insertData('overtime_pay',{employee_name,date,amount,notes,entered_by:currentUser.employee_name,timestamp:new Date().toISOString()})) throw new Error('加班費儲存失敗');
+        if (!confirm(`確認登錄 ${employee_name} ${date} 加班費 $${amount.toLocaleString()}？${calculation&&amount!==calculation.suggested_amount?'\n試算建議 $'+calculation.suggested_amount+'，本次採用人工調整金額。':''}\n這會加入該週薪資，尚不執行薪資結算。`)) return;
+        if (!await insertData('overtime_pay',{employee_name,date,amount,notes,...(calculation?{calculation}:{}),entered_by:currentUser.employee_name,timestamp:new Date().toISOString()})) throw new Error('加班費儲存失敗');
+        clearAppliedOvertimeEstimate();
         document.getElementById('overtime-amount').value='';document.getElementById('overtime-note').value='';
         await loadData();alert('加班費已加入該日期所屬週的薪資');
     } catch(e) { alert(e.message); }

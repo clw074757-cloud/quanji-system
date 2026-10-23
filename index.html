@@ -6,7 +6,7 @@
     <meta http-equiv="cache-control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="pragma" content="no-cache">
     <meta http-equiv="expires" content="0">
-    <title>全技工程行 - 管理系統 v8.10</title>
+    <title>全技工程行 - 管理系統 v8.11</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -60,7 +60,7 @@
         <div class="bg-[#171717] w-full max-w-sm p-8 rounded-3xl shadow-2xl border-4 border-[#7f1d1d]">
             <img src="https://vegqsdqxnvqupmzsgbpt.supabase.co/storage/v1/object/public/site_photos/F21060CB-BAB1-4E07-91AC-1E3F35796914.png" alt="Logo" class="w-32 h-32 mx-auto mb-4 object-contain drop-shadow-[0_0_10px_rgba(220,38,38,0.3)]">
             <h1 class="text-4xl font-black text-center text-[#dc2626] mb-2">全技工程行</h1>
-            <p class="text-center text-[#fca5a5] font-bold text-lg mb-8">管理系統 v8.10</p>
+            <p class="text-center text-[#fca5a5] font-bold text-lg mb-8">管理系統 v8.11</p>
             <div class="w-full">
                 <label class="text-label">姓名 (或帳號)</label>
                 <input id="login-id" class="input-box" placeholder="請輸入帳號">
@@ -126,7 +126,7 @@
         <div class="flex items-center gap-3">
             <img src="https://vegqsdqxnvqupmzsgbpt.supabase.co/storage/v1/object/public/site_photos/F21060CB-BAB1-4E07-91AC-1E3F35796914.png" alt="Logo" class="w-10 h-10 object-contain">
             <div>
-                <h1 class="text-xl font-black tracking-widest text-[#dc2626]">全技工程行 <span class="text-xs text-[#fca5a5] tracking-normal">v8.10</span></h1>
+                <h1 class="text-xl font-black tracking-widest text-[#dc2626]">全技工程行 <span class="text-xs text-[#fca5a5] tracking-normal">v8.11</span></h1>
                 <div class="flex items-center gap-2 mt-1"><span class="w-2 h-2 rounded-full bg-[#ef4444] border border-black animate-pulse"></span><span id="user-role-display" class="text-xs font-bold text-[#fca5a5]">未登入</span></div>
             </div>
         </div>
@@ -326,13 +326,14 @@
             </div>
 
             <div class="card" data-admin-section="salary">
-                <h2 class="text-xl font-black text-yellow-400 mb-3">⏱ 手動加班費</h2>
+                <h2 class="text-xl font-black text-yellow-400 mb-3">⏱ 加班費試算與人工登錄</h2>
                 <p class="text-sm text-gray-400 mb-3">按加班日期加入該週薪資；金額由管理員核定。已結算週期不可直接增刪。</p>
-                <label class="text-label">員工</label><select id="overtime-employee" class="input-box"></select>
-                <label class="text-label">加班日期</label><input id="overtime-date" type="date" class="input-box" style="color-scheme:dark;">
+                <label class="text-label">員工</label><select id="overtime-employee" class="input-box" onchange="clearAppliedOvertimeEstimate()"></select>
+                <label class="text-label">加班日期</label><input id="overtime-date" type="date" class="input-box" style="color-scheme:dark;" onchange="clearAppliedOvertimeEstimate()">
+                <button onclick="openOvertimeCalculator()" class="btn btn-secondary border border-cyan-700 text-cyan-300 mb-3">🧮 協助試算（一般工作日）</button>
                 <label class="text-label">加班費（元）</label><input id="overtime-amount" type="number" min="1" step="1" class="input-box" placeholder="輸入核定金額">
                 <label class="text-label">備註</label><input id="overtime-note" class="input-box" placeholder="例如：週五加班2小時">
-                <button id="overtime-save" onclick="saveOvertime()" class="btn btn-warning mb-4">新增加班費</button>
+                <button id="overtime-save" onclick="saveOvertime()" class="btn btn-warning mb-4">確認登錄加班費</button>
                 <h3 class="font-bold mb-2">目前檢視週期的加班費</h3><div id="overtime-list"></div>
             </div>
             <div class="card" data-admin-section="salary" style="border-color:#0f766e;">
@@ -2363,8 +2364,29 @@
             <div class="flex gap-3 mt-4"><button onclick="closePayrollPosting()" class="btn btn-secondary">取消</button><button id="payroll-posting-save" onclick="confirmPayrollPosting()" class="btn btn-success">確認結算及建立支出</button></div>
         </div>
     </div>
-    <script src="overtime.js?v=8.10"></script>
-    <script src="payroll-settlement.js?v=8.10"></script>
-    <script src="admin-todo.js?v=8.10"></script>
+    <div id="ot-calc-modal" class="fixed inset-0 bg-black/95 z-[190] hidden flex items-center justify-center p-3">
+        <div class="bg-[#171717] border-2 border-cyan-700 rounded-2xl p-5 w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <h3 class="text-xl font-black text-cyan-300 mb-2">🧮 加班費協助試算</h3>
+            <div id="ot-calc-label" class="font-bold mb-3"></div>
+            <p class="text-sm text-gray-300 mb-3">本工具只適用每日正常工時8小時的一般工作日；不判定排班、假日調移、變形工時或每週40小時。日薪÷8僅為時薪初值，經常性工資／津貼如應納入，請調整時薪。試算不更動打卡與基本薪資。</p>
+            <p id="ot-calc-warning" class="text-sm text-yellow-400 mb-3"></p>
+            <div oninput="document.getElementById('ot-calc-confirm').checked=false;updateOvertimeCalculation()" onchange="document.getElementById('ot-calc-confirm').checked=false;updateOvertimeCalculation()">
+                <label class="text-label">工作日類型（必選，不依星期自動判斷）</label>
+                <select id="ot-calc-day" class="input-box"><option value="">請選擇</option><option value="ordinary">一般工作日（正常工時8小時）</option><option value="rest">休息日（需人工核算）</option><option value="holiday">國定假日（需人工核算）</option><option value="regular_rest">例假／其他特殊工時（需人工核算）</option></select>
+                <label class="text-label">實際開始日期時間</label><input id="ot-calc-start" type="datetime-local" step="1" class="input-box" style="color-scheme:dark;">
+                <label class="text-label">實際結束日期時間（夜班可選隔日）</label><input id="ot-calc-end" type="datetime-local" step="1" class="input-box" style="color-scheme:dark;">
+                <label class="text-label">休息分鐘（預填值須依實際確認）</label><input id="ot-calc-break" type="number" min="0" step="1" class="input-box">
+                <label class="text-label">平日每小時工資額（元，可調整）</label><input id="ot-calc-rate" type="number" min="0" step="any" class="input-box">
+            </div>
+            <div id="ot-calc-result" class="bg-[#262626] p-3 rounded-lg whitespace-pre-line text-yellow-300 mb-3"></div>
+            <label class="custom-checkbox mb-3"><input id="ot-calc-confirm" type="checkbox" onchange="updateOvertimeCalculation()"><span class="text-sm">已核對日別、實際工時、休息與時薪；確認適用本試算。</span></label>
+            <p class="text-xs text-gray-400 mb-3">休息日／假日另有工資規則，現有薪資亦已計日薪，不能直接把完整假日工資再加一次。請另行核算後在原畫面手填。<a href="https://www.mol.gov.tw/1607/28162/28166/28180/81521/81707/" target="_blank" rel="noopener noreferrer" class="text-cyan-300 underline">勞動部計算說明</a></p>
+            <div class="flex gap-2"><button onclick="closeOvertimeCalculator()" class="btn btn-secondary">關閉</button><button id="ot-calc-apply" onclick="applyOvertimeCalculation()" class="btn btn-warning" disabled>帶入金額（未儲存）</button></div>
+        </div>
+    </div>
+    <script src="overtime-calculator.js?v=8.11"></script>
+    <script src="overtime.js?v=8.11"></script>
+    <script src="payroll-settlement.js?v=8.11"></script>
+    <script src="admin-todo.js?v=8.11"></script>
 </body>
 </html>
